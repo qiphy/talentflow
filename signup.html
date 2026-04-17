@@ -35,17 +35,17 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Full Name</label>
-          <input type="text" id="name" class="form-input" placeholder="John Smith" required/>
+          <input type="text" id="name" class="form-input" placeholder="John Lim" required/>
         </div>
         <div class="form-group">
           <label class="form-label">Phone Number</label>
-          <input type="tel" id="phone" class="form-input" placeholder="+60..." required/>
+          <input type="tel" id="phone" class="form-input" placeholder="+60...." required/>
         </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Work Email</label>
-        <input type="email" id="email" class="form-input" placeholder="you@company.com" required/>
+        <input type="email" id="email" class="form-input" placeholder="yourname@gmail.com" required/>
       </div>
 
       <div id="employerOnlyField" class="form-group">
@@ -90,7 +90,25 @@
   </div>
 
   <script>
-    // ... (Keep your setRole, togglePassword, and handleSignup functions here) ...
+    function setRole(role) {
+  currentRole = role;
+  
+  // 1. Toggle the 'active' class on the buttons
+  document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
+  document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
+
+  // 2. Update the Form UI
+  const formTitle = document.getElementById('formTitle');
+  const employerSection = document.getElementById('employerOnlyField');
+
+  if (role === 'employer') {
+    formTitle.textContent = 'Register as Employer';
+    if (employerSection) employerSection.style.display = 'block';
+  } else {
+    formTitle.textContent = 'Register as Employee';
+    if (employerSection) employerSection.style.display = 'none';
+  }
+}
   </script>
 </body>
 </html>
