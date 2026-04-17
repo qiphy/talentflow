@@ -62,9 +62,9 @@ p, span {
   background: var(--color-background-primary);
   border: 0.5px solid var(--color-border-tertiary);
   border-radius: var(--border-radius-lg);
-  padding: 2.5rem;
+  padding: 2rem;
   width: 100%;
-  max-width: 450px;
+  max-width: 520px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -105,7 +105,7 @@ p, span {
 
 /* Form Styling */
 .form-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-label {
@@ -113,7 +113,7 @@ p, span {
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -135,9 +135,16 @@ p, span {
 }
 
 .form-row {
-  display: grid; 
-  grid-template-columns: 1fr 1fr; 
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px; /* Ensure there is enough space between the two columns */
+}
+
+/* Add a Media Query so it stacks on mobile devices */
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Primary Button */
