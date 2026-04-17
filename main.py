@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from zai import ZaiClient
+from fastapi.responses import JSONResponse # Added this for the fix
 
 load_dotenv()
 
@@ -17,10 +18,11 @@ zai_client = ZaiClient(api_key=os.getenv("Z_AI_API_KEY"))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],            # or list specific origins like ["http://localhost:5173"]
+    allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["set-cookie"], 
 )
 
 # Models matching your HTML form
@@ -46,10 +48,8 @@ def create_profile_row(user_id: str, payload: SignupRequest):
         "email": payload.email,
         "phone": payload.phone,
         "role": payload.role,
-        # store company only for employers
         "company": payload.company if payload.role == "employer" else None,
     }
-    # upsert/insert profile
     supabase.table("profiles").insert(profile).execute()
 
 # Signup endpoint
@@ -61,13 +61,11 @@ async def signup(payload: SignupRequest):
         raise HTTPException(status_code=400, detail="Invalid role.")
 
     try:
-        # sign up (supporting client shape differences)
         try:
             auth_response = supabase.auth.sign_up({"email": payload.email, "password": payload.password})
         except AttributeError:
             auth_response = supabase.auth.sign_up(email=payload.email, password=payload.password)
 
-        # normalize user from possible shapes
         user = None
         if isinstance(auth_response, dict):
             user = auth_response.get("user") or (auth_response.get("data") and auth_response["data"].get("user"))
@@ -80,7 +78,6 @@ async def signup(payload: SignupRequest):
 
         user_id = user.get("id") if isinstance(user, dict) else getattr(user, "id", None)
 
-        # insert profile row using upsert to avoid duplicates
         profile = {
             "id": user_id,
             "full_name": payload.full_name,
@@ -89,170 +86,134 @@ async def signup(payload: SignupRequest):
             "role": payload.role,
             "company": payload.company if payload.role == "employer" else None,
         }
-        # use upsert so existing rows are updated if present
         supabase.table("profiles").upsert(profile).execute()
 
-        # Return role and redirect hint (no tokens in JSON)
         redirect = "/hr" if payload.role == "employer" else "/candidate"
         return {"status": "success", "message": "User created. Please log in.", "user_id": user_id, "role": payload.role, "redirect": redirect}
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# Login endpoint (email + password)
+# Login endpoint (FIXED with JSONResponse and secure=False)
 @app.post("/login")
-async def login(req: LoginRequest, response: Response):
+async def login(req: LoginRequest):
     try:
-        # 1) sign in (support multiple client shapes)
+        # 1. Authenticate
+        auth_response = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
+
+        # 2. Precise Extraction based on your structure
+        # The structure you shared has .session and .user directly on the response
+        session = getattr(auth_response, 'session', None)
+        
+        if not session:
+             raise HTTPException(status_code=401, detail="Session not found in auth response.")
+
+        access_token = session.access_token
+        refresh_token = session.refresh_token
+        user_id = session.user.id
+
+        # 3. Role Lookup
+        role = "employee"
         try:
-            auth_response = supabase.auth.sign_in({"email": req.email, "password": req.password})
-        except AttributeError:
-            # newer client style
-            auth_response = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
+            prof_resp = supabase.table("profiles").select("role").eq("id", user_id).execute()
+            if prof_resp.data:
+                role = prof_resp.data[0].get("role")
+        except Exception as e:
+            print(f"Role lookup warning: {e}")
 
-        # 2) normalize session/user/access tokens from possible shapes
-        session = None
-        user = None
+        # 4. Create Response
+        redirect = "/hrhome" if role == "employer" else "/candidatehome"
+        res = JSONResponse(content={
+            "status": "success",
+            "user_id": user_id,
+            "role": role,
+            "redirect": redirect
+        })
 
-        if isinstance(auth_response, dict):
-            # some clients return {"data": { "session": {...} }} or {"session": {...}}
-            session = auth_response.get("session") or auth_response.get("data") or auth_response.get("data", {}).get("session")
-            if isinstance(session, dict):
-                user = session.get("user")
-        else:
-            session = getattr(auth_response, "session", None) or getattr(auth_response, "data", None)
-            if session:
-                user = getattr(session, "user", None)
+        # 5. Set Cookies (Critical settings for local dev)
+        cookie_age = 7 * 24 * 3600 if req.remember else 3600
+        
+        res.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=False, 
+            samesite="lax",
+            max_age=cookie_age,
+            path="/"
+        )
 
-        # fallback: some clients return access/refresh at top-level and user inside "user"
-        access_token = None
-        refresh_token = None
-        if session:
-            access_token = session.get("access_token") if isinstance(session, dict) else getattr(session, "access_token", None)
-            refresh_token = session.get("refresh_token") if isinstance(session, dict) else getattr(session, "refresh_token", None)
+        if refresh_token:
+            res.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,
+                secure=False,
+                samesite="lax",
+                max_age=30 * 24 * 3600,
+                path="/"
+            )
 
-        if not access_token:
-            access_token = getattr(auth_response, "access_token", None) or (auth_response.get("access_token") if isinstance(auth_response, dict) else None)
-            refresh_token = getattr(auth_response, "refresh_token", None) or (auth_response.get("refresh_token") if isinstance(auth_response, dict) else None)
+        print(f"SUCCESS: Set-Cookie headers added for user {user_id}")
+        return res
 
-        # If sign-in failed
-        if not user and not access_token:
-            err = (auth_response.get("error") if isinstance(auth_response, dict) else getattr(auth_response, "error", None)) or "Invalid credentials."
-            raise HTTPException(status_code=401, detail=err)
-
-        # Determine user_id
-        user_id = None
-        if user:
-            user_id = user.get("id") if isinstance(user, dict) else getattr(user, "id", None)
-        # if user_id still missing, attempt to read from session object fields
-        if not user_id and session:
-            user_id = session.get("user", {}).get("id") if isinstance(session, dict) else getattr(session.user, "id", None) if hasattr(session, "user") else None
-
-        # 3) set httpOnly cookie for access token (if available)
-        if access_token:
-            max_age = 7 * 24 * 3600 if req.remember else None
-            response.set_cookie(key="access_token", value=access_token, httponly=True, secure=True, samesite="lax", max_age=max_age)
-
-            # Optionally store refresh token in httpOnly cookie too (recommended)
-            if refresh_token:
-                refresh_max_age = 30 * 24 * 3600  # example 30 days
-                response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=True, samesite="lax", max_age=refresh_max_age)
-
-        # 4) query profiles table to get role
-        role = None
-        if user_id:
-            prof_resp = supabase.table("profiles").select("role").eq("id", user_id).single().execute()
-            if isinstance(prof_resp, dict):
-                role = (prof_resp.get("data") or {}).get("role")
-            else:
-                # client may provide .data attribute
-                prof_data = getattr(prof_resp, "data", None)
-                if isinstance(prof_data, dict):
-                    role = prof_data.get("role")
-
-        # default redirect based on role
-        redirect = "/hr" if role == "employer" else "/candidate"
-
-        return {"status": "success", "user_id": user_id, "role": role, "redirect": redirect}
-
-    except HTTPException:
-        raise
     except Exception as e:
+        print(f"LOGIN ERROR: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
-# Logout
+# Logout (Updated for consistency)
 @app.post("/logout")
-async def logout(response: Response):
-    # remove auth cookies
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
-    return {"status": "success", "redirect": "/login"}
+async def logout():
+    res = JSONResponse(content={"status": "success", "redirect": "/login"})
+    res.delete_cookie("access_token", path="/")
+    res.delete_cookie("refresh_token", path="/")
+    return res
 
-# Refresh endpoint (example)
+# Refresh (Updated for local dev security)
 @app.post("/refresh")
-async def refresh_tokens(request: Request, response: Response):
-    # read refresh token from httpOnly cookie
+async def refresh_tokens(request: Request):
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise HTTPException(status_code=401, detail="No refresh token.")
 
     try:
-        # call supabase to refresh (client shapes vary)
-        try:
-            refreshed = supabase.auth.refresh_session({"refresh_token": refresh_token})
-        except AttributeError:
-            # alternative client APIs
-            try:
-                refreshed = supabase.auth.refresh(refresh_token)
-            except AttributeError:
-                refreshed = supabase.auth.api.refresh_access_token(refresh_token)
+        refreshed = supabase.auth.refresh_session({"refresh_token": refresh_token})
+        new_access = getattr(refreshed, "access_token", None) or (getattr(refreshed, "data", None) and getattr(refreshed.data, "access_token", None))
+        new_refresh = getattr(refreshed, "refresh_token", None) or (getattr(refreshed, "data", None) and getattr(refreshed.data, "refresh_token", None))
 
-        # normalize new tokens from possible shapes
-        new_access = None
-        new_refresh = None
-        if isinstance(refreshed, dict):
-            data = refreshed.get("data") or refreshed
-            new_access = data.get("access_token")
-            new_refresh = data.get("refresh_token")
-        else:
-            new_access = getattr(refreshed, "access_token", None) or (getattr(refreshed, "data", None) and getattr(refreshed.data, "access_token", None))
-            new_refresh = getattr(refreshed, "refresh_token", None) or (getattr(refreshed, "data", None) and getattr(refreshed.data, "refresh_token", None))
-
-        if not new_access:
-            raise HTTPException(status_code=401, detail="Failed to refresh token.")
-
-        # set new cookies
-        response.set_cookie(key="access_token", value=new_access, httponly=True, secure=True, samesite="lax", max_age=15*60)  # example 15m
+        res = JSONResponse(content={"status": "success"})
+        res.set_cookie(key="access_token", value=new_access, httponly=True, secure=False, samesite="lax", max_age=15*60, path="/")
         if new_refresh:
-            response.set_cookie(key="refresh_token", value=new_refresh, httponly=True, secure=True, samesite="lax", max_age=30*24*3600)
+            res.set_cookie(key="refresh_token", value=new_refresh, httponly=True, secure=False, samesite="lax", max_age=30*24*3600, path="/")
+        return res
+    except Exception:
+        raise HTTPException(status_code=401, detail="Refresh failed")
 
-        return {"status": "success"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
-
-
-# Example protected endpoint that validates cookie token
+# Protected Helpers
+# This variable name 'access_token' must be identical to the cookie key!
 def get_current_user(access_token: Optional[str] = Cookie(None)):
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated.")
-    # validate token with Supabase (method depends on client)
     try:
         user_resp = supabase.auth.get_user(access_token)
-        user = getattr(user_resp, "user", None) or (user_resp.get("user") if isinstance(user_resp, dict) else None)
+        # Ensure we are returning the OBJECT, not just a string
+        user = getattr(user_resp, "user", None) or user_resp.get("user")
         if not user:
             raise HTTPException(status_code=401, detail="Invalid token.")
-        return user
+        return user # This should be the User object
     except Exception:
+        # If you were doing 'return access_token' here, that's what caused the crash!
         raise HTTPException(status_code=401, detail="Invalid token.")
 
-# Retrieve profile
 def get_profile(user_id: str):
-    resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-    if isinstance(resp, dict):
-        return resp.get("data")
-    return getattr(resp, "data", None)
+    try:
+        # We keep the query, but handle the potential exception
+        resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+        return getattr(resp, "data", None) or resp.get("data")
+    except Exception as e:
+        # This catches the PGRST116 '0 rows' error and returns None instead of crashing
+        print(f"Database lookup failed for UUID {user_id}: {e}")
+        return None
 
 # Dashboards
 @app.get("/hr")
@@ -261,24 +222,20 @@ async def hr_dashboard(current_user = Depends(get_current_user)):
     profile = get_profile(user_id)
     if not profile or profile.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Forbidden")
-    # return whatever dashboard data you need
     return {"status": "success", "dashboard": "hr", "user_id": user_id, "profile": profile}
 
 @app.get("/candidate")
 async def candidate_dashboard(current_user = Depends(get_current_user)):
     user_id = current_user.id if hasattr(current_user, "id") else current_user.get("id")
     profile = get_profile(user_id)
-    if not profile or profile.get("role") != "employee":
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return {"status": "success", "dashboard": "candidate", "user_id": user_id, "profile": profile}
-
-# Edit account
-@app.get("/account/edit")
-async def edit_account_page(current_user = Depends(get_current_user)):
-    user_id = current_user.id if hasattr(current_user, "id") else current_user.get("id")
-    profile = get_profile(user_id)
+    
     if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        # Instead of crashing, we give a clear message
+        raise HTTPException(
+            status_code=404, 
+            detail=f"User authenticated but profile row missing for ID: {user_id}"
+        )
+    
     return {"status": "success", "profile": profile}
 
 @app.get("/me")
