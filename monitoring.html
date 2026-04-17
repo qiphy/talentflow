@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Log - TalentFlow</title>
+    <link rel="stylesheet" href="design.css">
+    <script src="theme.js" defer></script>
+</head>
+
+<style>
+
+/* ================================
+   SIDEBAR LAYOUT
+================================ */
+
+.sidebar {
+  width: 240px;
+  height: 200vh;
+  overflow: hidden;
+  background: var(--color-background-primary);
+  border-right: 1px solid var(--color-border-tertiary);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  position: fixed;
+  left: 0;
+  top: 0;
+}
+
+/* ================================
+   SIDEBAR LOGO
+================================ */
+
+.sidebar-logo {
+  margin-bottom: 28px;
+}
+
+.logo-mark {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.logo-sub {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+/* ================================
+   NAVIGATION CONTAINER
+================================ */
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ================================
+   NAV SECTION LABEL
+================================ */
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  margin-top: 16px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ================================
+   NAV ITEMS
+================================ */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-item:hover {
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+}
+
+.nav-item.active {
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+a{
+    text-decoration: none;
+}
+
+/* ================================
+   NAV DOTS
+================================ */
+
+.nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Dot colors */
+.dot-blue {background: #378ADD;}
+.dot-teal {background: #00a6a6;}
+.dot-purple {background: #8a5cf6;}
+.dot-amber {background: #f59e0b;}
+.dot-gray {background: #9ca3af;}
+
+/* ================================
+   MAIN CONTAINER
+================================ */
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+.main-content {
+  margin-left: 240px;
+  padding: 30px;
+  width: calc(100% - 240px);
+}
+
+    /* ============================================================
+   ACTIVITY LOG (THEME-INTEGRATED)
+   ============================================================ */
+
+h2 {
+  text-align: center;
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.monitoring-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.activity-log {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 14px;
+  width: min(60vw, 900px);
+  margin: 0 auto 24px;
+  font-family: var(--font-sans);
+}
+
+.activity-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.activity-log-list {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.activity-log-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.activity-log-list::-webkit-scrollbar-thumb {
+  background: var(--color-border-secondary);
+  border-radius: 999px;
+}
+
+.activity-log-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.activity-log-btn {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-secondary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activity-log-btn:hover {
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ITEM */
+.activity-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+/* DOT TYPES (using your palette system) */
+.dot-info {
+  background: #378ADD;
+}
+
+.dot-warning {
+  background: #BA7517;
+}
+
+.dot-error {
+  background: #A32D2D;
+}
+
+.dot-success {
+  background: #1D9E75;
+}
+
+.activity-text {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.activity-time {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+</style>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">TalentFlow</div>
+    <div class="logo-sub">HR Orchestration System</div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-label">Workspace</div>
+
+    <a class="nav-item" href=navbar.html>
+        <div class="nav-dot dot-blue"></div> Navbar
+    </a>
+
+    <div class="nav-item" onclick="showView('hires')">
+        <div class="nav-dot dot-teal"></div> Active Hires
+    </div>
+
+    <div class="nav-item" onclick="showView('intake')">
+        <div class="nav-dot dot-purple"></div> New Intake
+    </div>
+
+    <div class="nav-label">Monitoring</div>
+
+    <a class="nav-item active" href="monitoring.html">
+        <div class="nav-dot dot-amber"></div> GLM Activity
+    </a>
+
+    <div class="nav-item" onclick="showView('flags')">
+        <div class="nav-dot dot-gray"></div> Flags & Alerts
+    </div>
+  </div>
+</div>
+
+<body>
+    <div class="main-content">
+      <div class="monitoring-container">
+
+
+    <h2>Activity Log</h2>
+    <div class="activity-log">
+      <div class="activity-log-header">
+        <div class="activity-log-title">GLM Activity Log</div>
+        <button class="activity-log-btn" onclick="refreshActivityLog()"> Refresh </button>
+      </div>
+      <div class="activity-log-list">
+        <div id="activity-log-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+
+<script>
+    const activityData = [
+  { type: "info", text: "User Aisha Tan was onboarded", time: "2 min ago" },
+  { type: "warning", text: "Missing IC document detected", time: "20 min ago" },
+  { type: "success", text: "GitHub access provisioned", time: "1 hr ago" },
+  { type: "error", text: "AWS provisioning failed", time: "2 hr ago" },
+  { type: "info", text: "User John Doe was offboarded", time: "5 hr ago" },
+  { type: "success", text: "Email account created for Aisha Tan", time: "6 hr ago" },
+  { type: "warning", text: "Pending document verification for User B", time: "8 hr ago" },
+  { type: "error", text: "Failed to provision Slack access for User C", time: "10 hr ago" },
+  { type: "info", text: "User D was onboarded", time: "12 hr ago" },
+  { type: "success", text: "GitHub access provisioned for User D", time: "13 hr ago" },
+  { type: "warning", text: "Missing contact number for User E", time: "15 hr ago" },
+  { type: "error", text: "AWS provisioning failed for User F", time: "18 hr ago" },
+  { type: "info", text: "User G was offboarded", time: "20 hr ago" },
+  { type: "success", text: "Email account deactivated for User G", time: "21 hr ago" },
+  { type: "warning", text: "Pending document verification for User H", time: "22 hr ago" },
+  { type: "error", text: "Failed to provision Slack access for User I", time: "23 hr ago" },
+];
+
+function renderActivityLog() {
+  const container = document.getElementById("activity-log-list");
+
+  container.innerHTML = activityData
+    .map(item => `
+      <div class="activity-item">
+        <div class="activity-dot dot-${item.type}"></div>
+        <div>
+          <div class="activity-text">${item.text}</div>
+          <div class="activity-time">${item.time}</div>
+        </div>
+      </div>
+    `)
+    .join("");
+}
+
+function refreshActivityLog() {
+  renderActivityLog();
+}
+
+renderActivityLog();
+</script>
+
+</html>
