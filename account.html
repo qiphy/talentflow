@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Details | TalentFlow</title>
+    <link rel="stylesheet" href="design.css">
+    <script src="theme.js" defer></script>
+</head>
+
+<style>
+    .toggle-password {
+        cursor: pointer;
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #999 !important;
+    }
+</style>
+
+<body>
+    <main class="auth-card">
+        <div class="auth-header">
+            <div style="display: flex; justify-content: flex-end;">
+                <button id="themeToggle" onclick="toggleTheme()" style="background: none; border: 1.5px solid var(--color-border-tertiary); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                    🌙
+                </button>
+            </div>
+
+            <div class="logo-main">TalentFlow</div>
+            <p>Update your account details</p>
+        </div>
+
+        <form action="#" method="post" class="account-form">
+
+            <div class="form-group">
+                <label class="form-label" for="name">Name</label>
+                <input class="form-input" type="text" id="name" value="John Doe" placeholder="Update Name" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="contact">Contact Number</label>
+                <input class="form-input" type="tel" id="contact" name="contact" value="012-345-6789" placeholder="Update Contact Number" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Work Email</label>
+                <input class="form-input" type="email" id="email" name="email" value="john.doe@gmail.com" placeholder="Update Email" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <div class="pass-container">
+                    <input class="form-input" type="password" id="password" name="password" value="Banana" placeholder="Change Password" required>
+                    <button type="button" id="togglePass" class="back-btn" onclick="togglePassword()" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
+                </div>
+            </div>
+
+            <button class="btn-primary" type="submit" id="updateButton" disabled>
+                Update Account
+            </button>
+        </form>
+    </main>
+
+    <script>
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleBtn = document.getElementById('togglePass');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleBtn.textContent = 'Hide';
+        } else {
+            passwordInput.type = 'password';
+            toggleBtn.textContent = 'Show';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const updateButton = document.getElementById('updateButton');
+        const form = document.querySelector('.account-form');
+        const inputs = document.querySelectorAll('input');
+        const initialValues = {};
+        
+        inputs.forEach(input => {
+            const savedValue = localStorage.getItem(input.id);
+            if (savedValue !== null) {
+                input.value = savedValue;
+            }
+            initialValues[input.id] = input.value;
+            input.addEventListener('input', checkChanges);
+        });
+        
+        function checkChanges() {
+            let changed = false;
+            inputs.forEach(input => {
+                if (input.value !== initialValues[input.id]) {
+                    changed = true;
+                }
+            });
+            updateButton.disabled = !changed;
+        }
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            inputs.forEach(input => {
+                localStorage.setItem(input.id, input.value);
+            });
+
+            inputs.forEach(input => {
+                initialValues[input.id] = input.value;
+            });
+            updateButton.disabled = true;
+            alert('Updated successfully!');
+        });
+    });
+    </script>
+</body>
+</html>
