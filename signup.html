@@ -3,109 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WorkPortal — Sign Up</title>
+  <title>TalentFlow — Sign Up</title>
   <link rel="stylesheet" href="design.css">
+  <script src="theme.js"></script>
 </head>
 <body>
 
-  <h1>WorkPortal</h1>
-  <p>Create your account</p>
-
-  <br>
-
-  <!-- Role Toggle -->
-  <div>
-    <button id="btnEmployer" onclick="setRole('employer')">Employer</button>
-    <button id="btnEmployee" onclick="setRole('employee')">Employee</button>
-  </div>
-
-  <br>
-
-  <!-- Notification -->
-  <div id="notif"></div>
-
-  <h2 id="formTitle">Register as Employer</h2>
-  <p id="formSubtitle">Fill in the details below to create your employer account.</p>
-
-  <br>
-
-  <!-- Form -->
-  <form id="signupForm" onsubmit="handleSignup(event)" novalidate>
-
-    <!-- Full Name -->
-    <label>Full Name:</label><br>
-    <input type="text" id="name" placeholder="e.g. John Smith" required autocomplete="name"/>
-    <br><br>
-
-    <!-- Contact Number -->
-    <label>Contact Number:</label><br>
-    <input type="tel" id="phone" placeholder="e.g. +60123456789" required autocomplete="tel"/>
-    <br><br>
-
-    <!-- Email -->
-    <label>Email Address:</label><br>
-    <input type="email" id="email" placeholder="you@company.com" required autocomplete="email"/>
-    <br><br>
-
-    <!-- Company (employer only) -->
-    <div id="employerField">
-      <label>Company Name:</label><br>
-      <select id="company">
-        <option value="">-- Select your company --</option>
-        <option>Acme Corporation</option>
-        <option>Global Tech Ltd.</option>
-        <option>Sunrise Ventures</option>
-        <option>Other</option>
-      </select>
-      <br><br>
+  <div class="auth-card">
+    <div class="auth-header">
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="themeToggle" onclick="toggleTheme()" style="background: none; border: 1.5px solid var(--color-border-tertiary); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+          🌙
+        </button>
+      </div>
+      <h1 class="logo-main" style="color: var(--color-text-primary);">TalentFlow</h1>
+      <p style="color: var(--color-text-secondary);">Your first step to the workplace</p>
     </div>
 
+    <div class="role-toggle">
+      <button id="btnEmployer" class="active" onclick="setRole('employer')">Employer</button>
+      <button id="btnEmployee" onclick="setRole('employee')">Employee</button>
+    </div>
 
+    <div id="notif" style="margin-bottom: 10px; font-size: 13px; text-align: center;"></div>
 
-    <!-- Password -->
-    <label>Password:</label><br>
-    <input type="password" id="password" placeholder="At least 6 characters" required autocomplete="new-password"/>
-    <button type="button" id="togglePass" onclick="togglePassword('password', 'togglePass')">Show</button>
-    <br><br>
+    <h2 id="formTitle" style="font-size: 18px; margin-bottom: 8px; color: var(--color-text-primary);">Register as Employer</h2>
+    <p id="formSubtitle" style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Fill in the details to get started.</p>
 
-    <!-- Confirm Password -->
-    <label>Confirm Password:</label><br>
-    <input type="password" id="confirmPassword" placeholder="Re-enter your password" required autocomplete="new-password"/>
-    <button type="button" id="toggleConfirm" onclick="togglePassword('confirmPassword', 'toggleConfirm')">Show</button>
-    <br><br>
+    <form id="signupForm" onsubmit="handleSignup(event)" novalidate>
+      
+      <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="name" class="form-input" placeholder="John Smith" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" id="phone" class="form-input" placeholder="+60..." required/>
+        </div>
+      </div>
 
-    <!-- Terms -->
-    <input type="checkbox" id="terms" required/>
-    <label for="terms">I agree to the <a href="#">Terms and Conditions</a></label>
-    <br><br>
+      <div class="form-group">
+        <label class="form-label">Work Email</label>
+        <input type="email" id="email" class="form-input" placeholder="you@company.com" required/>
+      </div>
 
-    <button type="submit" id="btnSignup">Create Account</button>
+      <div id="employerOnlyField" class="form-group">
+        <label class="form-label">Company Name</label>
+        <select id="companySelect" class="form-select">
+          <option value="">-- Select company --</option>
+          <option>Acme Corporation</option>
+          <option>Global Tech Ltd.</option>
+          <option>Sunrise Ventures</option>
+        </select>
+      </div>
 
-  </form>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="pass-container" style="display: flex; gap: 5px;">
+          <input type="password" id="password" class="form-input" placeholder="Please input at least 8 characters" required/>
+          <button type="button" id="togglePass" class="back-btn" onclick="togglePassword('password', 'togglePass')" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
+        </div>
+      </div>
 
-  <br>
-  <p>Already have an account? <a href="login.html">Login here</a></p>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <div class="pass-container" style="display: flex; gap: 5px;">
+          <input type="password" id="confirmPassword" class="form-input" placeholder="Re-enter password" required/>
+          <button type="button" id="toggleConfirm" class="back-btn" onclick="togglePassword('confirmPassword', 'toggleConfirm')" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; margin-bottom: 20px; color: var(--color-text-secondary);">
+        <label style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="terms" required/> 
+          <span>I agree to the <a href="#" style="color: #378ADD;">Terms & Conditions</a></span>
+        </label>
+      </div>
+
+      <button type="submit" id="btnSignup" class="btn-primary">Create Account</button>
+    </form>
+
+    <p style="text-align: center; font-size: 13px; margin-top: 20px; color: var(--color-text-secondary);">
+      Already have an account? <a href="login.html" style="color: #378ADD; font-weight: 600;">Login here</a>
+    </p>
+  </div>
 
   <script>
     let currentRole = 'employer';
 
     function setRole(role) {
       currentRole = role;
+      
+      // Update toggle buttons UI
+      document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
+      document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
 
-      const employerField = document.getElementById('employerField');
       const formTitle = document.getElementById('formTitle');
       const formSubtitle = document.getElementById('formSubtitle');
+      const employerSection = document.getElementById('employerOnlyField');
 
       if (role === 'employer') {
-        employerField.style.display = 'block';
         formTitle.textContent = 'Register as Employer';
         formSubtitle.textContent = 'Fill in the details below to create your employer account.';
+        employerSection.style.display = 'block'; // Show company select
       } else {
-        employerField.style.display = 'none';
         formTitle.textContent = 'Register as Employee';
-        formSubtitle.textContent = 'Fill in the details below to create your employee account.';
+        formSubtitle.textContent = 'Create your account to join your workplace.';
+        employerSection.style.display = 'none'; // Hide company select completely
       }
-
       hideNotif();
     }
 
@@ -121,8 +127,10 @@
       }
     }
 
-    function showNotif(msg) {
-      document.getElementById('notif').textContent = msg;
+    function showNotif(msg, isError = true) {
+      const notif = document.getElementById('notif');
+      notif.textContent = msg;
+      notif.style.color = isError ? "#ff4d4d" : "#4bb543";
     }
 
     function hideNotif() {
@@ -140,84 +148,38 @@
       const confirmPassword = document.getElementById('confirmPassword').value.trim();
       const terms = document.getElementById('terms').checked;
 
-      // Validate name
-      if (!name) {
-        showNotif('Please enter your full name.');
-        return;
-      }
-
-      // Validate phone
-      if (!phone) {
-        showNotif('Please enter your contact number.');
-        return;
-      }
-      if (!/^\+?[0-9\s\-]{7,15}$/.test(phone)) {
-        showNotif('Please enter a valid contact number.');
-        return;
-      }
-
-      // Validate email
-      if (!email) {
-        showNotif('Please enter your email address.');
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showNotif('Please enter a valid email address.');
-        return;
-      }
-
-      // Validate company (employer only)
-      if (currentRole === 'employer') {
-        const company = document.getElementById('company').value;
-        if (!company) {
-          showNotif('Please select your company.');
-          return;
-        }
-      }
-
-      // Validate password
-      if (!password) {
-        showNotif('Please enter a password.');
+      // Validation logic
+      if (!name || !phone || !email || !password || !confirmPassword) {
+        showNotif('Please fill in all fields.');
         return;
       }
       if (password.length < 6) {
-        showNotif('Password must be at least 6 characters.');
-        return;
-      }
-
-      // Validate confirm password
-      if (!confirmPassword) {
-        showNotif('Please confirm your password.');
+        showNotif('Password should be at least 6 characters.');
         return;
       }
       if (password !== confirmPassword) {
-        showNotif('Passwords do not match. Please try again.');
+        showNotif('Passwords do not match.');
         return;
       }
-
-      // Validate terms
       if (!terms) {
-        showNotif('You must agree to the Terms and Conditions to continue.');
+        showNotif('You must agree to the Terms & Conditions.');
         return;
       }
 
-      // Simulate registration
       const btn = document.getElementById('btnSignup');
-      btn.textContent = 'Creating account...';
+      btn.textContent = 'Processing...';
       btn.disabled = true;
 
       setTimeout(() => {
         btn.textContent = 'Create Account';
         btn.disabled = false;
-        showNotif(
-          currentRole === 'employer'
-            ? 'Employer account created successfully! Please check your email to verify.'
-            : 'Employee account created successfully! Please check your email to verify.'
-        );
-        document.getElementById('signupForm').reset();
-      }, 2000);
+        showNotif('Account created successfully!', false);
+        
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1200);
+      }, 1500);
     }
   </script>
-
 </body>
 </html>
