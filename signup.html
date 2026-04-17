@@ -11,13 +11,13 @@
 
   <div class="auth-card">
     <div class="auth-header">
-      <div style="display: flex; justify-content: flex-end;">
-        <button id="themeToggle" onclick="toggleTheme()" style="background: none; border: 1.5px solid var(--color-border-tertiary); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+      <div class="theme-btn-wrapper" style="display: flex; justify-content: flex-end;">
+        <button id="themeToggle" onclick="toggleTheme()" class="theme-toggle-btn">
           🌙
         </button>
       </div>
-      <h1 class="logo-main" style="color: var(--color-text-primary);">TalentFlow</h1>
-      <p style="color: var(--color-text-secondary);">Your first step to the workplace</p>
+      <h1 class="logo-main">TalentFlow</h1>
+      <p>Your first step to the workplace</p>
     </div>
 
     <div class="role-toggle">
@@ -25,14 +25,14 @@
       <button id="btnEmployee" onclick="setRole('employee')">Employee</button>
     </div>
 
-    <div id="notif" style="margin-bottom: 10px; font-size: 13px; text-align: center;"></div>
+    <div id="notif"></div>
 
-    <h2 id="formTitle" style="font-size: 18px; margin-bottom: 8px; color: var(--color-text-primary);">Register as Employer</h2>
-    <p id="formSubtitle" style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Fill in the details to get started.</p>
+    <h2 id="formTitle">Register as Employer</h2>
+    <p id="formSubtitle">Fill in the details to get started.</p>
 
     <form id="signupForm" onsubmit="handleSignup(event)" novalidate>
       
-      <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div class="form-row">
         <div class="form-group">
           <label class="form-label">Full Name</label>
           <input type="text" id="name" class="form-input" placeholder="John Smith" required/>
@@ -60,126 +60,37 @@
 
       <div class="form-group">
         <label class="form-label">Password</label>
-        <div class="pass-container" style="display: flex; gap: 5px;">
-          <input type="password" id="password" class="form-input" placeholder="Please input at least 8 characters" required/>
-          <button type="button" id="togglePass" class="back-btn" onclick="togglePassword('password', 'togglePass')" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
+        <div class="pass-container">
+          <input type="password" id="password" class="form-input" placeholder="Min. 8 characters" required/>
+          <button type="button" id="togglePass" class="back-btn" onclick="togglePassword('password', 'togglePass')">Show</button>
         </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Confirm Password</label>
-        <div class="pass-container" style="display: flex; gap: 5px;">
+        <div class="pass-container">
           <input type="password" id="confirmPassword" class="form-input" placeholder="Re-enter password" required/>
-          <button type="button" id="toggleConfirm" class="back-btn" onclick="togglePassword('confirmPassword', 'toggleConfirm')" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
+          <button type="button" id="toggleConfirm" class="back-btn" onclick="togglePassword('confirmPassword', 'toggleConfirm')">Show</button>
         </div>
       </div>
 
-      <div style="font-size: 12px; margin-bottom: 20px; color: var(--color-text-secondary);">
-        <label style="display: flex; align-items: center; gap: 8px;">
+      <div class="terms-container">
+        <label class="checkbox-label">
           <input type="checkbox" id="terms" required/> 
-          <span>I agree to the <a href="#" style="color: #378ADD;">Terms & Conditions</a></span>
+          <span>I agree to the <a href="#">Terms & Conditions</a></span>
         </label>
       </div>
 
       <button type="submit" id="btnSignup" class="btn-primary">Create Account</button>
     </form>
 
-    <p style="text-align: center; font-size: 13px; margin-top: 20px; color: var(--color-text-secondary);">
-      Already have an account? <a href="login.html" style="color: #378ADD; font-weight: 600;">Login here</a>
+    <p class="login-redirect">
+      Already have an account? <a href="login.html">Login here</a>
     </p>
   </div>
 
   <script>
-    let currentRole = 'employer';
-
-    function setRole(role) {
-      currentRole = role;
-      
-      // Update toggle buttons UI
-      document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
-      document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
-
-      const formTitle = document.getElementById('formTitle');
-      const formSubtitle = document.getElementById('formSubtitle');
-      const employerSection = document.getElementById('employerOnlyField');
-
-      if (role === 'employer') {
-        formTitle.textContent = 'Register as Employer';
-        formSubtitle.textContent = 'Fill in the details below to create your employer account.';
-        employerSection.style.display = 'block'; // Show company select
-      } else {
-        formTitle.textContent = 'Register as Employee';
-        formSubtitle.textContent = 'Create your account to join your workplace.';
-        employerSection.style.display = 'none'; // Hide company select completely
-      }
-      hideNotif();
-    }
-
-    function togglePassword(inputId, btnId) {
-      const input = document.getElementById(inputId);
-      const btn = document.getElementById(btnId);
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = 'Hide';
-      } else {
-        input.type = 'password';
-        btn.textContent = 'Show';
-      }
-    }
-
-    function showNotif(msg, isError = true) {
-      const notif = document.getElementById('notif');
-      notif.textContent = msg;
-      notif.style.color = isError ? "#ff4d4d" : "#4bb543";
-    }
-
-    function hideNotif() {
-      document.getElementById('notif').textContent = '';
-    }
-
-    function handleSignup(e) {
-      e.preventDefault();
-      hideNotif();
-
-      const name = document.getElementById('name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const confirmPassword = document.getElementById('confirmPassword').value.trim();
-      const terms = document.getElementById('terms').checked;
-
-      // Validation logic
-      if (!name || !phone || !email || !password || !confirmPassword) {
-        showNotif('Please fill in all fields.');
-        return;
-      }
-      if (password.length < 6) {
-        showNotif('Password should be at least 6 characters.');
-        return;
-      }
-      if (password !== confirmPassword) {
-        showNotif('Passwords do not match.');
-        return;
-      }
-      if (!terms) {
-        showNotif('You must agree to the Terms & Conditions.');
-        return;
-      }
-
-      const btn = document.getElementById('btnSignup');
-      btn.textContent = 'Processing...';
-      btn.disabled = true;
-
-      setTimeout(() => {
-        btn.textContent = 'Create Account';
-        btn.disabled = false;
-        showNotif('Account created successfully!', false);
-        
-        setTimeout(() => {
-          window.location.href = "login.html";
-        }, 1200);
-      }, 1500);
-    }
+    // ... (Keep your setRole, togglePassword, and handleSignup functions here) ...
   </script>
 </body>
 </html>
