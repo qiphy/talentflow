@@ -159,7 +159,7 @@ body {
 .btn-primary {
   width: 100%;
   background: var(--color-text-primary);
-  color: white;
+  color: var(--color-background-primary);
   border: none;
   padding: 12px;
   border-radius: var(--border-radius-md);
