@@ -1,6 +1,27 @@
 /* ============================================================
    ROOT VARIABLES - Added to fix the "White Screen" issue
    ============================================================ */
+h1, h2, h3, .logo-main {
+  color: var(--color-text-primary);
+}
+
+p, .form-label, span {
+  color: var(--color-text-secondary);
+}
+
+/* Ensure the Pass Container keeps the button next to the input */
+.pass-container {
+  display: flex; 
+  gap: 5px;
+}
+
+/* Ensure the form row grid works */
+.form-row {
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 10px;
+}
+
 :root {
   --color-background-primary: #ffffff;
   --color-background-secondary: #f9f9f8;
