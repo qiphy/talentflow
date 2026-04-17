@@ -560,7 +560,7 @@
     <div class="topbar">
       <div class="page-title" id="pageTitle">New Application</div>
       <div class="topbar-right">
-        <button class="theme-toggle-btn" id="themeToggle">🌙 Dark</button>
+        <button class="theme-toggle-btn" id="themeToggle">🌙</button>
       </div>
     </div>
 
@@ -1121,11 +1121,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const current = html.getAttribute('data-theme');
       if (current === 'dark') {
         html.setAttribute('data-theme', 'light');
-        this.textContent = '🌙 Dark';
+        this.textContent = '🌙';
         localStorage.setItem('theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
-        this.textContent = '☀️ Light';
+        this.textContent = '☀️';
         localStorage.setItem('theme', 'dark');
       }
     });
