@@ -1,27 +1,6 @@
 /* ============================================================
-   ROOT VARIABLES - Added to fix the "White Screen" issue
+   ROOT VARIABLES 
    ============================================================ */
-h1, h2, h3, .logo-main {
-  color: var(--color-text-primary);
-}
-
-p, .form-label, span {
-  color: var(--color-text-secondary);
-}
-
-/* Ensure the Pass Container keeps the button next to the input */
-.pass-container {
-  display: flex; 
-  gap: 5px;
-}
-
-/* Ensure the form row grid works */
-.form-row {
-  display: grid; 
-  grid-template-columns: 1fr 1fr; 
-  gap: 10px;
-}
-
 :root {
   --color-background-primary: #ffffff;
   --color-background-secondary: #f9f9f8;
@@ -36,7 +15,7 @@ p, .form-label, span {
   --border-radius-lg: 10px;
 }
 
-/* DARK MODE */
+/* DARK MODE VARIABLES */
 [data-theme="dark"] {
   --color-background-primary: #1a1a1a;
   --color-background-secondary: #2d2d2d;
@@ -46,26 +25,11 @@ p, .form-label, span {
   --color-text-tertiary: #6e6e73;
   --color-border-tertiary: #333333;
   --color-border-secondary: #444444;
-[data-theme="dark"] h1, 
-[data-theme="dark"] h2, 
-[data-theme="dark"] h3 {
-  color: var(--color-text-primary);
-}
+} /* FIXED: Added closing bracket here */
 
-[data-theme="dark"] .form-label {
-  color: var(--color-text-secondary);
-}
-}
-
-/* Ensure smooth transition when switching */
-body {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.auth-card {
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
+/* ============================================================
+   GLOBAL STYLES
+   ============================================================ */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -75,16 +39,25 @@ body {
 body {
   font-family: var(--font-sans);
   background-color: var(--color-background-tertiary);
+  color: var(--color-text-primary);
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, .logo-main {
+  color: var(--color-text-primary);
+}
+
+p, span {
+  color: var(--color-text-secondary);
 }
 
 /* ============================================================
-   LOGIN/SIGNUP CARD STYLES
+   AUTH CARD STYLES
    ============================================================ */
-
 .auth-card {
   background: var(--color-background-primary);
   border: 0.5px solid var(--color-border-tertiary);
@@ -93,6 +66,7 @@ body {
   width: 100%;
   max-width: 450px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .auth-header {
@@ -100,20 +74,7 @@ body {
   margin-bottom: 2rem;
 }
 
-.logo-main {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--color-text-primary);
-}
-
-.auth-header p {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin-top: 5px;
-}
-
-/* Role Toggle Buttons */
+/* Role Toggle */
 .role-toggle {
   display: flex;
   gap: 10px;
@@ -163,17 +124,20 @@ body {
   border: 1px solid var(--color-border-secondary);
   border-radius: var(--border-radius-md);
   font-size: 14px;
+  background-color: var(--color-background-primary);
+  color: var(--color-text-primary);
   outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-input:focus {
-  border-color: #378ADD;
 }
 
 .pass-container {
-  display: flex;
-  gap: 8px;
+  display: flex; 
+  gap: 5px;
+}
+
+.form-row {
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 10px;
 }
 
 /* Primary Button */
@@ -187,14 +151,10 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 10px;
 }
 
-.btn-primary:hover {
-  opacity: 0.9;
-}
-
-#notif {
+#notif:not(:empty) {
+  display: block;
   font-size: 12px;
   padding: 10px;
   border-radius: var(--border-radius-md);
@@ -202,17 +162,4 @@ body {
   text-align: center;
   background: #fcebeb;
   color: #a32d2d;
-  display: none; /* Hidden until message exists */
-}
-
-#notif:not(:empty) {
-  display: block;
-}
-
-h1, h2, h3, h4 {
-  color: var(--color-text-primary);
-}
-
-[data-theme="dark"] #formTitle {
-  color: var(--color-text-primary) !important;
 }
