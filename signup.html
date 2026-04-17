@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WorkPortal — Sign Up</title>
+</head>
+<body>
+
+  <h1>WorkPortal</h1>
+  <p>Create your account</p>
+
+  <br>
+
+  <!-- Role Toggle -->
+  <div>
+    <button id="btnEmployer" onclick="setRole('employer')">Employer</button>
+    <button id="btnEmployee" onclick="setRole('employee')">Employee</button>
+  </div>
+
+  <br>
+
+  <!-- Notification -->
+  <div id="notif"></div>
+
+  <h2 id="formTitle">Register as Employer</h2>
+  <p id="formSubtitle">Fill in the details below to create your employer account.</p>
+
+  <br>
+
+  <!-- Form -->
+  <form id="signupForm" onsubmit="handleSignup(event)" novalidate>
+
+    <!-- Full Name -->
+    <label>Full Name:</label><br>
+    <input type="text" id="name" placeholder="e.g. John Smith" required autocomplete="name"/>
+    <br><br>
+
+    <!-- Contact Number -->
+    <label>Contact Number:</label><br>
+    <input type="tel" id="phone" placeholder="e.g. +60123456789" required autocomplete="tel"/>
+    <br><br>
+
+    <!-- Email -->
+    <label>Email Address:</label><br>
+    <input type="email" id="email" placeholder="you@company.com" required autocomplete="email"/>
+    <br><br>
+
+    <!-- Company (employer only) -->
+    <div id="employerField">
+      <label>Company Name:</label><br>
+      <select id="company">
+        <option value="">-- Select your company --</option>
+        <option>Acme Corporation</option>
+        <option>Global Tech Ltd.</option>
+        <option>Sunrise Ventures</option>
+        <option>Other</option>
+      </select>
+      <br><br>
+    </div>
+
+
+
+    <!-- Password -->
+    <label>Password:</label><br>
+    <input type="password" id="password" placeholder="At least 6 characters" required autocomplete="new-password"/>
+    <button type="button" id="togglePass" onclick="togglePassword('password', 'togglePass')">Show</button>
+    <br><br>
+
+    <!-- Confirm Password -->
+    <label>Confirm Password:</label><br>
+    <input type="password" id="confirmPassword" placeholder="Re-enter your password" required autocomplete="new-password"/>
+    <button type="button" id="toggleConfirm" onclick="togglePassword('confirmPassword', 'toggleConfirm')">Show</button>
+    <br><br>
+
+    <!-- Terms -->
+    <input type="checkbox" id="terms" required/>
+    <label for="terms">I agree to the <a href="#">Terms and Conditions</a></label>
+    <br><br>
+
+    <button type="submit" id="btnSignup">Create Account</button>
+
+  </form>
+
+  <br>
+  <p>Already have an account? <a href="login.html">Sign in here</a></p>
+
+  <script>
+    let currentRole = 'employer';
+
+    function setRole(role) {
+      currentRole = role;
+
+      const employerField = document.getElementById('employerField');
+      const formTitle = document.getElementById('formTitle');
+      const formSubtitle = document.getElementById('formSubtitle');
+
+      if (role === 'employer') {
+        employerField.style.display = 'block';
+        formTitle.textContent = 'Register as Employer';
+        formSubtitle.textContent = 'Fill in the details below to create your employer account.';
+      } else {
+        employerField.style.display = 'none';
+        formTitle.textContent = 'Register as Employee';
+        formSubtitle.textContent = 'Fill in the details below to create your employee account.';
+      }
+
+      hideNotif();
+    }
+
+    function togglePassword(inputId, btnId) {
+      const input = document.getElementById(inputId);
+      const btn = document.getElementById(btnId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+      }
+    }
+
+    function showNotif(msg) {
+      document.getElementById('notif').textContent = msg;
+    }
+
+    function hideNotif() {
+      document.getElementById('notif').textContent = '';
+    }
+
+    function handleSignup(e) {
+      e.preventDefault();
+      hideNotif();
+
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const confirmPassword = document.getElementById('confirmPassword').value.trim();
+      const terms = document.getElementById('terms').checked;
+
+      // Validate name
+      if (!name) {
+        showNotif('Please enter your full name.');
+        return;
+      }
+
+      // Validate phone
+      if (!phone) {
+        showNotif('Please enter your contact number.');
+        return;
+      }
+      if (!/^\+?[0-9\s\-]{7,15}$/.test(phone)) {
+        showNotif('Please enter a valid contact number.');
+        return;
+      }
+
+      // Validate email
+      if (!email) {
+        showNotif('Please enter your email address.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showNotif('Please enter a valid email address.');
+        return;
+      }
+
+      // Validate company (employer only)
+      if (currentRole === 'employer') {
+        const company = document.getElementById('company').value;
+        if (!company) {
+          showNotif('Please select your company.');
+          return;
+        }
+      }
+
+      // Validate password
+      if (!password) {
+        showNotif('Please enter a password.');
+        return;
+      }
+      if (password.length < 6) {
+        showNotif('Password must be at least 6 characters.');
+        return;
+      }
+
+      // Validate confirm password
+      if (!confirmPassword) {
+        showNotif('Please confirm your password.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        showNotif('Passwords do not match. Please try again.');
+        return;
+      }
+
+      // Validate terms
+      if (!terms) {
+        showNotif('You must agree to the Terms and Conditions to continue.');
+        return;
+      }
+
+      // Simulate registration
+      const btn = document.getElementById('btnSignup');
+      btn.textContent = 'Creating account...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+        showNotif(
+          currentRole === 'employer'
+            ? 'Employer account created successfully! Please check your email to verify.'
+            : 'Employee account created successfully! Please check your email to verify.'
+        );
+        document.getElementById('signupForm').reset();
+      }, 2000);
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WorkPortal — Login</title>
+</head>
+<body>
+
+  <h1>WorkPortal</h1>
+  <p>Your gateway to the workplace</p>
+
+  <br>
+
+  <!-- Role Toggle -->
+  <div>
+    <button id="btnEmployer" onclick="setRole('employer')">Employer</button>
+    <button id="btnEmployee" onclick="setRole('employee')">Employee</button>
+  </div>
+
+  <br>
+
+  <!-- Notification -->
+  <div id="notif"></div>
+
+  <h2 id="formTitle">Welcome, Employer</h2>
+  <p id="formSubtitle">Sign in to manage your team and hiring pipeline.</p>
+
+  <br>
+
+  <!-- Form -->
+  <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
+
+    <!-- Company (employer only) -->
+    <div id="employerField">
+      <label>Company Name:</label><br>
+      <select id="company">
+        <option value="">-- Select your company --</option>
+        <option>Acme Corporation</option>
+        <option>Global Tech Ltd.</option>
+        <option>Sunrise Ventures</option>
+        <option>Other</option>
+      </select>
+      <br><br>
+    </div>
+
+
+
+    <!-- Email -->
+    <label>Work Email:</label><br>
+    <input type="email" id="email" placeholder="you@company.com" required autocomplete="email"/>
+    <br><br>
+
+    <!-- Password -->
+    <label>Password:</label><br>
+    <input type="password" id="password" placeholder="Enter your password" required autocomplete="current-password"/>
+    <button type="button" id="togglePass" onclick="togglePassword()">Show</button>
+    <br><br>
+
+    <!-- Extras -->
+    <input type="checkbox" id="remember"/>
+    <label for="remember">Keep me signed in</label>
+    &nbsp;&nbsp;
+    <a href="#" onclick="forgotPassword(event)">Forgot password?</a>
+    <br><br>
+
+    <button type="submit" id="btnLogin">Sign In</button>
+
+  </form>
+
+  <br>
+  <hr>
+  <p>or continue with:</p>
+
+  <button onclick="oauthLogin('Google')">Google</button>
+  <button onclick="oauthLogin('Microsoft')">Microsoft</button>
+
+  <br><br>
+  <p>Don't have an account? <a href="#" onclick="goRegister(event)" id="registerLink">Create one free</a></p>
+
+  <script>
+    let currentRole = 'employer';
+
+    function setRole(role) {
+      currentRole = role;
+
+      const employerField = document.getElementById('employerField');
+      const formTitle = document.getElementById('formTitle');
+      const formSubtitle = document.getElementById('formSubtitle');
+      const registerLink = document.getElementById('registerLink');
+
+      if (role === 'employer') {
+        employerField.style.display = 'block';
+        formTitle.textContent = 'Welcome, Employer';
+        formSubtitle.textContent = 'Sign in to manage your team and hiring pipeline.';
+        registerLink.textContent = 'Create one free';
+      } else {
+        employerField.style.display = 'none';
+        formTitle.textContent = 'Welcome Back, Employee';
+        formSubtitle.textContent = 'Sign in to access your workspace and payslips.';
+        registerLink.textContent = 'Need an account? Ask HR';
+      }
+
+      hideNotif();
+    }
+
+    function togglePassword() {
+      const input = document.getElementById('password');
+      const btn = document.getElementById('togglePass');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+      }
+    }
+
+    function showNotif(msg) {
+      document.getElementById('notif').textContent = msg;
+    }
+
+    function hideNotif() {
+      document.getElementById('notif').textContent = '';
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      hideNotif();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (!email || !password) {
+        showNotif('Please fill in all required fields.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showNotif('Please enter a valid work email address.');
+        return;
+      }
+      if (password.length < 6) {
+        showNotif('Password must be at least 6 characters.');
+        return;
+      }
+      if (currentRole === 'employer') {
+        const company = document.getElementById('company').value;
+        if (!company) {
+          showNotif('Please select your company.');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnLogin');
+      btn.textContent = 'Signing in...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        btn.textContent = 'Sign In';
+        btn.disabled = false;
+        showNotif(
+          currentRole === 'employer'
+            ? 'Employer login successful! Redirecting to dashboard...'
+            : 'Employee login successful! Redirecting to your workspace...'
+        );
+      }, 1800);
+    }
+
+    function oauthLogin(provider) {
+      showNotif('Connecting to ' + provider + '...');
+    }
+
+    function forgotPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      if (email) {
+        showNotif('Password reset link sent to ' + email);
+      } else {
+        showNotif('Enter your work email above first.');
+        document.getElementById('email').focus();
+      }
+    }
+
+    function goRegister(e) {
+      e.preventDefault();
+      showNotif(
+        currentRole === 'employer'
+          ? 'Redirecting to company registration...'
+          : 'Please contact your HR department to create an account.'
+      );
+    }
+  </script>
+
+</body>
+</html>
