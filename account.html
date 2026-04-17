@@ -4,9 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Details | TalentFlow</title>
+    <title>TalentFlow — Account Details</title>
     <link rel="stylesheet" href="design.css">
     <script src="theme.js" defer></script>
+
+    <script>
+    (function () {
+        const saved = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+    })();
+    </script>
 </head>
 
 <style>
@@ -19,18 +28,291 @@
         cursor: not-allowed;
         background: #999 !important;
     }
+
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden; /* kills page scroll completely */
+    }
+
+    body {
+      display: block;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--color-background-tertiary);
+    }
+
+    /* =========================================================
+   ACCOUNT FORM LAYOUT
+========================================================= */
+
+.acc-card {
+  max-width: 1000px;
+  min-width: 420px;
+  width: 90%;
+  margin-top: 100px;
+  margin-bottom: 100px;
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 36px 42px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+}
+
+.acc-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+    /* ============================================================
+       APP SHELL
+       ============================================================ */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ============================================================
+       SIDEBAR
+       ============================================================ */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--color-background-primary);
+      border-right: 1px solid var(--color-border-tertiary);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-logo .logo-mark {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--color-text-primary);
+    }
+
+    .sidebar-logo .logo-sub {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 3px;
+    }
+
+    .sidebar-nav {
+      padding: 0 12px;
+      flex: 1;
+    }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      padding: 16px 8px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover {
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+    }
+
+    .nav-item.active {
+      background: #1a2a3a;
+      color: #4a9eff;
+    }
+
+    .nav-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-purple { background: #a855f7; }
+    .dot-blue   { background: #4a9eff; }
+    .dot-teal   { background: #2dd4bf; }
+    .dot-amber  { background: #f59e0b; }
+
+    /* ============================================================
+       MAIN AREA
+       ============================================================ */
+    .main {
+        flex: 1;
+        margin-left: 240px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* prevents inner overflow from creating page scroll */
+    }
+
+    /* ============================================================
+       TOPBAR
+       ============================================================ */
+    .topbar {
+      background: var(--color-background-primary);
+      border-bottom: 1px solid var(--color-border-tertiary);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Theme toggle button */
+    .theme-toggle-btn {
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-secondary);
+      color: var(--color-text-primary);
+      padding: 6px 12px;
+      border-radius: var(--border-radius-md);
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-sans);
+    }
+
+    .theme-toggle-btn:hover {
+      background: var(--color-background-tertiary);
+      transform: scale(1.05);
+    }
+
+    /* ============================================================
+       CONTENT
+       ============================================================ */
+    .content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center; /* vertical centering */
+  padding: 0; /* remove padding that causes overflow */
+  overflow: hidden; /* no scroll anywhere */
+}
+
+/* wrapper for page content */
+.view {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+    .view.active { display: block; }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+    }
+
+    @media (max-width: 600px) {
+      .content { padding: 16px; }
+      .card { padding: 20px; }
+    }
+
 </style>
 
-<body>
-    <main class="auth-card">
-        <div class="auth-header">
-            <div style="display: flex; justify-content: flex-end;">
-                <button id="themeToggle" onclick="toggleTheme()" style="background: none; border: 1.5px solid var(--color-border-tertiary); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">
-                    🌙
-                </button>
-            </div>
+<!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">TalentFlow</div>
+      <div class="logo-sub">Job Application System</div>
+    </div>
+    <div class="sidebar-nav">
+      
+      <div class="nav-label">Workspace</div>
+      <div class="nav-item" onclick="window.location.href='candidatehome.html'">
+        <div class="nav-dot dot-purple"></div> New Intake
+      </div>
+      <div class="nav-item" onclick="window.location.href='candidatehome.html'">
+        <div class="nav-dot dot-blue"></div> Monitor Applications
+      </div>
 
-            <div class="logo-main">TalentFlow</div>
+      <div class="nav-label active">Workspace</div>
+      <div class="nav-item active" onclick="window.location.href='account.html'">
+        <div class="nav-dot dot-teal"></div> Account
+      </div>
+
+      <div class="nav-item" onclick="window.location.href='monitoring.html'">
+        <div class="nav-dot dot-teal"></div> Activity Log
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Page 1</div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggle">🌙</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+<body>
+<div class="app">
+    <main class="acc-card">
+        <div class="acc-header">
+            <div class="logo-main">Account Details</div>
             <p>Update your account details</p>
         </div>
 
@@ -54,7 +336,7 @@
             <div class="form-group">
                 <label class="form-label" for="password">Password</label>
                 <div class="pass-container">
-                    <input class="form-input" type="password" id="password" name="password" value="Banana" placeholder="Change Password" required>
+                    <input class="form-input" type="password" id="password" name="password" value="Secure123" placeholder="Change Password" required>
                     <button type="button" id="togglePass" class="back-btn" onclick="togglePassword()" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
                 </div>
             </div>
@@ -64,6 +346,7 @@
             </button>
         </form>
     </main>
+</div>
 
     <script>
     function togglePassword() {
@@ -116,6 +399,25 @@
             alert('Updated successfully!');
         });
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      if (current === 'dark') {
+        html.setAttribute('data-theme', 'light');
+        this.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        this.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+      }
+    });
+  }
+});
     </script>
 </body>
 </html>

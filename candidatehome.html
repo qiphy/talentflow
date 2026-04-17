@@ -6,7 +6,22 @@
   <title>TalentFlow — New Intake</title>
   <link rel="stylesheet" href="design.css" />
   <script src="theme.js"></script>
+
+  <script>
+    (function () {
+        const saved = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+    })();
+    </script>
+
   <style>
+
+    html {
+  scrollbar-gutter: stable;
+}
+
     body {
       display: block;
       padding: 0;
@@ -111,10 +126,12 @@
     .main {
       flex: 1;
       margin-left: 240px;
+      height: 100vh;          /* IMPORTANT: lock height */
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      overflow: hidden;       /* prevents page-level scroll */
     }
+
 
     /* ============================================================
        TOPBAR
@@ -173,6 +190,8 @@
       padding: 32px;
       display: flex;
       justify-content: center;
+      overflow-y: auto;   /* 🔥 THIS is what isolates scrolling */
+      overflow-x: hidden;
     }
 
     .view {
@@ -221,8 +240,8 @@
        PROGRESS BAR
        ============================================================ */
     .progress-sticky {
-      position: sticky;
-      top: 56px;
+      position: relative;
+      top: auto;
       z-index: 10;
       background: var(--color-background-primary);
       margin: 0 -32px;
@@ -543,16 +562,23 @@
       <div class="logo-mark">TalentFlow</div>
       <div class="logo-sub">Job Application System</div>
     </div>
+
     <div class="sidebar-nav">
+      <div class="nav-label active">Workspace</div>
       <div class="nav-item active" onclick="switchView('intake', this)">
         <div class="nav-dot dot-purple"></div> New Intake
       </div>
       <div class="nav-item" onclick="switchView('monitor', this)">
         <div class="nav-dot dot-blue"></div> Monitor Applications
       </div>
+
+      <div class="nav-label">Workspace</div>
       <div class="nav-item" onclick="window.location.href='account.html'">
-  <div class="nav-dot dot-teal"></div> Account
-</div>
+        <div class="nav-dot dot-teal"></div> Account
+      </div>
+      <div class="nav-item" onclick="window.location.href='monitoring.html'">
+        <div class="nav-dot dot-teal"></div> Activity Log
+      </div>
     </div>
   </div>
 
