@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TalentFlow — New Intake</title>
+  <link rel="stylesheet" href="design.css" />
+  <script src="theme.js"></script>
+  <style>
+    body {
+      display: block;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--color-background-tertiary);
+    }
+
+    /* ============================================================
+       APP SHELL
+       ============================================================ */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ============================================================
+       SIDEBAR
+       ============================================================ */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--color-background-primary);
+      border-right: 1px solid var(--color-border-tertiary);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-logo .logo-mark {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--color-text-primary);
+    }
+
+    .sidebar-logo .logo-sub {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 3px;
+    }
+
+    .sidebar-nav {
+      padding: 0 12px;
+      flex: 1;
+    }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      padding: 16px 8px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover {
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+    }
+
+    .nav-item.active {
+      background: #1a2a3a;
+      color: #4a9eff;
+    }
+
+    .nav-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-purple { background: #a855f7; }
+    .dot-blue   { background: #4a9eff; }
+
+    /* ============================================================
+       MAIN AREA
+       ============================================================ */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ============================================================
+       TOPBAR
+       ============================================================ */
+    .topbar {
+      background: var(--color-background-primary);
+      border-bottom: 1px solid var(--color-border-tertiary);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Theme toggle button */
+    .theme-toggle-btn {
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-secondary);
+      color: var(--color-text-primary);
+      padding: 6px 12px;
+      border-radius: var(--border-radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-sans);
+    }
+
+    .theme-toggle-btn:hover {
+      background: var(--color-background-tertiary);
+      border-color: var(--color-text-secondary);
+    }
+
+    /* ============================================================
+       CONTENT
+       ============================================================ */
+    .content {
+      flex: 1;
+      padding: 32px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .view {
+      display: none;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .view.active { display: block; }
+
+    /* ============================================================
+       CARD — follows design.css .auth-card pattern
+       ============================================================ */
+    .card {
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 32px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    /* Uses design.css h2 sizing */
+    .card-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+    }
+
+    .card-placeholder {
+      text-align: center;
+      padding: 60px;
+      color: var(--color-text-tertiary);
+      font-size: 14px;
+    }
+
+    /* ============================================================
+       PROGRESS BAR
+       ============================================================ */
+    .progress-sticky {
+      position: sticky;
+      top: 56px;
+      z-index: 10;
+      background: var(--color-background-primary);
+      margin: 0 -32px;
+      padding: 14px 32px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    /* Reuses design.css .form-label style */
+    .progress-label span {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-tertiary);
+    }
+
+    .form-progress-bar {
+      height: 3px;
+      background: var(--color-border-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .form-progress-fill {
+      height: 100%;
+      background: #4a9eff;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* ============================================================
+       UPLOAD ZONE
+       ============================================================ */
+    .upload-zone {
+      border: 1.5px dashed var(--color-border-secondary);
+      border-radius: var(--border-radius-md);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      margin: 24px 0 20px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .upload-zone:hover {
+      border-color: #4a9eff;
+      background: #0d1a2a;
+    }
+
+    .uz-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+
+    /* Reuses design.css p sizing */
+    .uz-sub {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* ============================================================
+       GLM INFER BOX
+       ============================================================ */
+    .glm-infer {
+      background: #0a180a;
+      border: 1px solid #1f4a1f;
+      border-radius: var(--border-radius-md);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .gi-header {
+      font-size: 10px;
+      font-weight: 700;
+      color: #4ade80;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .gi-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .infer-tag {
+      background: #122212;
+      border: 1px solid #2d5a2d;
+      color: #86efac;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    /* ============================================================
+       SECTION TITLES
+       ============================================================ */
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin: 28px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    /* ============================================================
+       FORM — override design.css .form-group margin for dense layout
+       ============================================================ */
+    .intake-form .form-group {
+      margin-bottom: 0;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* design.css .form-label already uppercase/small — carry it through */
+    .form-input,
+    .form-select {
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+    }
+
+    .form-input::placeholder { color: var(--color-text-tertiary); }
+
+    .form-select option { background: var(--color-background-secondary); }
+
+    .form-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-md);
+      font-size: 13px;
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+      outline: none;
+      font-family: var(--font-sans);
+      resize: vertical;
+      min-height: 80px;
+      transition: border-color 0.2s;
+    }
+
+    .form-textarea:focus { border-color: #378ADD; }
+    .form-textarea::placeholder { color: var(--color-text-tertiary); }
+
+    .form-hint {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* ============================================================
+       SKILL TAGS
+       ============================================================ */
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .skill-tag {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-secondary);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+
+    .skill-tag .remove {
+      cursor: pointer;
+      color: var(--color-text-tertiary);
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .skill-tag .remove:hover { color: #f87171; }
+
+    .skill-input-row { display: flex; gap: 8px; }
+    .skill-input-row input { flex: 1; }
+
+    /* Mirrors design.css .back-btn */
+    .btn-add {
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-secondary);
+      padding: 0 16px;
+      border-radius: var(--border-radius-md);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .btn-add:hover {
+      border-color: #4a9eff;
+      color: #4a9eff;
+    }
+
+    /* ============================================================
+       STATUS TOGGLES — mirrors design.css .role-toggle
+       ============================================================ */
+    .status-row {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      background: var(--color-background-secondary);
+      padding: 4px;
+      border-radius: 10px;
+      width: fit-content;
+    }
+
+    .status-opt { display: none; }
+
+    .status-label {
+      padding: 8px 14px;
+      border: none;
+      background: transparent;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      transition: all 0.2s;
+    }
+
+    .status-opt:checked + .status-label {
+      background: #1a2a3a;
+      color: #4a9eff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* ============================================================
+       SUBMIT ROW
+       ============================================================ */
+    .submit-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--color-border-tertiary);
+    }
+
+    /* Reuses design.css p color */
+    .submit-meta {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text-tertiary);
+    }
+
+    /* Submit uses design.css .btn-primary but auto-width */
+    .submit-row .btn-primary {
+      width: auto;
+      padding: 12px 24px;
+      font-size: 14px;
+      margin-top: 0;
+      background: #4a9eff;
+    }
+
+    .submit-row .btn-primary:hover {
+      background: #3a7ecc;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .form-row-3 { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .content { padding: 16px; }
+      .card { padding: 20px; }
+      .form-row,
+      .form-row-3 { grid-template-columns: 1fr; }
+      .progress-sticky { margin: 0 -20px; padding: 12px 20px; }
+    }
+
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">TalentFlow</div>
+      <div class="logo-sub">Job Application System</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" onclick="switchView('intake', this)">
+        <div class="nav-dot dot-purple"></div> New Intake
+      </div>
+      <div class="nav-item" onclick="switchView('monitor', this)">
+        <div class="nav-dot dot-blue"></div> Monitor Applications
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">New Intake</div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggle">🌙 Dark</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- MONITOR APPLICATIONS PAGE - EMPTY PLACEHOLDER -->
+      <div class="view" id="monitor">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Monitor Applications</div>
+          </div>
+          <div class="card-placeholder">
+            <p>Content coming soon...</p>
+            <p style="margin-top: 12px; font-size: 12px;">This page is under development</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW INTAKE -->
+      <div class="view active" id="intake">
+        <div class="card">
+
+          <div class="card-header">
+            <div class="card-title">New hire intake</div>
+          </div>
+
+          <!-- Sticky progress -->
+          <div class="progress-sticky">
+            <div class="progress-label">
+              <span id="progressLabel">Step 1 of 4 — Candidate info</span>
+              <span id="progressPct">0%</span>
+            </div>
+            <div class="form-progress-bar">
+              <div class="form-progress-fill" id="progressBar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Upload -->
+          <div class="upload-zone" onclick="triggerUpload()">
+            <div class="uz-label">Upload offer letter or CV (optional)</div>
+            <div class="uz-sub">PDF, DOCX — GLM will auto-fill fields below</div>
+            <input type="file" id="fileInput" hidden />
+          </div>
+
+          <!-- GLM result -->
+          <div class="glm-infer" id="glmBox">
+            <div class="gi-header">GLM extracted</div>
+            <div class="gi-tags" id="glmTags"></div>
+          </div>
+
+          <!-- FORM -->
+          <div class="intake-form">
+
+            <div class="section-title">Candidate information</div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Full name *</label>
+                <input id="name" class="form-input" placeholder="e.g. Aisha Tan" oninput="updateProgress()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Preferred name</label>
+                <input id="prefname" class="form-input" placeholder="e.g. Ash">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Email address *</label>
+                <input id="email" class="form-input" type="email" placeholder="aisha@example.com" oninput="updateProgress()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone number</label>
+                <input id="phone" class="form-input" type="tel" placeholder="+60 12-345 6789">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nationality</label>
+                <input id="nationality" class="form-input" placeholder="e.g. Malaysian">
+              </div>
+              <div class="form-group">
+                <label class="form-label">LinkedIn profile</label>
+                <input id="linkedin" class="form-input" placeholder="linkedin.com/in/username">
+              </div>
+            </div>
+
+            <div class="section-title">Role details</div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Role title *</label>
+                <input id="role" class="form-input" placeholder="e.g. Senior Engineer" oninput="updateProgress()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Employment type *</label>
+                <select id="emptype" class="form-select" onchange="updateProgress()">
+                  <option value="">Select type</option>
+                  <option>Full-time</option>
+                  <option>Part-time</option>
+                  <option>Contract</option>
+                  <option>Internship</option>
+                  <option>Freelance</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Department *</label>
+                <select id="dept" class="form-select" onchange="updateProgress()">
+                  <option value="">Select department</option>
+                  <option>Engineering</option>
+                  <option>Product</option>
+                  <option>Design</option>
+                  <option>HR</option>
+                  <option>Finance</option>
+                  <option>Marketing</option>
+                  <option>Operations</option>
+                  <option>Legal</option>
+                  <option>Sales</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Seniority level</label>
+                <select id="seniority" class="form-select">
+                  <option value="">Select level</option>
+                  <option>Junior</option>
+                  <option>Mid-level</option>
+                  <option>Senior</option>
+                  <option>Lead</option>
+                  <option>Manager</option>
+                  <option>Director</option>
+                  <option>VP / C-level</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Start date *</label>
+                <input id="date" type="date" class="form-input" oninput="updateProgress()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contract end date</label>
+                <input id="enddate" type="date" class="form-input">
+                <span class="form-hint">Leave blank for permanent roles</span>
+              </div>
+            </div>
+
+            <div class="section-title">Compensation</div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label class="form-label">Salary / rate</label>
+                <input id="salary" class="form-input" placeholder="e.g. 8000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Currency</label>
+                <select id="currency" class="form-select">
+                  <option>MYR</option>
+                  <option>USD</option>
+                  <option>SGD</option>
+                  <option>EUR</option>
+                  <option>GBP</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Pay period</label>
+                <select id="payperiod" class="form-select">
+                  <option>Monthly</option>
+                  <option>Annually</option>
+                  <option>Hourly</option>
+                  <option>Daily</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Probation period</label>
+                <select id="probation" class="form-select">
+                  <option value="">None / not applicable</option>
+                  <option>1 month</option>
+                  <option>2 months</option>
+                  <option>3 months</option>
+                  <option>6 months</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notice period</label>
+                <select id="notice" class="form-select">
+                  <option value="">Select</option>
+                  <option>Immediate</option>
+                  <option>1 week</option>
+                  <option>2 weeks</option>
+                  <option>1 month</option>
+                  <option>2 months</option>
+                  <option>3 months</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-title">Work setup</div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Location type *</label>
+                <select id="location" class="form-select" onchange="updateProgress()">
+                  <option value="">Select location</option>
+                  <option>Remote</option>
+                  <option>Hybrid</option>
+                  <option>On-site</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Office / site</label>
+                <input id="office" class="form-input" placeholder="e.g. KL HQ, Cyberjaya">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Hiring manager *</label>
+                <input id="manager" class="form-input" placeholder="e.g. Priya Mehta" oninput="updateProgress()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reporting to</label>
+                <input id="reportsto" class="form-input" placeholder="e.g. Head of Engineering">
+              </div>
+            </div>
+
+            <div class="section-title">Skills & background</div>
+
+            <div class="form-group">
+              <label class="form-label">Key skills / competencies</label>
+              <div class="skill-input-row">
+                <input id="skillInput" class="form-input" placeholder="Type a skill and press Add" onkeydown="if(event.key==='Enter')addSkill()">
+                <button class="btn-add" onclick="addSkill()">Add</button>
+              </div>
+              <div class="tag-row" id="skillTags"></div>
+            </div>
+
+            <div class="form-row" style="margin-top:14px">
+              <div class="form-group">
+                <label class="form-label">Years of experience</label>
+                <select id="experience" class="form-select">
+                  <option value="">Select</option>
+                  <option>0–1 years</option>
+                  <option>1–3 years</option>
+                  <option>3–5 years</option>
+                  <option>5–8 years</option>
+                  <option>8–12 years</option>
+                  <option>12+ years</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Highest qualification</label>
+                <select id="qualification" class="form-select">
+                  <option value="">Select</option>
+                  <option>SPM / O-Level</option>
+                  <option>Diploma</option>
+                  <option>Bachelor's degree</option>
+                  <option>Master's degree</option>
+                  <option>PhD / Doctorate</option>
+                  <option>Professional certification</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:14px">
+              <label class="form-label">Previous employer</label>
+              <input id="prevemployer" class="form-input" placeholder="e.g. Grab, Petronas, Axiata">
+            </div>
+
+            <div class="section-title">Onboarding preferences</div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Visa / work pass required?</label>
+                <select id="visa" class="form-select">
+                  <option value="">Select</option>
+                  <option>No — local / PR</option>
+                  <option>Yes — company to sponsor</option>
+                  <option>Yes — self-sponsored</option>
+                  <option>Pending</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Equipment to provision</label>
+                <select id="equipment" class="form-select">
+                  <option value="">Select</option>
+                  <option>Laptop only</option>
+                  <option>Laptop + peripherals</option>
+                  <option>Full workstation</option>
+                  <option>BYOD — no provisioning</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Access level</label>
+                <select id="access" class="form-select">
+                  <option value="">Select</option>
+                  <option>Standard employee</option>
+                  <option>Elevated — team lead</option>
+                  <option>Admin access</option>
+                  <option>Read-only / contractor</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Background check required?</label>
+                <select id="bgcheck" class="form-select">
+                  <option value="">Select</option>
+                  <option>Yes — standard</option>
+                  <option>Yes — enhanced</option>
+                  <option>No</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:14px">
+              <label class="form-label">Onboarding notes</label>
+              <textarea id="notes" class="form-textarea" placeholder="Any special arrangements, accommodations, or instructions for the onboarding team..."></textarea>
+            </div>
+
+            <div class="form-group" style="margin-top:20px">
+              <label class="form-label">Application status</label>
+              <div class="status-row">
+                <input type="radio" name="status" id="s1" class="status-opt" value="offer_accepted" checked>
+                <label for="s1" class="status-label">Offer accepted</label>
+                <input type="radio" name="status" id="s2" class="status-opt" value="pending_docs">
+                <label for="s2" class="status-label">Pending docs</label>
+                <input type="radio" name="status" id="s3" class="status-opt" value="pre_boarding">
+                <label for="s3" class="status-label">Pre-boarding</label>
+                <input type="radio" name="status" id="s4" class="status-opt" value="ready">
+                <label for="s4" class="status-label">Ready to start</label>
+              </div>
+            </div>
+
+            <div class="submit-row">
+              <div class="submit-meta" id="submitMeta">Fill required fields to continue</div>
+              <button class="btn-primary" onclick="submitForm()">Begin onboarding →</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+
+var skills = [];
+var required = ["name","email","role","emptype","dept","date","location","manager"];
+
+function switchView(viewId, el) {
+  document.querySelectorAll(".view").forEach(function(v) { v.classList.remove("active"); });
+  document.getElementById(viewId).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(function(n) { n.classList.remove("active"); });
+  el.classList.add("active");
+  
+  // Update page title
+  const pageTitle = document.getElementById("pageTitle");
+  if (viewId === "intake") {
+    pageTitle.innerText = "New Intake";
+  } else if (viewId === "monitor") {
+    pageTitle.innerText = "Monitor Applications";
+  }
+}
+
+function triggerUpload() {
+  document.getElementById("fileInput").click();
+}
+
+document.getElementById("fileInput").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) return;
+  if (!file.name.match(/\.(pdf|docx)$/i)) { alert("Only PDF or DOCX allowed"); return; }
+  simulateGLM();
+});
+
+function simulateGLM() {
+  var data = {
+    name: "Aisha Tan",
+    role: "Software Engineer",
+    dept: "Engineering",
+    manager: "Priya Mehta",
+    email: "aisha.tan@email.com",
+    seniority: "Senior",
+    emptype: "Full-time",
+    experience: "5–8 years"
+  };
+
+  document.getElementById("name").value = data.name;
+  document.getElementById("role").value = data.role;
+  document.getElementById("dept").value = data.dept;
+  document.getElementById("manager").value = data.manager;
+  document.getElementById("email").value = data.email;
+  document.getElementById("seniority").value = data.seniority;
+  document.getElementById("emptype").value = data.emptype;
+  document.getElementById("experience").value = data.experience;
+
+  skills = ["Python", "React", "PostgreSQL"];
+  renderSkills();
+
+  var box = document.getElementById("glmBox");
+  var tags = document.getElementById("glmTags");
+  tags.innerHTML = "";
+
+  Object.entries(data).forEach(function(e) {
+    var tag = document.createElement("div");
+    tag.className = "infer-tag";
+    tag.innerText = e[0] + ": " + e[1];
+    tags.appendChild(tag);
+  });
+
+  skills.forEach(function(s) {
+    var tag = document.createElement("div");
+    tag.className = "infer-tag";
+    tag.innerText = "skill: " + s;
+    tags.appendChild(tag);
+  });
+
+  box.style.display = "block";
+  updateProgress();
+}
+
+function addSkill() {
+  var input = document.getElementById("skillInput");
+  var val = input.value.trim();
+  if (!val || skills.includes(val)) return;
+  skills.push(val);
+  input.value = "";
+  renderSkills();
+}
+
+function removeSkill(s) {
+  skills = skills.filter(function(x) { return x !== s; });
+  renderSkills();
+}
+
+function renderSkills() {
+  var container = document.getElementById("skillTags");
+  container.innerHTML = "";
+  skills.forEach(function(s) {
+    var tag = document.createElement("div");
+    tag.className = "skill-tag";
+    tag.innerHTML = s + '<span class="remove" onclick="removeSkill(\'' + s + '\')">×</span>';
+    container.appendChild(tag);
+  });
+}
+
+function updateProgress() {
+  var filled = required.filter(function(id) {
+    var el = document.getElementById(id);
+    return el && el.value.trim() !== "";
+  }).length;
+  var pct = Math.round((filled / required.length) * 100);
+  document.getElementById("progressBar").style.width = pct + "%";
+  document.getElementById("progressPct").innerText = pct + "%";
+
+  if (pct === 0) {
+    document.getElementById("progressLabel").innerText = "Step 1 of 4 — Candidate info";
+    document.getElementById("submitMeta").innerText = "Fill required fields to continue";
+  } else if (pct < 50) {
+    document.getElementById("progressLabel").innerText = "Step 1 of 4 — Candidate info";
+    document.getElementById("submitMeta").innerText = filled + " of " + required.length + " required fields filled";
+  } else if (pct < 75) {
+    document.getElementById("progressLabel").innerText = "Step 2 of 4 — Role & compensation";
+    document.getElementById("submitMeta").innerText = "Looking good — keep going";
+  } else if (pct < 100) {
+    document.getElementById("progressLabel").innerText = "Step 3 of 4 — Work setup";
+    document.getElementById("submitMeta").innerText = "Almost there";
+  } else {
+    document.getElementById("progressLabel").innerText = "Ready to submit";
+    document.getElementById("submitMeta").innerText = "All required fields complete";
+  }
+}
+
+function isValidDate(d) {
+  var today = new Date();
+  var sel = new Date(d);
+  var max = new Date();
+  max.setFullYear(today.getFullYear() + 2);
+    return sel >= today && sel <= max;
+}
+
+function submitForm() {
+  var missing = required.filter(function(id) {
+    var el = document.getElementById(id);
+    return !el || el.value.trim() === "";
+  });
+
+  if (missing.length) {
+    alert("Please fill all required fields:\n" + missing.join(", "));
+    return;
+  }
+
+  if (!isValidDate(document.getElementById("date").value)) {
+    alert("Start date must be a future date within 2 years.");
+    return;
+  }
+
+  var status = document.querySelector('input[name="status"]:checked').value;
+
+  var payload = {
+    name:            document.getElementById("name").value,
+    preferred_name:  document.getElementById("prefname").value,
+    email:           document.getElementById("email").value,
+    phone:           document.getElementById("phone").value,
+    nationality:     document.getElementById("nationality").value,
+    linkedin:        document.getElementById("linkedin").value,
+    role:            document.getElementById("role").value,
+    employment_type: document.getElementById("emptype").value,
+    department:      document.getElementById("dept").value,
+    seniority:       document.getElementById("seniority").value,
+    start_date:      document.getElementById("date").value,
+    end_date:        document.getElementById("enddate").value,
+    salary:          document.getElementById("salary").value,
+    currency:        document.getElementById("currency").value,
+    pay_period:      document.getElementById("payperiod").value,
+    probation:       document.getElementById("probation").value,
+    notice_period:   document.getElementById("notice").value,
+    location_type:   document.getElementById("location").value,
+    office:          document.getElementById("office").value,
+    hiring_manager:  document.getElementById("manager").value,
+    reports_to:      document.getElementById("reportsto").value,
+    skills:          skills,
+    experience:      document.getElementById("experience").value,
+    qualification:   document.getElementById("qualification").value,
+    prev_employer:   document.getElementById("prevemployer").value,
+    visa:            document.getElementById("visa").value,
+    equipment:       document.getElementById("equipment").value,
+    access_level:    document.getElementById("access").value,
+    bg_check:        document.getElementById("bgcheck").value,
+    notes:           document.getElementById("notes").value,
+    status:          status
+  };
+
+  console.log("→ Supabase payload:", payload);
+  alert("Onboarding record created (placeholder — payload logged to console)");
+}
+
+// Initialize and set up event listener
+document.addEventListener('DOMContentLoaded', function() {
+  updateProgress();
+  // Manual theme toggle setup
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      if (current === 'dark') {
+        html.setAttribute('data-theme', 'light');
+        this.textContent = '🌙 Dark';
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        this.textContent = '☀️ Light';
+        localStorage.setItem('theme', 'dark');
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>
