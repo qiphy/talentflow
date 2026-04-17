@@ -64,7 +64,7 @@ h1, h2, h3, .logo-main {
 
 h2 {
   font-size: 20px;
-  margin-bottom: 12px; /* Fix for Screenshot 4.54.08 PM */
+  margin-bottom: 12px; 
 }
 
 p, .subtitle-text {
@@ -74,7 +74,7 @@ p, .subtitle-text {
 }
 
 .subtitle-text {
-  margin-bottom: 2rem; /* Clear gap before form starts */
+  margin-bottom: 2rem; 
 }
 
 /* ============================================================
@@ -86,7 +86,7 @@ p, .subtitle-text {
   border-radius: var(--border-radius-lg);
   padding: 2.5rem;
   width: 100%;
-  max-width: 500px; /* Increased width to settle cramping */
+  max-width: 500px; 
   box-shadow: 0 10px 25px rgba(0,0,0,0.05);
   transition: background-color 0.3s ease;
 }
@@ -100,13 +100,13 @@ p, .subtitle-text {
    5. FORM ELEMENTS
    ============================================================ */
 .form-group {
-  margin-bottom: 1.5rem; /* Better vertical breathing room */
+  margin-bottom: 1.5rem;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px; /* Side-by-side spacing */
+  gap: 20px; 
 }
 
 .form-label {
@@ -143,6 +143,7 @@ p, .subtitle-text {
 /* ============================================================
    6. BUTTONS & ACTIONS
    ============================================================ */
+
 /* 1. The Main "Create Account" Button */
 .btn-primary {
   width: 100%;
@@ -161,7 +162,7 @@ p, .subtitle-text {
 
 .btn-primary:hover {
   background: #333333;
-  transform: translateY(-1px); /* Subtle lift effect */
+  transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
@@ -172,7 +173,7 @@ p, .subtitle-text {
 /* 2. The Role Selection Toggles (Employer/Employee) */
 .role-toggle {
   display: flex;
-  background: #f1f1f1; /* Light tray for the buttons */
+  background: #f1f1f1; 
   padding: 4px;
   border-radius: 10px;
   gap: 4px;
@@ -217,7 +218,7 @@ p, .subtitle-text {
 }
 
 /* ============================================================
-   7. FOOTER & LINKS (Fixes Screenshot 4.54.27 PM)
+   7. FOOTER & LINKS 
    ============================================================ */
 .auth-footer {
   text-align: center;
