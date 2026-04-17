@@ -62,9 +62,9 @@ p, span {
   background: var(--color-background-primary);
   border: 0.5px solid var(--color-border-tertiary);
   border-radius: var(--border-radius-lg);
-  padding: 2rem;
+  padding: 2.5rem;
   width: 100%;
-  max-width: 520px;
+  max-width: 500px; /* Increased from 450px to give more side-space */
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -137,7 +137,7 @@ p, span {
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px; /* Ensure there is enough space between the two columns */
+  gap: 20px; /* Ensure there is enough space between the two columns */
 }
 
 /* Add a Media Query so it stacks on mobile devices */
@@ -169,4 +169,9 @@ p, span {
   text-align: center;
   background: #fcebeb;
   color: #a32d2d;
+}
+
+.terms-container {
+  margin-top: 10px;
+  margin-bottom: 25px; /* Give the "Create Account" button room to breathe */
 }
