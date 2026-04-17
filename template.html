@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TalentFlow — Application System</title>
+  <link rel="stylesheet" href="design.css" />
+  <script src="theme.js"></script>
+  <style>
+    body {
+      display: block;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--color-background-tertiary);
+    }
+
+    /* ============================================================
+       APP SHELL
+       ============================================================ */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ============================================================
+       SIDEBAR
+       ============================================================ */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--color-background-primary);
+      border-right: 1px solid var(--color-border-tertiary);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-logo .logo-mark {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--color-text-primary);
+    }
+
+    .sidebar-logo .logo-sub {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 3px;
+    }
+
+    .sidebar-nav {
+      padding: 0 12px;
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover {
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+    }
+
+    .nav-item.active {
+      background: #1a2a3a;
+      color: #4a9eff;
+    }
+
+    .nav-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-purple { background: #a855f7; }
+    .dot-blue   { background: #4a9eff; }
+    .dot-teal   { background: #2dd4bf; }
+    .dot-amber  { background: #f59e0b; }
+
+    /* ============================================================
+       MAIN AREA
+       ============================================================ */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ============================================================
+       TOPBAR
+       ============================================================ */
+    .topbar {
+      background: var(--color-background-primary);
+      border-bottom: 1px solid var(--color-border-tertiary);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Theme toggle button */
+    .theme-toggle-btn {
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-secondary);
+      color: var(--color-text-primary);
+      padding: 6px 12px;
+      border-radius: var(--border-radius-md);
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-sans);
+    }
+
+    .theme-toggle-btn:hover {
+      background: var(--color-background-tertiary);
+      transform: scale(1.05);
+    }
+
+    /* ============================================================
+       CONTENT
+       ============================================================ */
+    .content {
+      flex: 1;
+      padding: 32px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .view {
+      display: none;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .view.active { display: block; }
+
+    /* ============================================================
+       EMPTY CARD TEMPLATE
+       ============================================================ */
+    .card {
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 32px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      min-height: 400px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+    }
+
+    .card-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-tertiary);
+    }
+
+    .card-empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .card-empty-text {
+      font-size: 14px;
+    }
+
+    .card-empty-sub {
+      font-size: 12px;
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+    }
+
+    @media (max-width: 600px) {
+      .content { padding: 16px; }
+      .card { padding: 20px; }
+    }
+
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">TalentFlow</div>
+      <div class="logo-sub">Application System</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" onclick="switchView('page1', this)">
+        <div class="nav-dot dot-purple"></div> Page 1
+      </div>
+      <div class="nav-item" onclick="switchView('page2', this)">
+        <div class="nav-dot dot-blue"></div> Page 2
+      </div>
+      <div class="nav-item" onclick="switchView('page3', this)">
+        <div class="nav-dot dot-teal"></div> Page 3
+      </div>
+      <div class="nav-item" onclick="switchView('page4', this)">
+        <div class="nav-dot dot-amber"></div> Page 4
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Page 1</div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggle">🌙</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- PAGE 1 TEMPLATE -->
+      <div class="view active" id="page1">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Page 1</div>
+          </div>
+          <div class="card-empty">
+            <div class="card-empty-icon">📄</div>
+            <div class="card-empty-text">Content for Page 1 goes here</div>
+            <div class="card-empty-sub">Add your form, table, or any content</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 2 TEMPLATE -->
+      <div class="view" id="page2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Page 2</div>
+          </div>
+          <div class="card-empty">
+            <div class="card-empty-icon">📄</div>
+            <div class="card-empty-text">Content for Page 2 goes here</div>
+            <div class="card-empty-sub">Add your form, table, or any content</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 3 TEMPLATE -->
+      <div class="view" id="page3">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Page 3</div>
+          </div>
+          <div class="card-empty">
+            <div class="card-empty-icon">📄</div>
+            <div class="card-empty-text">Content for Page 3 goes here</div>
+            <div class="card-empty-sub">Add your form, table, or any content</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4 TEMPLATE -->
+      <div class="view" id="page4">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Page 4</div>
+          </div>
+          <div class="card-empty">
+            <div class="card-empty-icon">📄</div>
+            <div class="card-empty-text">Content for Page 4 goes here</div>
+            <div class="card-empty-sub">Add your form, table, or any content</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+
+function switchView(viewId, el) {
+  // Hide all views
+  document.querySelectorAll(".view").forEach(function(v) { 
+    v.classList.remove("active"); 
+  });
+  // Show selected view
+  document.getElementById(viewId).classList.add("active");
+  
+  // Update active state on sidebar items
+  document.querySelectorAll(".nav-item").forEach(function(n) { 
+    n.classList.remove("active"); 
+  });
+  el.classList.add("active");
+  
+  // Update page title
+  const pageTitle = document.getElementById("pageTitle");
+  if (viewId === "page1") pageTitle.innerText = "Page 1";
+  else if (viewId === "page2") pageTitle.innerText = "Page 2";
+  else if (viewId === "page3") pageTitle.innerText = "Page 3";
+  else if (viewId === "page4") pageTitle.innerText = "Page 4";
+}
+
+// Theme toggle setup
+document.addEventListener('DOMContentLoaded', function() {
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      if (current === 'dark') {
+        html.setAttribute('data-theme', 'light');
+        this.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        this.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+      }
+    });
+  }
+});
+
+</script>
+</body>
+</html>
