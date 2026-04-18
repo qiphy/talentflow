@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalentFlow — Employer Account Details</title>
+    <link rel="stylesheet" href="design.css">
+    <link rel="stylesheet" href="navbar.css">
+    <script src="theme.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    (function () {
+        const saved = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+    })();
+    </script>
+</head>
+
+<style>
+.toggle-password {
+    cursor: pointer;
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #999 !important;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* kills page scroll completely */
+}
+
+/* =========================================================
+    ACCOUNT FORM LAYOUT
+    ========================================================= */
+
+.acc-card {
+  max-width: 1000px;
+  min-width: 900px;
+  width: 90%;
+  margin-top: 100px;
+  margin-bottom: 100px;
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 36px 42px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+}
+
+.acc-header {
+  text-align: center;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ============================================================
+    CONTENT
+    ============================================================ */
+.content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* vertical centering */
+    padding: 0; /* remove padding that causes overflow */
+    overflow: hidden; /* no scroll anywhere */
+}
+
+/* wrapper for page content */
+.view {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.view.active { display: block; }
+
+/* Feedback for the user during fetch/save */
+  .loading-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(var(--color-background-primary-rgb), 0.8);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10; border-radius: var(--border-radius-lg);
+  }
+</style>
+
+<!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">TalentFlow</div>
+      <div class="logo-sub">Account Settings</div>
+    </div>
+    <div class="sidebar-nav">
+      
+      <div class="nav-label">Workspace</div>
+      <div class="nav-item" onclick="window.location.href='employerHome.html'">
+        <div class="nav-dot dot-red"></div>
+        <span>Homepage</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='candidate.html'">
+        <div class="nav-dot dot-gray"></div>
+        <span>Candidates</span>
+      </div>
+
+      <div class="nav-label">Monitoring</div>
+      <div class="nav-item" onclick="window.location.href='monitoring.html'">
+        <div class="nav-dot dot-amber"></div>
+        <span>Activity Log</span>
+      </div>
+
+      <div class="nav-label">Settings</div>
+      <div class="nav-item active" onclick="window.location.href='employerAcc.html'">
+        <div class="nav-dot dot-teal"></div> 
+        <span>Account</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Account Settings</div>
+      <div class="topbar-right">
+        <button id="themeToggle" onclick="toggleTheme()" style="background: none; border: 1.5px solid var(--color-border-tertiary); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+          🌙
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+    <body>
+    <div class="app">
+        <main class="acc-card">
+            <div class="acc-header">
+                <div class="logo-main">Account Details</div>
+                <p>Update your account details</p>
+            </div>
+
+            <form action="#" method="post" class="account-form">
+
+                <div class="form-group">
+                    <label class="form-label" for="name">Name</label>
+                    <input class="form-input" type="text" id="name" value="John Doe" placeholder="Update Name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="contact">Contact Number</label>
+                    <input class="form-input" type="tel" id="contact" name="contact" value="012-345-6789" placeholder="Update Contact Number" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Work Email</label>
+                    <input class="form-input" type="email" id="email" name="email" value="john.doe@gmail.com" placeholder="Update Email" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="pass-container">
+                        <input class="form-input" type="password" id="password" name="password" value="Secure123" placeholder="Change Password" required>
+                        <button type="button" id="togglePass" class="back-btn" onclick="togglePassword()" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
+                    </div>
+                </div>
+
+                <button class="btn-primary" type="submit" id="updateButton" disabled>
+                    Update Account
+                </button>
+            </form>
+        </main>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        const updateButton = document.getElementById('updateButton');
+        const form = document.querySelector('.account-form');
+        const inputs = {
+            name: document.getElementById('name'),
+            contact: document.getElementById('contact'),
+            email: document.getElementById('email'),
+            password: document.getElementById('password')
+        };
+        
+        let initialValues = {};
+        const API_BASE = "http://127.0.0.1:8000"; // Your FastAPI URL
+
+        // 1. FETCH DATA FROM BACKEND
+        async function loadProfile() {
+            try {
+                // Note: credentials: 'include' is mandatory to send the access_token cookie
+                const response = await fetch(`${API_BASE}/account-info`, {
+                    method: 'GET',
+                    credentials: 'include' 
+                });
+
+                if (!response.ok) throw new Error("Not authenticated");
+
+                const data = await response.json();
+
+                // Fill fields
+                inputs.name.value = data.full_name || "";
+                inputs.contact.value = data.phone || "";
+                inputs.email.value = data.email || "";
+                inputs.password.value = "********"; // Keep password masked
+                inputs.password.disabled = true;    // Usually email/pass are handled via auth routes, not profile routes
+                inputs.email.disabled = true;
+
+                // Capture initial state for change detection
+                initialValues = {
+                    name: inputs.name.value,
+                    contact: inputs.contact.value
+                };
+            } catch (err) {
+                console.error(err);
+                alert("Session expired. Please log in.");
+                window.location.href = "login.html";
+            }
+        }
+
+        // 2. CHECK FOR CHANGES
+        function checkChanges() {
+            const hasNameChanged = inputs.name.value !== initialValues.name;
+            const hasContactChanged = inputs.contact.value !== initialValues.contact;
+            
+            updateButton.disabled = !(hasNameChanged || hasContactChanged);
+        }
+
+        [inputs.name, inputs.contact].forEach(input => {
+            input.addEventListener('input', checkChanges);
+        });
+
+        // 3. SUBMIT UPDATES
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            updateButton.disabled = true;
+            updateButton.textContent = "Saving...";
+
+            try {
+                const response = await fetch(`${API_BASE}/update-account`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        full_name: inputs.name.value,
+                        phone: inputs.contact.value
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Account updated successfully!');
+                    initialValues.name = inputs.name.value;
+                    initialValues.contact = inputs.contact.value;
+                } else {
+                    const err = await response.json();
+                    alert(`Error: ${err.detail}`);
+                }
+            } catch (err) {
+                alert("Failed to connect to server.");
+            } finally {
+                updateButton.textContent = "Update Account";
+                updateButton.disabled = true;
+            }
+        });
+
+        // Run on start
+        loadProfile();
+    });
+    </script>
+</body>
+</html>
