@@ -113,9 +113,8 @@ async function handleSignup(event) {
     event.preventDefault();
 
     const btn = document.getElementById('btnSignup');
-    const notif = document.getElementById('notif');
-
-    // 1. Client-side Validation
+    
+    // 1. Client-side Validation (Keep this active even in preview mode)
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
 
@@ -129,22 +128,42 @@ async function handleSignup(event) {
         return;
     }
 
-    // 2. Map HTML to SignupRequest (Pydantic Model)
+    // 2. Comprehensive Payload Mapping
     const payload = {
         email: document.getElementById('email').value,
         password: password,
         full_name: document.getElementById('name').value,
         phone: document.getElementById('phone').value,
-        role: currentRole,
-        company: currentRole === 'employer' ? document.getElementById('companySelect').value : null,
+        role: typeof currentRole !== 'undefined' ? currentRole : 'candidate',
+        company: (typeof currentRole !== 'undefined' && currentRole === 'employer') 
+                 ? document.getElementById('companySelect').value 
+                 : null,
         accept_terms: document.getElementById('terms').checked
     };
 
+    // 3. Preview Mode Bypass
+    if (IS_PREVIEW_MODE) {
+        console.warn("TalentFlow: Preview Mode Signup Active");
+        console.log("Mock Signup Payload:", payload); // Log full exhaustive data
+        
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        setTimeout(() => {
+            showNotif("Account created! (Preview Mode)", "success");
+            setTimeout(() => {
+                window.location.href = "login.html"; 
+            }, 1500);
+        }, 800);
+        return;
+    }
+
+    // 4. Actual Production Logic
     try {
         btn.disabled = true;
         btn.textContent = "Processing...";
 
-        const response = await fetch('http://127.0.0.1:8000/signup', {
+        const response = await fetch(`${API_BASE_URL}/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -154,16 +173,14 @@ async function handleSignup(event) {
 
         if (response.ok) {
             showNotif("Account created! Redirecting to login...", "success");
-            // Your backend returns a "redirect" hint based on role
             setTimeout(() => {
                 window.location.href = "login.html"; 
             }, 2000);
         } else {
-            // Your backend sends errors in the 'detail' field
             showNotif(data.detail || "Signup failed", "error");
         }
     } catch (err) {
-        showNotif("Connection error. Is the backend running?", "error");
+        showNotif("Connection error. Turn on IS_PREVIEW_MODE to skip backend check.", "error");
     } finally {
         btn.disabled = false;
         btn.textContent = "Create Account";

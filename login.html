@@ -70,6 +70,7 @@
 
   <script>
     let currentRole = 'employer';
+    const IS_PREVIEW_MODE = true;
 
     function setRole(role) {
     currentRole = role;
@@ -102,6 +103,19 @@
 
     notif.textContent = "";
     notif.className = "";
+
+    if (IS_PREVIEW_MODE) {
+        console.warn("TalentFlow: Preview Mode Login Success");
+        // Simulate a delay for realism
+        const btn = event.target.querySelector('button');
+        btn.innerText = "Authenticating...";
+        
+        setTimeout(() => {
+            // Redirect based on a mock role or just to employeeHome
+            window.location.href = 'employeeHome.html';
+        }, 800);
+        return;
+    }
 
     try {
         btn.textContent = "Logging in...";

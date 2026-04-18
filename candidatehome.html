@@ -944,8 +944,18 @@
 <script>
   // --- CONFIG & AUTH ---
   const API_BASE_URL = "http://127.0.0.1:8000";
+  const IS_PREVIEW_MODE = true;
 
 async function checkAuth() {
+  if (IS_PREVIEW_MODE) {
+    console.warn("TalentFlow: Preview Mode Active. Auth Bypassed.");
+    // Simulate a successful profile load for the UI
+    document.getElementById("pageTitle").innerText = "Preview Mode — TalentFlow";
+    document.body.style.display = "block";
+    loadDraft(); // Allow them to see how their data persists
+    return;
+  }
+  
   try {
     const resp = await fetch(`${API_BASE_URL}/candidate`, {
       method: 'GET',
