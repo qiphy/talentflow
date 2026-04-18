@@ -18,7 +18,7 @@ zai_client = ZaiClient(api_key=os.getenv("Z_AI_API_KEY"))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500", "http://localhost:5500"],
+    allow_origins=["http://127.0.0.1:5500"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -192,8 +192,9 @@ async def refresh_tokens(request: Request):
 # Protected Helpers
 # This variable name 'access_token' must be identical to the cookie key!
 def get_current_user(access_token: Optional[str] = Cookie(None)):
+    print(f"DEBUG: Cookie 'access_token' received: {access_token is not None}")
     if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated.")
+        raise HTTPException(status_code=401, detail="No access token cookie found.")
     try:
         user_resp = supabase.auth.get_user(access_token)
         # Ensure we are returning the OBJECT, not just a string
@@ -226,16 +227,28 @@ async def hr_dashboard(current_user = Depends(get_current_user)):
 
 @app.get("/candidate")
 async def candidate_dashboard(current_user = Depends(get_current_user)):
-    user_id = current_user.id if hasattr(current_user, "id") else current_user.get("id")
+    # 1. Robust ID Extraction
+    # Handles User objects, dictionaries, or even a raw UUID string
+    if isinstance(current_user, str):
+        user_id = current_user
+    else:
+        user_id = getattr(current_user, "id", None) or current_user.get("id")
+
+    # 2. Fetch the profile
     profile = get_profile(user_id)
     
+    # 3. Validation Logic
     if not profile:
-        # Instead of crashing, we give a clear message
+        print(f"ERROR: No profile row found for UUID: {user_id}")
         raise HTTPException(
             status_code=404, 
-            detail=f"User authenticated but profile row missing for ID: {user_id}"
+            detail="Profile not found. Please ensure your account setup is complete."
         )
     
+    # Optional: Security check to ensure an employer can't access candidate dashboard
+    if profile.get("role") != "employee":
+        raise HTTPException(status_code=403, detail="Access denied: Not a candidate profile.")
+
     return {"status": "success", "profile": profile}
 
 @app.get("/me")
