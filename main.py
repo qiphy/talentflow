@@ -251,6 +251,38 @@ async def candidate_dashboard(current_user = Depends(get_current_user)):
 
     return {"status": "success", "profile": profile}
 
+# Application Form (Candidate Page)
+class ApplicationData(BaseModel):
+    full_name: str
+    email: str
+    role_title: str
+    department: str
+    skills: list
+    form_details: dict # This catches everything else
+
+@app.post("/applications")
+async def submit_application(payload: ApplicationData, current_user = Depends(get_current_user)):
+    user_id = getattr(current_user, "id", None) or current_user.get("id")
+    
+    try:
+        data = {
+            "candidate_id": user_id,
+            "full_name": payload.full_name,
+            "email": payload.email,
+            "role_title": payload.role_title,
+            "department": payload.department,
+            "skills": payload.skills,
+            "form_details": payload.form_details
+        }
+        
+        # Insert into Supabase 'applications' table
+        supabase.table("applications").insert(data).execute()
+        
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Submission error: {e}")
+        raise HTTPException(status_code=400, detail="Could not save application.")
+
 @app.get("/me")
 async def me(current_user = Depends(get_current_user)):
     return {"user": {"id": current_user.id if hasattr(current_user, "id") else current_user.get("id"), "email": current_user.email if hasattr(current_user, "email") else current_user.get("email")}}

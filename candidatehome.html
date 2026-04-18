@@ -944,37 +944,40 @@
 <script>
   // --- CONFIG & AUTH ---
   const API_BASE_URL = "http://127.0.0.1:8000";
+  
+async function checkAuth() {
+  try {
+    const resp = await fetch(`${API_BASE_URL}/candidate`, {
+      method: 'GET',
+      credentials: 'include' 
+    });
 
-  async function checkAuth() {
-    try {
-      const resp = await fetch(`${API_BASE_URL}/candidate`, {
-        method: 'GET',
-        credentials: 'include' 
-      });
-
-      if (resp.ok) {
-          const data = await resp.json();
-          console.log("Access granted!");
-          
-          // --- REFINEMENT: Auto-fill profile data from backend ---
-          if (data.profile) {
+    if (resp.ok) {
+        const data = await resp.json();
+        
+        // 1. Only auto-fill from account IF there is no saved draft
+        const hasDraft = localStorage.getItem("talentflow_draft");
+        
+        if (data.profile && !hasDraft) {
             if (document.getElementById("name")) document.getElementById("name").value = data.profile.full_name || "";
             if (document.getElementById("email")) document.getElementById("email").value = data.profile.email || "";
-            // Update the UI welcoming the user
-            const title = document.getElementById("pageTitle");
-            if (title) title.innerText = `Welcome, ${data.profile.full_name.split(' ')[0]}`;
-          }
-          
-          // Show the main content once auth is confirmed
-          document.body.style.display = "block"; 
-      } else {
-          window.location.href = 'login.html';
-      }
-    } catch (err) {
-      console.error("Auth check failed", err);
-      window.location.href = 'login.html';
+        } else if (hasDraft) {
+            // 2. If a draft exists, make sure we apply it AFTER the profile fetch
+            loadDraft(); 
+        }
+
+        // Update the UI Title regardless
+        const title = document.getElementById("pageTitle");
+        if (title && data.profile) title.innerText = `Welcome, ${data.profile.full_name.split(' ')[0]}`;
+        
+        document.body.style.display = "block"; 
+    } else {
+        window.location.href = 'login.html';
     }
+  } catch (err) {
+    window.location.href = 'login.html';
   }
+}
 
   // --- UI LOGIC ---
   var skills = [];
@@ -1074,27 +1077,33 @@
   // --- SUBMIT FUNCTION ---
   async function submitForm() {
     const missing = required.filter(id => !document.getElementById(id)?.value.trim());
-
     if (missing.length) {
       alert("Please fill: " + missing.join(", "));
       return;
     }
 
     const btn = document.querySelector('.btn-primary');
-    const originalText = btn.innerText;
-    btn.innerText = "Processing...";
+    btn.innerText = "Submitting...";
     btn.disabled = true;
+
+    // Gather all extra details into a single object
+    const details = {};
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.id && !required.includes(el.id)) {
+        details[el.id] = el.value;
+      }
+    });
 
     const payload = {
       full_name: document.getElementById("name").value,
       email: document.getElementById("email").value,
-      role: document.getElementById("role").value,
+      role_title: document.getElementById("role").value,
       department: document.getElementById("dept").value,
-      skills: skills
+      skills: skills,
+      form_details: details
     };
 
     try {
-      // Example of actual POST to your backend
       const response = await fetch(`${API_BASE_URL}/applications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1103,29 +1112,74 @@
       });
 
       if (response.ok) {
-        alert("Success! Onboarding record created.");
-        // Switch to monitor view or clear form
-        location.reload(); 
+        alert("Application submitted successfully!");
+        localStorage.removeItem("talentflow_draft"); // Nuke the draft
+        window.location.reload(); 
       } else {
-        throw new Error("Submission failed");
+        throw new Error();
       }
     } catch (err) {
-      alert("Submission error. Please try again.");
+      alert("Error submitting application.");
     } finally {
-      btn.innerText = originalText;
+      btn.innerText = "Submit Application →";
       btn.disabled = false;
     }
   }
 
-  // --- INITIALIZE ---
+  // Function to save all form fields to LocalStorage
+  function saveDraft() {
+    const formFields = document.querySelectorAll('input, select, textarea');
+    const draft = {
+      skills: skills,
+      timestamp: new Date().getTime()
+    };
+    
+    formFields.forEach(field => {
+      if (field.id) draft[field.id] = field.value;
+    });
+    
+    // Save status radio button
+    const selectedStatus = document.querySelector('input[name="status"]:checked');
+    if (selectedStatus) draft.status = selectedStatus.value;
+
+    localStorage.setItem("talentflow_draft", JSON.stringify(draft));
+  }
+
+  // Function to load the draft back into the form
+  function loadDraft() {
+    const saved = localStorage.getItem("talentflow_draft");
+    if (!saved) return;
+
+    const data = JSON.parse(saved);
+    Object.keys(data).forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.value = data[key];
+    });
+
+    if (data.skills) {
+      skills = data.skills;
+      renderSkills();
+    }
+    
+    if (data.status) {
+      const radio = document.querySelector(`input[name="status"][value="${data.status}"]`);
+      if (radio) radio.checked = true;
+    }
+    
+    updateProgress();
+  }
+
+  // Update the INITIALIZE section to include listeners
   document.addEventListener('DOMContentLoaded', () => {
-    // Hide body initially to prevent unauthorized content flash
     document.body.style.display = "none"; 
     checkAuth();
     
-    // Auto-listen for input changes for progress bar
-    required.forEach(id => {
-      document.getElementById(id)?.addEventListener('input', updateProgress);
+    // Load existing draft
+    loadDraft();
+
+    // Add auto-save listeners to all inputs
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      el.addEventListener('input', saveDraft);
     });
   });
 </script>
