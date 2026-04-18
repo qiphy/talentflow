@@ -1,0 +1,178 @@
+body {
+    display: block;
+    padding: 0;
+    min-height: 100vh;
+    background: var(--color-background-tertiary);
+}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--color-background-primary);
+    border-right: 1px solid var(--color-border-tertiary);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--color-border-tertiary);
+    margin-bottom: 12px;
+}
+
+.sidebar-logo .logo-mark {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--color-text-primary);
+}
+
+.sidebar-logo .logo-sub {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    margin-top: 3px;
+}
+
+.sidebar-nav {
+    padding: 0 12px;
+    flex: 1;
+}
+
+.nav-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-tertiary);
+    padding: 16px 8px 6px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 2px;
+}
+
+.nav-item:hover {
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+}
+
+.nav-item.active {
+    background: #1a2a3a;
+    color: #4a9eff;
+}
+
+.nav-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dot-purple { background: #a855f7; }
+.dot-blue   { background: #4a9eff; }
+
+/* ============================================================
+   MAIN AREA
+   ============================================================ */
+.main {
+    flex: 1;
+    margin-left: 240px;
+    height: 100vh;          /* IMPORTANT: lock height */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;       /* prevents page-level scroll */
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.topbar {
+    background: var(--color-background-primary);
+    border-bottom: 1px solid var(--color-border-tertiary);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    flex-shrink: 0;
+}
+
+.page-title {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--color-text-primary);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Theme toggle button */
+.theme-toggle-btn {
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-secondary);
+    color: var(--color-text-primary);
+    padding: 6px 12px;
+    border-radius: var(--border-radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+}
+
+.theme-toggle-btn:hover {
+    background: var(--color-background-tertiary);
+    border-color: var(--color-text-secondary);
+}
+
+/* ============================================================
+   CONTENT
+   ============================================================ */
+.content {
+    flex: 1;
+    padding: 32px;
+    display: flex;
+    justify-content: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.view {
+    display: none;
+    width: 100%;
+    max-width: 860px;
+}
+
+.view.active { display: block; }
