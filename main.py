@@ -42,6 +42,7 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    role: str
     remember: Optional[bool] = False
 
 # Helper to create profile row
@@ -102,35 +103,46 @@ async def signup(payload: SignupRequest):
 @app.post("/login")
 async def login(req: LoginRequest):
     try:
-        # 1. Authenticate
+        # 1. Authenticate with Supabase Auth
         auth_response = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
 
-        # 2. Precise Extraction based on your structure
-        # The structure you shared has .session and .user directly on the response
         session = getattr(auth_response, 'session', None)
-        
         if not session:
-             raise HTTPException(status_code=401, detail="Session not found in auth response.")
+             raise HTTPException(status_code=401, detail="Invalid email or password.")
 
         access_token = session.access_token
         refresh_token = session.refresh_token
         user_id = session.user.id
 
-        # 3. Role Lookup
-        role = "employee"
+        # 2. Role Lookup from the Profiles Table
+        # We fetch the actual role assigned to this user ID
         try:
             prof_resp = supabase.table("profiles").select("role").eq("id", user_id).execute()
-            if prof_resp.data:
-                role = prof_resp.data[0].get("role")
+            if not prof_resp.data:
+                raise HTTPException(status_code=404, detail="User profile not found.")
+            
+            db_role = prof_resp.data[0].get("role")
         except Exception as e:
-            print(f"Role lookup warning: {e}")
+            print(f"Database error: {e}")
+            raise HTTPException(status_code=500, detail="Profile verification failed.")
 
-        # 4. Create Response
-        redirect = "/employerHome" if role == "employer" else "/employeeHome"
+        # 3. CRITICAL: Role Validation
+        # Check if the role in the DB matches the portal the user selected
+        if db_role != req.role:
+            # Important: Sign out the session if roles don't match to maintain security
+            supabase.auth.sign_out() 
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Role mismatch: This account is registered as an {db_role}."
+            )
+
+        # 4. Success: Define Redirects
+        redirect = "/employerHome" if db_role == "employer" else "/employeeHome"
+        
         res = JSONResponse(content={
             "status": "success",
             "user_id": user_id,
-            "role": role,
+            "role": db_role,
             "redirect": redirect
         })
 
@@ -158,9 +170,11 @@ async def login(req: LoginRequest):
                 path="/"
             )
 
-        print(f"SUCCESS: Set-Cookie headers added for user {user_id}")
         return res
 
+    except HTTPException as he:
+        # Re-raise HTTP exceptions so they return the correct status code to JS
+        raise he
     except Exception as e:
         print(f"LOGIN ERROR: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

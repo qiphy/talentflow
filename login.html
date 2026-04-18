@@ -72,112 +72,84 @@
     let currentRole = 'employer';
     const IS_PREVIEW_MODE = true;
 
-    function setRole(role) {
-    currentRole = role;
+function setRole(role) {
+    // Now strictly using 'employer' or 'employee'
+    currentRole = role; 
+    
     document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
     document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
     
     const formTitle = document.getElementById('formTitle');
-    const formSubtitle = document.getElementById('formSubtitle');
     const employerField = document.getElementById('employerField');
 
     if (role === 'employer') {
         formTitle.textContent = 'Welcome, Employer';
-        formSubtitle.textContent = 'Sign in to manage your team.';
         employerField.style.display = 'block';
     } else {
         formTitle.textContent = 'Welcome, Employee';
-        formSubtitle.textContent = 'Sign in to access your dashboard.';
         employerField.style.display = 'none';
     }
-    }
+}
 
     async function handleLogin(e) {
-    e.preventDefault();
-    
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const remember = document.getElementById('remember').checked;
-    const notif = document.getElementById('notif');
-    const btn = document.getElementById('btnLogin');
-
-    notif.textContent = "";
-    notif.className = "";
-
-    if (IS_PREVIEW_MODE) {
-        console.warn("TalentFlow: Preview Mode Login Success");
-        // Simulate a delay for realism
-        const btn = event.target.querySelector('button');
-        btn.innerText = "Authenticating...";
+        e.preventDefault();
         
-        setTimeout(() => {
-            // Redirect based on a mock role or just to employeeHome
-            window.location.href = 'employeeHome.html';
-        }, 800);
-        return;
-    }
+        // The role the user claims to be based on the UI toggle
+        const selectedRole = currentRole; 
 
-    try {
-        btn.textContent = "Logging in...";
-        btn.disabled = true;
+        const payload = {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            role: selectedRole // The server uses this to cross-reference the profile table
+        };
 
-        const response = await fetch('http://127.0.0.1:8000/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // REQUIRED for Chrome to save the cookie from a cross-port request
-            credentials: 'include', 
-            body: JSON.stringify({
-                email: email,
-                password: password,
-                remember: remember
-            })
-        });
+        try {
+            const response = await fetch('http://127.0.0.1:8000/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
 
-        const result = await response.json();
+            const result = await response.json();
 
-        if (response.ok) {
-            showNotif("Login successful! Redirecting...", "success");
-            
-            setTimeout(() => {
-                // Fix: Use absolute path with IP to ensure cookie carries over
-                window.location.href = `http://127.0.0.1:5500${result.redirect}.html`; 
-            }, 1000);
-        
-        } else {
-            showNotif(result.detail || "Invalid email or password.", "error");
+            if (response.ok) {
+                // Success: Profile table confirms the role
+                showNotif("Login successful!", "success");
+                window.location.href = `http://127.0.0.1:5500/${result.redirect}.html`;
+            } else {
+                // Failure: Either wrong password OR the profile table role didn't match
+                showNotif(result.detail || "Unauthorized access.", "error");
+            }
+        } catch (err) {
+            showNotif("Backend unreachable.", "error");
         }
-    } catch (err) {
-        showNotif("Backend connection failed.", "error");
-    } finally {
-        btn.textContent = "Login";
-        btn.disabled = false;
-    }
     }
 
     function showNotif(msg, type) {
-    const notif = document.getElementById('notif');
-    notif.textContent = msg;
-    notif.style.display = "block";
-    notif.style.padding = "10px";
-    notif.style.borderRadius = "5px";
-    notif.style.marginBottom = "15px";
-    notif.style.fontSize = "13px";
-    notif.style.textAlign = "center";
-    
-    if (type === "error") {
-        notif.style.backgroundColor = "#fee2e2";
-        notif.style.color = "#b91c1c";
-    } else {
-        notif.style.backgroundColor = "#dcfce7";
-        notif.style.color = "#15803d";
-    }
+        const notif = document.getElementById('notif');
+        notif.textContent = msg;
+        notif.style.display = "block";
+        notif.style.padding = "10px";
+        notif.style.borderRadius = "5px";
+        notif.style.marginBottom = "15px";
+        notif.style.fontSize = "13px";
+        notif.style.textAlign = "center";
+        
+        if (type === "error") {
+            notif.style.backgroundColor = "#fee2e2";
+            notif.style.color = "#b91c1c";
+        } else {
+            notif.style.backgroundColor = "#dcfce7";
+            notif.style.color = "#15803d";
+        }
     }
 
     function togglePassword() {
-    const input = document.getElementById('password');
-    const btn = document.getElementById('togglePass');
-    input.type = input.type === 'password' ? 'text' : 'password';
-    btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
+        const input = document.getElementById('password');
+        const btn = document.getElementById('togglePass');
+        input.type = input.type === 'password' ? 'text' : 'password';
+        btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
     }
   </script>
 </body>
