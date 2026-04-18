@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="design.css">
     <link rel="stylesheet" href="navbar.css">
     <script src="theme.js" defer></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
     (function () {
         const saved = localStorage.getItem("theme");
@@ -91,6 +91,14 @@ html, body {
 }
 
 .view.active { display: block; }
+
+/* Feedback for the user during fetch/save */
+  .loading-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(var(--color-background-primary-rgb), 0.8);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10; border-radius: var(--border-radius-lg);
+  }
 </style>
 
 <!-- SIDEBAR -->
@@ -183,55 +191,99 @@ html, body {
     </div>
 
     <script>
-    function togglePassword() {
-        const passwordInput = document.getElementById('password');
-        const toggleBtn = document.getElementById('togglePass');
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            toggleBtn.textContent = 'Hide';
-        } else {
-            passwordInput.type = 'password';
-            toggleBtn.textContent = 'Show';
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
         const updateButton = document.getElementById('updateButton');
         const form = document.querySelector('.account-form');
-        const inputs = document.querySelectorAll('input');
-        const initialValues = {};
+        const inputs = {
+            name: document.getElementById('name'),
+            contact: document.getElementById('contact'),
+            email: document.getElementById('email'),
+            password: document.getElementById('password')
+        };
         
-        inputs.forEach(input => {
-            const savedValue = localStorage.getItem(input.id);
-            if (savedValue !== null) {
-                input.value = savedValue;
+        let initialValues = {};
+        const API_BASE = "http://127.0.0.1:8000"; // Your FastAPI URL
+
+        // 1. FETCH DATA FROM BACKEND
+        async function loadProfile() {
+            try {
+                // Note: credentials: 'include' is mandatory to send the access_token cookie
+                const response = await fetch(`${API_BASE}/account-info`, {
+                    method: 'GET',
+                    credentials: 'include' 
+                });
+
+                if (!response.ok) throw new Error("Not authenticated");
+
+                const data = await response.json();
+
+                // Fill fields
+                inputs.name.value = data.full_name || "";
+                inputs.contact.value = data.phone || "";
+                inputs.email.value = data.email || "";
+                inputs.password.value = "********"; // Keep password masked
+                inputs.password.disabled = true;    // Usually email/pass are handled via auth routes, not profile routes
+                inputs.email.disabled = true;
+
+                // Capture initial state for change detection
+                initialValues = {
+                    name: inputs.name.value,
+                    contact: inputs.contact.value
+                };
+            } catch (err) {
+                console.error(err);
+                alert("Session expired. Please log in.");
+                window.location.href = "login.html";
             }
-            initialValues[input.id] = input.value;
+        }
+
+        // 2. CHECK FOR CHANGES
+        function checkChanges() {
+            const hasNameChanged = inputs.name.value !== initialValues.name;
+            const hasContactChanged = inputs.contact.value !== initialValues.contact;
+            
+            updateButton.disabled = !(hasNameChanged || hasContactChanged);
+        }
+
+        [inputs.name, inputs.contact].forEach(input => {
             input.addEventListener('input', checkChanges);
         });
-        
-        function checkChanges() {
-            let changed = false;
-            inputs.forEach(input => {
-                if (input.value !== initialValues[input.id]) {
-                    changed = true;
-                }
-            });
-            updateButton.disabled = !changed;
-        }
-        
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            inputs.forEach(input => {
-                localStorage.setItem(input.id, input.value);
-            });
 
-            inputs.forEach(input => {
-                initialValues[input.id] = input.value;
-            });
+        // 3. SUBMIT UPDATES
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
             updateButton.disabled = true;
-            alert('Updated successfully!');
+            updateButton.textContent = "Saving...";
+
+            try {
+                const response = await fetch(`${API_BASE}/update-account`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        full_name: inputs.name.value,
+                        phone: inputs.contact.value
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Account updated successfully!');
+                    initialValues.name = inputs.name.value;
+                    initialValues.contact = inputs.contact.value;
+                } else {
+                    const err = await response.json();
+                    alert(`Error: ${err.detail}`);
+                }
+            } catch (err) {
+                alert("Failed to connect to server.");
+            } finally {
+                updateButton.textContent = "Update Account";
+                updateButton.disabled = true;
+            }
         });
+
+        // Run on start
+        loadProfile();
     });
     </script>
 </body>

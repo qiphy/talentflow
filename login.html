@@ -80,13 +80,16 @@ function setRole(role) {
     document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
     
     const formTitle = document.getElementById('formTitle');
+    const formSubtitle = document.getElementById('formSubtitle');
     const employerField = document.getElementById('employerField');
 
     if (role === 'employer') {
         formTitle.textContent = 'Welcome, Employer';
+        formSubtitle.textContent = 'Sign in to manage your team.';
         employerField.style.display = 'block';
     } else {
         formTitle.textContent = 'Welcome, Employee';
+        formSubtitle.textContent = 'Sign in to manage your application.';
         employerField.style.display = 'none';
     }
 }
