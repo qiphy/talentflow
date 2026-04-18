@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TalentFlow — HR Dashboard</title>
+  <link rel="stylesheet" href="design.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    body {
+      display: block;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--color-background-tertiary);
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--color-background-primary);
+      border-right: 1px solid var(--color-border-tertiary);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-logo .logo-mark {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--color-text-primary);
+    }
+
+    .sidebar-logo .logo-sub {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 3px;
+    }
+
+    .sidebar-nav { padding: 0 12px; flex: 1; }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      padding: 16px 8px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+    .nav-item.active { background: #1a2a3a; color: #4a9eff; }
+
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot-blue   { background: #4a9eff; }
+    .dot-teal   { background: #2dd4bf; }
+    .dot-purple { background: #a855f7; }
+    .dot-amber  { background: #f59e0b; }
+    .dot-green  { background: #22c55e; }
+    .dot-red    { background: #ef4444; }
+    .dot-gray   { background: #6b7280; }
+
+    /* ── MAIN ── */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--color-background-primary);
+      border-bottom: 1px solid var(--color-border-tertiary);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    .glm-badge {
+      background: #0f1f0f;
+      color: #4ade80;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #1f4a1f;
+    }
+
+    .theme-toggle-btn {
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-secondary);
+      color: var(--color-text-primary);
+      padding: 6px 12px;
+      border-radius: var(--border-radius-md);
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      width: auto;
+      background: #4a9eff;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--border-radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0;
+      box-shadow: none;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover { background: #3a7ecc; transform: none; box-shadow: none; }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      padding: 28px 32px;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── DASHBOARD GRID ── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    /* ── STAT CARDS ── */
+    .stat-card {
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .stat-card.blue::before  { background: #4a9eff; }
+    .stat-card.teal::before  { background: #2dd4bf; }
+    .stat-card.amber::before { background: #f59e0b; }
+    .stat-card.green::before { background: #22c55e; }
+    .stat-card.purple::before{ background: #a855f7; }
+    .stat-card.red::before   { background: #ef4444; }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--color-text-primary);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-delta {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-tertiary);
+    }
+
+    .stat-delta.up   { color: #22c55e; }
+    .stat-delta.down { color: #ef4444; }
+    .stat-delta.warn { color: #f59e0b; }
+
+    /* ── PANEL CARDS ── */
+    .panel {
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-text-primary);
+    }
+
+    .panel-sub {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+
+    .panel-action {
+      font-size: 11px;
+      font-weight: 600;
+      color: #4a9eff;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── TWO COLUMN ROW ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    /* ── RECENT APPLICATIONS TABLE ── */
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .app-table th {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      padding: 0 12px 10px 0;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    .app-table td {
+      padding: 12px 12px 12px 0;
+      font-size: 13px;
+      color: var(--color-text-primary);
+      border-bottom: 1px solid var(--color-border-tertiary);
+      vertical-align: middle;
+    }
+
+    .app-table tr:last-child td { border-bottom: none; }
+    .app-table tr:hover td { background: var(--color-background-secondary); }
+
+    .candidate-name { font-weight: 600; font-size: 13px; }
+    .candidate-role { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+
+    /* ── STATUS PILLS ── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+    .pill.new        { background: #1a2a3a; color: #4a9eff; }
+    .pill.new .pill-dot        { background: #4a9eff; }
+    .pill.reviewing  { background: #1f1a2e; color: #a855f7; }
+    .pill.reviewing .pill-dot  { background: #a855f7; }
+    .pill.interview  { background: #1a2e20; color: #22c55e; }
+    .pill.interview .pill-dot  { background: #22c55e; }
+    .pill.offer      { background: #2e1f0a; color: #f59e0b; }
+    .pill.offer .pill-dot      { background: #f59e0b; }
+    .pill.onboarding { background: #0f1f0f; color: #4ade80; }
+    .pill.onboarding .pill-dot { background: #4ade80; }
+    .pill.rejected   { background: #2e0f0f; color: #ef4444; }
+    .pill.rejected .pill-dot   { background: #ef4444; }
+
+    /* ── DEPT BREAKDOWN ── */
+    .dept-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .dept-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      width: 90px;
+      flex-shrink: 0;
+    }
+
+    .dept-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: var(--color-border-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .dept-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+
+    .dept-count {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-text-secondary);
+      width: 24px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── PIPELINE ── */
+    .pipeline {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+      overflow: hidden;
+      border-radius: var(--border-radius-md);
+      margin-bottom: 16px;
+      height: 36px;
+    }
+
+    .pipe-stage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: opacity 0.2s;
+      cursor: default;
+      position: relative;
+    }
+
+    .pipe-stage:hover { opacity: 0.85; }
+
+    .pipeline-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── UPCOMING START DATES ── */
+    .start-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    .start-item:last-child { border-bottom: none; }
+
+    .start-date-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--border-radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .start-date-box .month {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .start-date-box .day {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .start-info { flex: 1; min-width: 0; }
+    .start-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
+    .start-role { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+
+    .days-away {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    /* ── GLM INSIGHTS ── */
+    .glm-insight {
+      background: #0a180a;
+      border: 1px solid #1f4a1f;
+      border-radius: var(--border-radius-md);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .glm-insight:last-child { margin-bottom: 0; }
+
+    .glm-insight-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .glm-insight-text {
+      font-size: 12px;
+      color: #86efac;
+      line-height: 1.6;
+    }
+
+    .glm-insight-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4ade80;
+      margin-bottom: 3px;
+    }
+
+    /* ── AI SUMMARY STRIP ── */
+    .ai-strip {
+      background: linear-gradient(135deg, #0d1a2a 0%, #0a180a 100%);
+      border: 1px solid #1f3a2f;
+      border-radius: var(--border-radius-lg);
+      padding: 18px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .ai-strip-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #0f2a0f;
+      border: 1px solid #2d5a2d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .ai-strip-text {
+      flex: 1;
+      font-size: 13px;
+      color: #86efac;
+      line-height: 1.6;
+    }
+
+    .ai-strip-text strong {
+      color: #4ade80;
+      font-weight: 700;
+    }
+
+    .ai-strip-badge {
+      background: #0f2a0f;
+      border: 1px solid #2d5a2d;
+      color: #4ade80;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    /* ── CHART CONTAINERS ── */
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    /* ── TIME CHIPS ── */
+    .time-chip {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--color-background-secondary);
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      border: 1px solid var(--color-border-tertiary);
+      transition: all 0.15s;
+    }
+
+    .time-chip.active {
+      background: #1a2a3a;
+      color: #4a9eff;
+      border-color: #2a4a6a;
+    }
+
+    .chip-row { display: flex; gap: 6px; }
+
+    /* ── EMPTY STATES ── */
+    .card-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* ── AVATAR ── */
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1100px) {
+      .dash-grid { grid-template-columns: 1fr 1fr; }
+      .three-col { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .content { padding: 16px; }
+      .dash-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">TalentFlow</div>
+      <div class="logo-sub">HR Homepage</div>
+    </div>
+<div class="sidebar-nav">
+  <div class="nav-label">Workspace</div>
+  <div class="nav-item" onclick="window.location.href='employerHome.html'">
+    <div class="nav-dot dot-green"></div>
+    <span>Homepage</span>
+  </div>
+  <div class="nav-item" onclick="window.location.href='account.html'">
+    <div class="nav-dot dot-purple"></div>
+    <span>Account</span>
+  </div>
+  
+  <div class="nav-label">Candidates</div>
+  <div class="nav-item" onclick="window.location.href='candidate.html'">
+    <div class="nav-dot dot-green"></div>
+    <span>Candidate</span>
+  </div>
+  
+  <div class="nav-label">Monitoring</div>
+  <div class="nav-item" onclick="window.location.href='monitor.html'">
+    <div class="nav-dot dot-green"></div>
+    <span>Monitor</span>
+  </div>
+</div>
+</div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="themeToggle">🌙</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- DASHBOARD VIEW                                       -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="view active" id="dashboard">
+
+        <!-- AI Summary Strip -->
+        <div class="ai-strip">
+          <div class="ai-strip-icon">✦</div>
+          <div class="ai-strip-text">
+            <strong>GLM Summary:</strong> 47 active applications this week. Engineering pipeline is healthy with 3 candidates at offer stage. Product dept has a bottleneck — 4 candidates stalled in review for 9+ days. 2 hires starting within the next 7 days require equipment provisioning.
+          </div>
+          <div class="ai-strip-badge">GLM · Live</div>
+        </div>
+
+        <!-- Stat Cards Row -->
+        <div class="dash-grid" style="margin-bottom:20px">
+          <div class="stat-card blue">
+            <div class="stat-label">Total Applications</div>
+            <div class="stat-value">147</div>
+            <div class="stat-delta up">↑ 12 this week</div>
+          </div>
+          <div class="stat-card teal">
+            <div class="stat-label">Active Pipelines</div>
+            <div class="stat-value">47</div>
+            <div class="stat-delta up">↑ 5 new today</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-label">Avg. Time to Hire</div>
+            <div class="stat-value">18<span style="font-size:16px;font-weight:500">d</span></div>
+            <div class="stat-delta down">↓ 2d vs last month</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Offer Acceptance</div>
+            <div class="stat-value">84<span style="font-size:16px;font-weight:500">%</span></div>
+            <div class="stat-delta up">↑ 6% vs last qtr</div>
+          </div>
+        </div>
+
+        <!-- Secondary stats -->
+        <div class="dash-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:20px">
+          <div class="stat-card purple">
+            <div class="stat-label">Interviews Scheduled</div>
+            <div class="stat-value">14</div>
+            <div class="stat-delta">This week</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-label">Pending Review</div>
+            <div class="stat-value">11</div>
+            <div class="stat-delta warn">⚠ 4 overdue</div>
+          </div>
+          <div class="stat-card teal">
+            <div class="stat-label">Onboarding Active</div>
+            <div class="stat-value">6</div>
+            <div class="stat-delta up">↑ 2 starting soon</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-label">GLM Extractions</div>
+            <div class="stat-value">132</div>
+            <div class="stat-delta up">98% accuracy</div>
+          </div>
+        </div>
+
+        <!-- Applications over time + Pipeline -->
+        <div class="two-col" style="margin-bottom:20px">
+
+          <!-- Applications over time chart -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Applications Over Time</div>
+                <div class="panel-sub">Weekly intake volume</div>
+              </div>
+              <div class="chip-row">
+                <div class="time-chip active" onclick="setChartRange('4w',this)">4W</div>
+                <div class="time-chip" onclick="setChartRange('3m',this)">3M</div>
+                <div class="time-chip" onclick="setChartRange('6m',this)">6M</div>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:200px">
+              <canvas id="appTrendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Application Status Pipeline -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Status Pipeline</div>
+                <div class="panel-sub">Current application flow</div>
+              </div>
+              <div class="panel-action">View all</div>
+            </div>
+            <div class="pipeline" id="pipelineBar"></div>
+            <div class="pipeline-legend" id="pipelineLegend"></div>
+
+            <!-- Stage detail list -->
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--color-border-tertiary)">
+              <div id="pipelineDetail"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Department breakdown + Upcoming start dates + GLM insights -->
+        <div class="three-col" style="margin-bottom:20px">
+
+          <!-- Department breakdown -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Department Breakdown</div>
+                <div class="panel-sub">Applicants per team</div>
+              </div>
+            </div>
+            <div class="chart-wrap" style="height:180px;margin-bottom:20px">
+              <canvas id="deptDonutChart"></canvas>
+            </div>
+            <div id="deptBarList"></div>
+          </div>
+
+          <!-- Upcoming start dates -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Upcoming Starts</div>
+                <div class="panel-sub">Next 30 days</div>
+              </div>
+              <div class="panel-action">Calendar</div>
+            </div>
+            <div id="startDatesList"></div>
+          </div>
+
+          <!-- GLM extraction insights -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">GLM Insights</div>
+                <div class="panel-sub">AI extraction signals</div>
+              </div>
+            </div>
+            <div id="glmInsightsList"></div>
+          </div>
+
+        </div>
+
+        <!-- Recent Applications Table -->
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Recent Applications</div>
+              <div class="panel-sub">Latest 8 submissions across all departments</div>
+            </div>
+            <div class="panel-action">View all →</div>
+          </div>
+          <table class="app-table">
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Applied</th>
+                <th>Status</th>
+                <th>GLM</th>
+              </tr>
+            </thead>
+            <tbody id="recentAppsTable"></tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- OTHER VIEWS (placeholder) -->
+      <div class="view" id="applications">
+        <div class="panel"><div class="card-empty">Applications view — coming soon</div></div>
+      </div>
+      <div class="view" id="intake">
+        <div class="panel"><div class="card-empty">New Intake form — coming soon</div></div>
+      </div>
+      <div class="view" id="glm">
+        <div class="panel"><div class="card-empty">GLM Activity log — coming soon</div></div>
+      </div>
+      <div class="view" id="alerts">
+        <div class="panel"><div class="card-empty">Flags & Alerts — coming soon</div></div>
+      </div>
+      <div class="view" id="reports">
+        <div class="panel"><div class="card-empty">Reports — coming soon</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   PLACEHOLDER DATA
+   Replace these with Supabase fetches when ready
+───────────────────────────────────────────── */
+
+const DEPT_DATA = [
+  { name: 'Engineering', count: 8,  color: '#4a9eff' },
+  { name: 'Product',     count: 4,  color: '#a855f7' },
+  { name: 'Design',      count: 3,  color: '#2dd4bf' },
+  { name: 'HR',          count: 2,  color: '#f59e0b' },
+  { name: 'Finance',     count: 5,  color: '#22c55e' },
+  { name: 'Marketing',   count: 3,  color: '#f97316' },
+  { name: 'Operations',  count: 6,  color: '#ec4899' },
+  { name: 'Legal',       count: 1,  color: '#6b7280' },
+];
+
+const PIPELINE_STAGES = [
+  { label: 'New',        count: 23, color: '#4a9eff', cls: 'new' },
+  { label: 'Reviewing',  count: 11, color: '#a855f7', cls: 'reviewing' },
+  { label: 'Interview',  count: 8,  color: '#22c55e', cls: 'interview' },
+  { label: 'Offer',      count: 3,  color: '#f59e0b', cls: 'offer' },
+  { label: 'Onboarding', count: 6,  color: '#4ade80', cls: 'onboarding' },
+  { label: 'Rejected',   count: 4,  color: '#ef4444', cls: 'rejected' },
+];
+
+const UPCOMING_STARTS = [
+  { name: 'Aisha Tan',      role: 'Software Engineer', dept:'Engineering', day: 22, month: 'APR', daysAway: 4,  urgent: true },
+  { name: 'Marcus Osei',    role: 'Product Manager',   dept:'Product',     day: 24, month: 'APR', daysAway: 6,  urgent: true },
+  { name: 'Priya Kapoor',   role: 'UX Designer',       dept:'Design',      day: 1,  month: 'MAY', daysAway: 13, urgent: false },
+  { name: 'Rafi Abdullah',  role: 'Data Analyst',       dept:'Finance',     day: 5,  month: 'MAY', daysAway: 17, urgent: false },
+  { name: 'Linh Nguyen',    role: 'Ops Coordinator',   dept:'Operations',  day: 12, month: 'MAY', daysAway: 24, urgent: false },
+];
+
+const RECENT_APPS = [
+  { name: 'Zara Malik',     initials:'ZM', role: 'Senior Engineer',    dept: 'Engineering', applied: '2h ago',   status: 'new',        glm: '✓ High' },
+  { name: 'Devraj Patel',   initials:'DP', role: 'Product Designer',   dept: 'Design',      applied: '5h ago',   status: 'reviewing',  glm: '✓ High' },
+  { name: 'Sofia Reyes',    initials:'SR', role: 'Finance Analyst',    dept: 'Finance',     applied: 'Yesterday',status: 'interview',  glm: '✓ Med'  },
+  { name: 'James Lim',      initials:'JL', role: 'Backend Engineer',   dept: 'Engineering', applied: 'Yesterday',status: 'offer',      glm: '✓ High' },
+  { name: 'Amara Diallo',   initials:'AD', role: 'Growth Marketer',    dept: 'Marketing',   applied: '2d ago',   status: 'reviewing',  glm: '~ Med'  },
+  { name: 'Kenji Tanaka',   initials:'KT', role: 'Operations Lead',    dept: 'Operations',  applied: '2d ago',   status: 'new',        glm: '✓ High' },
+  { name: 'Nadia Hassan',   initials:'NH', role: 'Legal Counsel',      dept: 'Legal',       applied: '3d ago',   status: 'rejected',   glm: '✓ Low'  },
+  { name: 'Caleb Mensah',   initials:'CM', role: 'Product Manager',    dept: 'Product',     applied: '3d ago',   status: 'onboarding', glm: '✓ High' },
+];
+
+const GLM_INSIGHTS = [
+  { label: 'Top Skill Detected',   icon: '◈', text: 'Python & SQL appear in 68% of engineering applications this week.' },
+  { label: 'Visa Flag',            icon: '⚑', text: '3 applicants require employer-sponsored work pass — review pending.' },
+  { label: 'Duplicate Detected',   icon: '◎', text: 'Possible duplicate submission from 1 candidate (same email, 2 roles).' },
+  { label: 'Qualification Trend',  icon: '▲', text: "Master's degrees up 22% this month vs Q1 average." },
+  { label: 'Experience Gap',       icon: '◉', text: 'Product dept: 3 of 4 applicants underqualified vs JD requirements.' },
+];
+
+/* ─── Trend chart data ─── */
+const TREND_DATA = {
+  '4w': {
+    labels: ['Week 1','Week 2','Week 3','Week 4'],
+    data:   [18, 24, 31, 47],
+  },
+  '3m': {
+    labels: ['Jan','Feb','Mar'],
+    data:   [54, 72, 102],
+  },
+  '6m': {
+    labels: ['Oct','Nov','Dec','Jan','Feb','Mar'],
+    data:   [28, 35, 41, 54, 72, 102],
+  },
+};
+
+/* ─────────────────────────────────────────────
+   RENDER FUNCTIONS
+───────────────────────────────────────────── */
+
+// Avatar colors
+const AV_COLORS = ['#1a2a3a','#1f1a2e','#1a2e20','#2e1f0a','#2e0f0f','#0a1a2a'];
+const AV_TEXT   = ['#4a9eff','#a855f7','#22c55e','#f59e0b','#ef4444','#2dd4bf'];
+
+function avatarStyle(i) {
+  const idx = i % AV_COLORS.length;
+  return `background:${AV_COLORS[idx]};color:${AV_TEXT[idx]};`;
+}
+
+function renderPipeline() {
+  const total = PIPELINE_STAGES.reduce((s,p) => s + p.count, 0);
+  const bar   = document.getElementById('pipelineBar');
+  const leg   = document.getElementById('pipelineLegend');
+  const det   = document.getElementById('pipelineDetail');
+
+  bar.innerHTML = PIPELINE_STAGES.map(s => {
+    const pct = (s.count / total * 100).toFixed(1);
+    return `<div class="pipe-stage" title="${s.label}: ${s.count}"
+      style="flex:${s.count};background:${s.color};color:#fff;min-width:${pct > 5 ? 'auto' : '0'}">
+      ${pct > 8 ? s.count : ''}
+    </div>`;
+  }).join('');
+
+  leg.innerHTML = PIPELINE_STAGES.map(s =>
+    `<div class="legend-item">
+      <div class="legend-dot" style="background:${s.color}"></div>
+      ${s.label} <strong style="color:var(--color-text-primary)">${s.count}</strong>
+    </div>`
+  ).join('');
+
+  det.innerHTML = PIPELINE_STAGES.map(s => {
+    const pct = (s.count / total * 100).toFixed(0);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border-tertiary)">
+      <div style="width:10px;height:10px;border-radius:2px;background:${s.color};flex-shrink:0"></div>
+      <div style="flex:1;font-size:12px;color:var(--color-text-primary);font-weight:500">${s.label}</div>
+      <div style="font-size:11px;color:var(--color-text-tertiary)">${pct}%</div>
+      <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);min-width:20px;text-align:right">${s.count}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDeptBreakdown() {
+  const max = Math.max(...DEPT_DATA.map(d => d.count));
+  const list = document.getElementById('deptBarList');
+  list.innerHTML = DEPT_DATA.map(d => `
+    <div class="dept-row">
+      <div class="dept-name">${d.name}</div>
+      <div class="dept-bar-wrap">
+        <div class="dept-bar" style="width:${(d.count/max*100).toFixed(0)}%;background:${d.color}"></div>
+      </div>
+      <div class="dept-count">${d.count}</div>
+    </div>
+  `).join('');
+}
+
+function renderUpcomingStarts() {
+  const el = document.getElementById('startDatesList');
+  el.innerHTML = UPCOMING_STARTS.map(s => {
+    const urgentStyle = s.urgent
+      ? 'background:#2e1a0a;color:#f59e0b;border-color:#5a3a1a'
+      : 'background:#1a2e1a;color:#4ade80;border-color:#2d5a2d';
+    const boxColor = s.urgent ? '#2e1a0a' : '#0a1a2e';
+    const boxTextColor = s.urgent ? '#f59e0b' : '#4a9eff';
+    return `
+    <div class="start-item">
+      <div class="start-date-box" style="background:${boxColor};border:1px solid ${boxTextColor}22">
+        <div class="month" style="color:${boxTextColor}">${s.month}</div>
+        <div class="day" style="color:${boxTextColor}">${s.day}</div>
+      </div>
+      <div class="start-info">
+        <div class="start-name">${s.name}</div>
+        <div class="start-role">${s.role} · ${s.dept}</div>
+      </div>
+      <div class="days-away" style="${urgentStyle};border:1px solid">in ${s.daysAway}d</div>
+    </div>`;
+  }).join('');
+}
+
+function renderGLMInsights() {
+  const el = document.getElementById('glmInsightsList');
+  el.innerHTML = GLM_INSIGHTS.map(g => `
+    <div class="glm-insight">
+      <div class="glm-insight-icon">${g.icon}</div>
+      <div>
+        <div class="glm-insight-label">${g.label}</div>
+        <div class="glm-insight-text">${g.text}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderRecentApps() {
+  const tb = document.getElementById('recentAppsTable');
+  const statusLabels = {
+    new:'new', reviewing:'reviewing', interview:'interview',
+    offer:'offer', onboarding:'onboarding', rejected:'rejected'
+  };
+  const glmColor = t => t.startsWith('✓') ? '#4ade80' : '#f59e0b';
+
+  tb.innerHTML = RECENT_APPS.map((a,i) => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="${avatarStyle(i)}">${a.initials}</div>
+          <div>
+            <div class="candidate-name">${a.name}</div>
+          </div>
+        </div>
+      </td>
+      <td><span style="font-size:12px;color:var(--color-text-secondary)">${a.role}</span></td>
+      <td><span style="font-size:12px;color:var(--color-text-tertiary)">${a.dept}</span></td>
+      <td><span style="font-size:11px;color:var(--color-text-tertiary)">${a.applied}</span></td>
+      <td><span class="pill ${a.status}"><span class="pill-dot"></span>${statusLabels[a.status]}</span></td>
+      <td><span style="font-size:11px;font-weight:700;color:${glmColor(a.glm)}">${a.glm}</span></td>
+    </tr>
+  `).join('');
+}
+
+/* ─────────────────────────────────────────────
+   CHARTS
+───────────────────────────────────────────── */
+
+let trendChart, deptChart;
+
+function buildTrendChart() {
+  const ctx = document.getElementById('appTrendChart').getContext('2d');
+  const d = TREND_DATA['4w'];
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [{
+        data: d.data,
+        borderColor: '#4a9eff',
+        backgroundColor: 'rgba(74,158,255,0.08)',
+        borderWidth: 2,
+        pointBackgroundColor: '#4a9eff',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+          ticks: { color: '#6e6e73', font: { size: 11, weight: '600' } }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+          ticks: { color: '#6e6e73', font: { size: 11 }, stepSize: 10 },
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+}
+
+function buildDeptDonut() {
+  const ctx = document.getElementById('deptDonutChart').getContext('2d');
+  deptChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: DEPT_DATA.map(d => d.name),
+      datasets: [{
+        data: DEPT_DATA.map(d => d.count),
+        backgroundColor: DEPT_DATA.map(d => d.color),
+        borderColor: 'transparent',
+        borderWidth: 0,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} applicants`
+          }
+        }
+      }
+    }
+  });
+}
+
+function setChartRange(range, el) {
+  document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const d = TREND_DATA[range];
+  trendChart.data.labels = d.labels;
+  trendChart.data.datasets[0].data = d.data;
+  trendChart.update();
+}
+
+/* ─────────────────────────────────────────────
+   NAV
+───────────────────────────────────────────── */
+
+function switchView(viewId, el, title) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pageTitle').innerText = title;
+}
+
+/* ─────────────────────────────────────────────
+   THEME TOGGLE
+───────────────────────────────────────────── */
+
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('themeToggle');
+  btn.addEventListener('click', function() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    this.textContent = isDark ? '🌙' : '☀️';
+
+    // Update chart grid colors on theme switch
+    const gridColor = isDark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+    const tickColor = isDark ? '#999' : '#6e6e73';
+    if (trendChart) {
+      trendChart.options.scales.x.grid.color = gridColor;
+      trendChart.options.scales.y.grid.color = gridColor;
+      trendChart.options.scales.x.ticks.color = tickColor;
+      trendChart.options.scales.y.ticks.color = tickColor;
+      trendChart.update();
+    }
+  });
+
+  // Render all sections
+  renderPipeline();
+  renderDeptBreakdown();
+  renderUpcomingStarts();
+  renderGLMInsights();
+  renderRecentApps();
+  buildTrendChart();
+  buildDeptDonut();
+});
+</script>
+</body>
+</html>
