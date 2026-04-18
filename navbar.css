@@ -93,9 +93,6 @@ body {
     flex-shrink: 0;
 }
 
-.dot-purple { background: #a855f7; }
-.dot-blue   { background: #4a9eff; }
-
 /* ============================================================
    MAIN AREA
    ============================================================ */
@@ -176,3 +173,4 @@ body {
 }
 
 .view.active { display: block; }
+
