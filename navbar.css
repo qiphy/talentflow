@@ -169,7 +169,7 @@ body {
 .view {
     display: none;
     width: 100%;
-    max-width: 860px;
+    max-width: 1200px;   /* was 860px */
 }
 
 .view.active { display: block; }

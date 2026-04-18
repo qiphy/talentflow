@@ -221,6 +221,16 @@ p, .subtitle-text {
   background: #eeeeee;
 }
 
+/* 4. Theme Toggle Button (Moon/Sun) */
+#themeToggle {
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+#themeToggle:hover {
+  transform: scale(1.1);
+}
+
 /* ============================================================
    7. FOOTER & LINKS 
    ============================================================ */
