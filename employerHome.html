@@ -733,6 +733,71 @@
 </div>
 
 <script>
+ // --- CONFIG & AUTH ---
+  const API_BASE_URL = "http://127.0.0.1:8000";
+  const IS_PREVIEW_MODE = true;
+
+  async function checkAuth() {
+    // 1. PREVIEW MODE BYPASS
+    if (IS_PREVIEW_MODE) {
+      console.warn("TalentFlow: Preview Mode Active. Auth Bypassed.");
+      
+      // Set dummy UI state so the page doesn't look empty
+      const title = document.getElementById("pageTitle");
+      if (title) title.innerText = "Welcome, Guest (Preview Mode)";
+      
+      // Ensure the body is visible (since it might be hidden by CSS initially)
+      document.body.style.display = "block";
+      
+      // Load any local drafts if they exist
+      if (typeof loadDraft === "function") loadDraft(); 
+      return;
+    }
+    
+    // 2. REAL AUTHENTICATION LOGIC
+    try {
+      const resp = await fetch(`${API_BASE_URL}/hr`, {
+        method: 'GET',
+        credentials: 'include' 
+      });
+
+      if (resp.ok) {
+          const data = await resp.json();
+          const hasDraft = localStorage.getItem("talentflow_draft");
+          
+          // Auto-fill profile data if no draft exists
+          if (data.profile && !hasDraft) {
+              if (document.getElementById("name")) document.getElementById("name").value = data.profile.full_name || "";
+              if (document.getElementById("email")) document.getElementById("email").value = data.profile.email || "";
+          } else if (hasDraft && typeof loadDraft === "function") {
+              loadDraft(); 
+          }
+
+          // Update greeting
+          const title = document.getElementById("pageTitle");
+          if (title && data.profile) {
+              const firstName = data.profile.full_name.split(' ')[0];
+              title.innerText = `Welcome, ${firstName}`;
+          }
+          
+          document.body.style.display = "block"; 
+      } else {
+          // Not OK response (e.g., 401 Unauthorized)
+          console.error("Auth failed: Redirecting to login.");
+          alert("Session expired. Redirecting to login...");
+          window.location.href = 'login.html';
+      }
+    } catch (err) {
+      // Network or Server Error
+      console.error("Connection error:", err);
+      alert("Session expired. Redirecting to login...");
+      window.location.href = 'login.html';
+    }
+  }
+
+  // Call it as soon as the DOM is ready
+  document.addEventListener("DOMContentLoaded", checkAuth);
+
 /* ─────────────────────────────────────────────
    PLACEHOLDER DATA
    Replace these with Supabase fetches when ready

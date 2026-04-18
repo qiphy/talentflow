@@ -190,6 +190,8 @@ html, body {
     </div>
 
     <script>
+    const IS_PREVIEW_MODE = true;
+
     document.addEventListener('DOMContentLoaded', async function() {
         const updateButton = document.getElementById('updateButton');
         const form = document.querySelector('.account-form');
@@ -201,58 +203,76 @@ html, body {
         };
         
         let initialValues = {};
-        const API_BASE = "http://127.0.0.1:8000"; // Your FastAPI URL
+        const API_BASE = "http://127.0.0.1:8000";
 
-        // 1. FETCH DATA FROM BACKEND
+        // 1. DATA LOADER
         async function loadProfile() {
+            if (IS_PREVIEW_MODE) {
+                console.log("Running in Preview Mode: Using Mock Data");
+                fillFields({
+                    full_name: "John Doe (Preview)",
+                    phone: "012-345-6789",
+                    email: "john.doe@example.com"
+                });
+                return;
+            }
+
             try {
-                // Note: credentials: 'include' is mandatory to send the access_token cookie
                 const response = await fetch(`${API_BASE}/account-info`, {
                     method: 'GET',
                     credentials: 'include' 
                 });
 
                 if (!response.ok) throw new Error("Not authenticated");
-
                 const data = await response.json();
-
-                // Fill fields
-                inputs.name.value = data.full_name || "";
-                inputs.contact.value = data.phone || "";
-                inputs.email.value = data.email || "";
-                inputs.password.value = "********"; // Keep password masked
-                inputs.password.disabled = true;    // Usually email/pass are handled via auth routes, not profile routes
-                inputs.email.disabled = true;
-
-                // Capture initial state for change detection
-                initialValues = {
-                    name: inputs.name.value,
-                    contact: inputs.contact.value
-                };
+                fillFields(data);
             } catch (err) {
-                console.error(err);
-                alert("Session expired. Please log in.");
+                console.error("Auth failed:", err);
+                // In real mode, we redirect. In preview mode, we stay.
+                alert("Session expired. Redirecting to login...");
                 window.location.href = "login.html";
             }
         }
 
-        // 2. CHECK FOR CHANGES
-        function checkChanges() {
-            const hasNameChanged = inputs.name.value !== initialValues.name;
-            const hasContactChanged = inputs.contact.value !== initialValues.contact;
+        function fillFields(data) {
+            inputs.name.value = data.full_name || "";
+            inputs.contact.value = data.phone || "";
+            inputs.email.value = data.email || "";
+            inputs.password.value = "********";
             
-            updateButton.disabled = !(hasNameChanged || hasContactChanged);
+            inputs.email.disabled = true;
+            inputs.password.disabled = true;
+
+            initialValues = { name: inputs.name.value, contact: inputs.contact.value };
+        }
+
+        // 2. CHANGE TRACKER
+        function checkChanges() {
+            const changed = inputs.name.value !== initialValues.name || 
+                            inputs.contact.value !== initialValues.contact;
+            updateButton.disabled = !changed;
         }
 
         [inputs.name, inputs.contact].forEach(input => {
             input.addEventListener('input', checkChanges);
         });
 
-        // 3. SUBMIT UPDATES
+        // 3. SUBMIT HANDLER
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             updateButton.disabled = true;
             updateButton.textContent = "Saving...";
+
+            if (IS_PREVIEW_MODE) {
+                setTimeout(() => {
+                    alert("Preview Mode: Update successful!");
+                    initialValues.name = inputs.name.value;
+                    initialValues.contact = inputs.contact.value;
+                    updateButton.textContent = "Update Account";
+                    updateButton.disabled = true;
+                }, 500);
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_BASE}/update-account`, {
@@ -274,14 +294,13 @@ html, body {
                     alert(`Error: ${err.detail}`);
                 }
             } catch (err) {
-                alert("Failed to connect to server.");
+                alert("Server connection failed.");
             } finally {
                 updateButton.textContent = "Update Account";
                 updateButton.disabled = true;
             }
         });
 
-        // Run on start
         loadProfile();
     });
     </script>

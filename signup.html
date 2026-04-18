@@ -90,123 +90,124 @@
   </div>
 
   <script>
-let currentRole = 'employer'; 
+    let currentRole = 'employer'; 
+    const IS_PREVIEW_MODE = true;;
 
-function setRole(role) {
-    currentRole = role;
-    document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
-    document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
+    function setRole(role) {
+        currentRole = role;
+        document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
+        document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
 
-    const formTitle = document.getElementById('formTitle');
-    const employerSection = document.getElementById('employerOnlyField');
+        const formTitle = document.getElementById('formTitle');
+        const employerSection = document.getElementById('employerOnlyField');
 
-    if (role === 'employer') {
-        formTitle.textContent = 'Register as Employer';
-        if (employerSection) employerSection.style.display = 'block';
-    } else {
-        formTitle.textContent = 'Register as Employee';
-        if (employerSection) employerSection.style.display = 'none';
-    }
-}
-
-async function handleSignup(event) {
-    event.preventDefault();
-
-    const btn = document.getElementById('btnSignup');
-    
-    // 1. Client-side Validation (Keep this active even in preview mode)
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-
-    if (password !== confirmPassword) {
-        showNotif("Passwords do not match!", "error");
-        return;
-    }
-
-    if (!document.getElementById('terms').checked) {
-        showNotif("You must accept the terms.", "error");
-        return;
-    }
-
-    // 2. Comprehensive Payload Mapping
-    const payload = {
-        email: document.getElementById('email').value,
-        password: password,
-        full_name: document.getElementById('name').value,
-        phone: document.getElementById('phone').value,
-        role: typeof currentRole !== 'undefined' ? currentRole : 'candidate',
-        company: (typeof currentRole !== 'undefined' && currentRole === 'employer') 
-                 ? document.getElementById('companySelect').value 
-                 : null,
-        accept_terms: document.getElementById('terms').checked
-    };
-
-    // 3. Preview Mode Bypass
-    if (IS_PREVIEW_MODE) {
-        console.warn("TalentFlow: Preview Mode Signup Active");
-        console.log("Mock Signup Payload:", payload); // Log full exhaustive data
-        
-        btn.disabled = true;
-        btn.textContent = "Processing...";
-
-        setTimeout(() => {
-            showNotif("Account created! (Preview Mode)", "success");
-            setTimeout(() => {
-                window.location.href = "login.html"; 
-            }, 1500);
-        }, 800);
-        return;
-    }
-
-    // 4. Actual Production Logic
-    try {
-        btn.disabled = true;
-        btn.textContent = "Processing...";
-
-        const response = await fetch(`${API_BASE_URL}/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showNotif("Account created! Redirecting to login...", "success");
-            setTimeout(() => {
-                window.location.href = "login.html"; 
-            }, 2000);
+        if (role === 'employer') {
+            formTitle.textContent = 'Register as Employer';
+            if (employerSection) employerSection.style.display = 'block';
         } else {
-            showNotif(data.detail || "Signup failed", "error");
+            formTitle.textContent = 'Register as Employee';
+            if (employerSection) employerSection.style.display = 'none';
         }
-    } catch (err) {
-        showNotif("Connection error. Turn on IS_PREVIEW_MODE to skip backend check.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "Create Account";
     }
-}
 
-function showNotif(msg, type) {
-    const notif = document.getElementById('notif');
-    notif.textContent = msg;
-    notif.style.display = "block";
-    notif.style.color = type === "error" ? "#ff4d4d" : "#00ff88";
-    notif.style.marginBottom = "15px";
-}
+    async function handleSignup(event) {
+        event.preventDefault();
 
-// Password toggle helper
-function togglePassword(inputId, btnId) {
-    const input = document.getElementById(inputId);
-    const btn = document.getElementById(btnId);
-    if (input.type === "password") {
-        input.type = "text";
-        btn.textContent = "Hide";
-    } else {
-        input.type = "password";
-        btn.textContent = "Show";
+        const btn = document.getElementById('btnSignup');
+        
+        // 1. Client-side Validation (Keep this active even in preview mode)
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (password !== confirmPassword) {
+            showNotif("Passwords do not match!", "error");
+            return;
+        }
+
+        if (!document.getElementById('terms').checked) {
+            showNotif("You must accept the terms.", "error");
+            return;
+        }
+
+        // 2. Comprehensive Payload Mapping
+        const payload = {
+            email: document.getElementById('email').value,
+            password: password,
+            full_name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value,
+            role: typeof currentRole !== 'undefined' ? currentRole : 'candidate',
+            company: (typeof currentRole !== 'undefined' && currentRole === 'employer') 
+                    ? document.getElementById('companySelect').value 
+                    : null,
+            accept_terms: document.getElementById('terms').checked
+        };
+
+        // 3. Preview Mode Bypass
+        if (IS_PREVIEW_MODE) {
+            console.warn("TalentFlow: Preview Mode Signup Active");
+            console.log("Mock Signup Payload:", payload); // Log full exhaustive data
+            
+            btn.disabled = true;
+            btn.textContent = "Processing...";
+
+            setTimeout(() => {
+                showNotif("Account created! (Preview Mode)", "success");
+                setTimeout(() => {
+                    window.location.href = "login.html"; 
+                }, 1500);
+            }, 800);
+            return;
+        }
+
+        // 4. Actual Production Logic
+        try {
+            btn.disabled = true;
+            btn.textContent = "Processing...";
+
+            const response = await fetch(`${API_BASE_URL}/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showNotif("Account created! Redirecting to login...", "success");
+                setTimeout(() => {
+                    window.location.href = "login.html"; 
+                }, 2000);
+            } else {
+                showNotif(data.detail || "Signup failed", "error");
+            }
+        } catch (err) {
+            showNotif("Connection error. Turn on IS_PREVIEW_MODE to skip backend check.", "error");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Create Account";
+        }
     }
-}
+
+    function showNotif(msg, type) {
+        const notif = document.getElementById('notif');
+        notif.textContent = msg;
+        notif.style.display = "block";
+        notif.style.color = type === "error" ? "#ff4d4d" : "#00ff88";
+        notif.style.marginBottom = "15px";
+    }
+
+    // Password toggle helper
+    function togglePassword(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const btn = document.getElementById(btnId);
+        if (input.type === "password") {
+            input.type = "text";
+            btn.textContent = "Hide";
+        } else {
+            input.type = "password";
+            btn.textContent = "Show";
+        }
+    }
   </script>
 </body>
 </html>
