@@ -90,24 +90,105 @@
   </div>
 
   <script>
-    function setRole(role) {
-  currentRole = role;
-  
-  // 1. Toggle the 'active' class on the buttons
-  document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
-  document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
+let currentRole = 'employer'; 
 
-  // 2. Update the Form UI
-  const formTitle = document.getElementById('formTitle');
-  const employerSection = document.getElementById('employerOnlyField');
+function setRole(role) {
+    currentRole = role;
+    document.getElementById('btnEmployer').classList.toggle('active', role === 'employer');
+    document.getElementById('btnEmployee').classList.toggle('active', role === 'employee');
 
-  if (role === 'employer') {
-    formTitle.textContent = 'Register as Employer';
-    if (employerSection) employerSection.style.display = 'block';
-  } else {
-    formTitle.textContent = 'Register as Employee';
-    if (employerSection) employerSection.style.display = 'none';
-  }
+    const formTitle = document.getElementById('formTitle');
+    const employerSection = document.getElementById('employerOnlyField');
+
+    if (role === 'employer') {
+        formTitle.textContent = 'Register as Employer';
+        if (employerSection) employerSection.style.display = 'block';
+    } else {
+        formTitle.textContent = 'Register as Employee';
+        if (employerSection) employerSection.style.display = 'none';
+    }
+}
+
+async function handleSignup(event) {
+    event.preventDefault();
+
+    const btn = document.getElementById('btnSignup');
+    const notif = document.getElementById('notif');
+
+    // 1. Client-side Validation
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (password !== confirmPassword) {
+        showNotif("Passwords do not match!", "error");
+        return;
+    }
+
+    if (!document.getElementById('terms').checked) {
+        showNotif("You must accept the terms.", "error");
+        return;
+    }
+
+    // 2. Map HTML to SignupRequest (Pydantic Model)
+    const payload = {
+        email: document.getElementById('email').value,
+        password: password,
+        full_name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        role: currentRole,
+        company: currentRole === 'employer' ? document.getElementById('companySelect').value : null,
+        accept_terms: document.getElementById('terms').checked
+    };
+
+    try {
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        const response = await fetch('http://127.0.0.1:8000/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotif("Account created! Redirecting to login...", "success");
+            // Your backend returns a "redirect" hint based on role
+            setTimeout(() => {
+                window.location.href = "login.html"; 
+            }, 2000);
+        } else {
+            // Your backend sends errors in the 'detail' field
+            showNotif(data.detail || "Signup failed", "error");
+        }
+    } catch (err) {
+        showNotif("Connection error. Is the backend running?", "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Create Account";
+    }
+}
+
+function showNotif(msg, type) {
+    const notif = document.getElementById('notif');
+    notif.textContent = msg;
+    notif.style.display = "block";
+    notif.style.color = type === "error" ? "#ff4d4d" : "#00ff88";
+    notif.style.marginBottom = "15px";
+}
+
+// Password toggle helper
+function togglePassword(inputId, btnId) {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (input.type === "password") {
+        input.type = "text";
+        btn.textContent = "Hide";
+    } else {
+        input.type = "password";
+        btn.textContent = "Show";
+    }
 }
   </script>
 </body>

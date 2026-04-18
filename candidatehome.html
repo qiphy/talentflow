@@ -235,8 +235,8 @@
        PROGRESS BAR
        ============================================================ */
     .progress-sticky {
-      position: relative;
-      top: auto;
+      position: sticky;
+      top: -32px;
       z-index: 10;
       background: var(--color-background-primary);
       margin: 0 -32px;
@@ -942,219 +942,192 @@
 </div>
 
 <script>
+  // --- CONFIG & AUTH ---
+  const API_BASE_URL = "http://127.0.0.1:8000";
 
-var skills = [];
-var required = ["name","email","role","emptype","dept","date","location","manager"];
+  async function checkAuth() {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/candidate`, {
+        method: 'GET',
+        credentials: 'include' 
+      });
 
-function switchView(viewId, el) {
-  document.querySelectorAll(".view").forEach(function(v) { v.classList.remove("active"); });
-  document.getElementById(viewId).classList.add("active");
-  document.querySelectorAll(".nav-item").forEach(function(n) { n.classList.remove("active"); });
-  el.classList.add("active");
-  
-  // Update page title
-  const pageTitle = document.getElementById("pageTitle");
-  if (viewId === "intake") {
-    pageTitle.innerText = "New Intake";
-  } else if (viewId === "monitor") {
-    pageTitle.innerText = "Monitor Applications";
-  }
-}
-
-function triggerUpload() {
-  document.getElementById("fileInput").click();
-}
-
-document.getElementById("fileInput").addEventListener("change", function() {
-  var file = this.files[0];
-  if (!file) return;
-  if (!file.name.match(/\.(pdf|docx)$/i)) { alert("Only PDF or DOCX allowed"); return; }
-  simulateGLM();
-});
-
-function simulateGLM() {
-  var data = {
-    name: "Aisha Tan",
-    role: "Software Engineer",
-    dept: "Engineering",
-    manager: "Priya Mehta",
-    email: "aisha.tan@email.com",
-    seniority: "Senior",
-    emptype: "Full-time",
-    experience: "5–8 years"
-  };
-
-  document.getElementById("name").value = data.name;
-  document.getElementById("role").value = data.role;
-  document.getElementById("dept").value = data.dept;
-  document.getElementById("manager").value = data.manager;
-  document.getElementById("email").value = data.email;
-  document.getElementById("seniority").value = data.seniority;
-  document.getElementById("emptype").value = data.emptype;
-  document.getElementById("experience").value = data.experience;
-
-  skills = ["Python", "React", "PostgreSQL"];
-  renderSkills();
-
-  var box = document.getElementById("glmBox");
-  var tags = document.getElementById("glmTags");
-  tags.innerHTML = "";
-
-  Object.entries(data).forEach(function(e) {
-    var tag = document.createElement("div");
-    tag.className = "infer-tag";
-    tag.innerText = e[0] + ": " + e[1];
-    tags.appendChild(tag);
-  });
-
-  skills.forEach(function(s) {
-    var tag = document.createElement("div");
-    tag.className = "infer-tag";
-    tag.innerText = "skill: " + s;
-    tags.appendChild(tag);
-  });
-
-  box.style.display = "block";
-  updateProgress();
-}
-
-function addSkill() {
-  var input = document.getElementById("skillInput");
-  var val = input.value.trim();
-  if (!val || skills.includes(val)) return;
-  skills.push(val);
-  input.value = "";
-  renderSkills();
-}
-
-function removeSkill(s) {
-  skills = skills.filter(function(x) { return x !== s; });
-  renderSkills();
-}
-
-function renderSkills() {
-  var container = document.getElementById("skillTags");
-  container.innerHTML = "";
-  skills.forEach(function(s) {
-    var tag = document.createElement("div");
-    tag.className = "skill-tag";
-    tag.innerHTML = s + '<span class="remove" onclick="removeSkill(\'' + s + '\')">×</span>';
-    container.appendChild(tag);
-  });
-}
-
-function updateProgress() {
-  var filled = required.filter(function(id) {
-    var el = document.getElementById(id);
-    return el && el.value.trim() !== "";
-  }).length;
-  var pct = Math.round((filled / required.length) * 100);
-  document.getElementById("progressBar").style.width = pct + "%";
-  document.getElementById("progressPct").innerText = pct + "%";
-
-  if (pct === 0) {
-    document.getElementById("progressLabel").innerText = "Step 1 of 4 — Candidate info";
-    document.getElementById("submitMeta").innerText = "Fill required fields to continue";
-  } else if (pct < 50) {
-    document.getElementById("progressLabel").innerText = "Step 1 of 4 — Candidate info";
-    document.getElementById("submitMeta").innerText = filled + " of " + required.length + " required fields filled";
-  } else if (pct < 75) {
-    document.getElementById("progressLabel").innerText = "Step 2 of 4 — Role & compensation";
-    document.getElementById("submitMeta").innerText = "Looking good — keep going";
-  } else if (pct < 100) {
-    document.getElementById("progressLabel").innerText = "Step 3 of 4 — Work setup";
-    document.getElementById("submitMeta").innerText = "Almost there";
-  } else {
-    document.getElementById("progressLabel").innerText = "Ready to submit";
-    document.getElementById("submitMeta").innerText = "All required fields complete";
-  }
-}
-
-function isValidDate(d) {
-  var today = new Date();
-  var sel = new Date(d);
-  var max = new Date();
-  max.setFullYear(today.getFullYear() + 2);
-    return sel >= today && sel <= max;
-}
-
-function submitForm() {
-  var missing = required.filter(function(id) {
-    var el = document.getElementById(id);
-    return !el || el.value.trim() === "";
-  });
-
-  if (missing.length) {
-    alert("Please fill all required fields:\n" + missing.join(", "));
-    return;
-  }
-
-  if (!isValidDate(document.getElementById("date").value)) {
-    alert("Start date must be a future date within 2 years.");
-    return;
-  }
-
-  var status = document.querySelector('input[name="status"]:checked').value;
-
-  var payload = {
-    name:            document.getElementById("name").value,
-    preferred_name:  document.getElementById("prefname").value,
-    email:           document.getElementById("email").value,
-    phone:           document.getElementById("phone").value,
-    nationality:     document.getElementById("nationality").value,
-    linkedin:        document.getElementById("linkedin").value,
-    role:            document.getElementById("role").value,
-    employment_type: document.getElementById("emptype").value,
-    department:      document.getElementById("dept").value,
-    seniority:       document.getElementById("seniority").value,
-    start_date:      document.getElementById("date").value,
-    end_date:        document.getElementById("enddate").value,
-    salary:          document.getElementById("salary").value,
-    currency:        document.getElementById("currency").value,
-    pay_period:      document.getElementById("payperiod").value,
-    probation:       document.getElementById("probation").value,
-    notice_period:   document.getElementById("notice").value,
-    location_type:   document.getElementById("location").value,
-    office:          document.getElementById("office").value,
-    hiring_manager:  document.getElementById("manager").value,
-    reports_to:      document.getElementById("reportsto").value,
-    skills:          skills,
-    experience:      document.getElementById("experience").value,
-    qualification:   document.getElementById("qualification").value,
-    prev_employer:   document.getElementById("prevemployer").value,
-    visa:            document.getElementById("visa").value,
-    equipment:       document.getElementById("equipment").value,
-    access_level:    document.getElementById("access").value,
-    bg_check:        document.getElementById("bgcheck").value,
-    notes:           document.getElementById("notes").value,
-    status:          status
-  };
-
-  console.log("→ Supabase payload:", payload);
-  alert("Onboarding record created (placeholder — payload logged to console)");
-}
-
-// Initialize and set up event listener
-document.addEventListener('DOMContentLoaded', function() {
-  updateProgress();
-  // Manual theme toggle setup
-  const themeBtn = document.getElementById('themeToggle');
-  if (themeBtn) {
-    themeBtn.addEventListener('click', function() {
-      const html = document.documentElement;
-      const current = html.getAttribute('data-theme');
-      if (current === 'dark') {
-        html.setAttribute('data-theme', 'light');
-        this.textContent = '🌙';
-        localStorage.setItem('theme', 'light');
+      if (resp.ok) {
+          const data = await resp.json();
+          console.log("Access granted!");
+          
+          // --- REFINEMENT: Auto-fill profile data from backend ---
+          if (data.profile) {
+            if (document.getElementById("name")) document.getElementById("name").value = data.profile.full_name || "";
+            if (document.getElementById("email")) document.getElementById("email").value = data.profile.email || "";
+            // Update the UI welcoming the user
+            const title = document.getElementById("pageTitle");
+            if (title) title.innerText = `Welcome, ${data.profile.full_name.split(' ')[0]}`;
+          }
+          
+          // Show the main content once auth is confirmed
+          document.body.style.display = "block"; 
       } else {
-        html.setAttribute('data-theme', 'dark');
-        this.textContent = '☀️';
-        localStorage.setItem('theme', 'dark');
+          window.location.href = 'login.html';
       }
-    });
+    } catch (err) {
+      console.error("Auth check failed", err);
+      window.location.href = 'login.html';
+    }
   }
-});
+
+  // --- UI LOGIC ---
+  var skills = [];
+  const required = ["name","email","role","emptype","dept","date","location","manager"];
+
+  function switchView(viewId, el) {
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById(viewId).classList.add("active");
+    
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    el.classList.add("active");
+    
+    const pageTitle = document.getElementById("pageTitle");
+    if (pageTitle) {
+      pageTitle.innerText = (viewId === "intake") ? "New Intake" : "Monitor Applications";
+    }
+  }
+
+  // GLM Simulation Refinement
+  function simulateGLM() {
+    const data = {
+      name: "Aisha Tan",
+      role: "Software Engineer",
+      dept: "Engineering",
+      manager: "Priya Mehta",
+      email: "aisha.tan@email.com",
+      seniority: "Senior",
+      emptype: "Full-time",
+      experience: "5–8 years"
+    };
+
+    // Mapping keys to IDs
+    Object.keys(data).forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.value = data[key];
+    });
+
+    skills = ["Python", "React", "PostgreSQL"];
+    renderSkills();
+
+    // Show Inference Box
+    const box = document.getElementById("glmBox");
+    const tags = document.getElementById("glmTags");
+    if (box && tags) {
+      tags.innerHTML = "";
+      Object.entries(data).forEach(([k, v]) => {
+        tags.innerHTML += `<div class="infer-tag">${k}: ${v}</div>`;
+      });
+      skills.forEach(s => {
+        tags.innerHTML += `<div class="infer-tag">skill: ${s}</div>`;
+      });
+      box.style.display = "block";
+    }
+    updateProgress();
+  }
+
+  function renderSkills() {
+    const container = document.getElementById("skillTags");
+    if (!container) return;
+    container.innerHTML = skills.map(s => `
+      <div class="skill-tag">
+        ${s}<span class="remove" onclick="removeSkill('${s}')">×</span>
+      </div>
+    `).join('');
+  }
+
+  function removeSkill(s) {
+    skills = skills.filter(x => x !== s);
+    renderSkills();
+  }
+
+  function updateProgress() {
+    const filled = required.filter(id => {
+      const el = document.getElementById(id);
+      return el && el.value.trim() !== "";
+    }).length;
+    
+    const pct = Math.round((filled / required.length) * 100);
+    const bar = document.getElementById("progressBar");
+    const pctLabel = document.getElementById("progressPct");
+    
+    if (bar) bar.style.width = pct + "%";
+    if (pctLabel) pctLabel.innerText = pct + "%";
+
+    const label = document.getElementById("progressLabel");
+    const meta = document.getElementById("submitMeta");
+    
+    if (pct === 100) {
+      label.innerText = "Ready to submit";
+      meta.innerText = "All required fields complete";
+    } else {
+      label.innerText = `Step ${Math.ceil(pct/25) || 1} of 4`;
+      meta.innerText = `${filled} of ${required.length} fields filled`;
+    }
+  }
+
+  // --- SUBMIT FUNCTION ---
+  async function submitForm() {
+    const missing = required.filter(id => !document.getElementById(id)?.value.trim());
+
+    if (missing.length) {
+      alert("Please fill: " + missing.join(", "));
+      return;
+    }
+
+    const btn = document.querySelector('.btn-primary');
+    const originalText = btn.innerText;
+    btn.innerText = "Processing...";
+    btn.disabled = true;
+
+    const payload = {
+      full_name: document.getElementById("name").value,
+      email: document.getElementById("email").value,
+      role: document.getElementById("role").value,
+      department: document.getElementById("dept").value,
+      skills: skills
+    };
+
+    try {
+      // Example of actual POST to your backend
+      const response = await fetch(`${API_BASE_URL}/applications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        alert("Success! Onboarding record created.");
+        // Switch to monitor view or clear form
+        location.reload(); 
+      } else {
+        throw new Error("Submission failed");
+      }
+    } catch (err) {
+      alert("Submission error. Please try again.");
+    } finally {
+      btn.innerText = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  // --- INITIALIZE ---
+  document.addEventListener('DOMContentLoaded', () => {
+    // Hide body initially to prevent unauthorized content flash
+    document.body.style.display = "none"; 
+    checkAuth();
+    
+    // Auto-listen for input changes for progress bar
+    required.forEach(id => {
+      document.getElementById(id)?.addEventListener('input', updateProgress);
+    });
+  });
 </script>
 </body>
 </html>
