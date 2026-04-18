@@ -662,9 +662,12 @@
     </div>
 
     <div class="nav-label">Candidate Workspace</div>
-    <div class="nav-item" onclick="window.location.href='candidatehome.html'">
+    <div class="nav-item" onclick="window.location.href='employeeHome.html'">
       <div class="nav-dot dot-purple"></div>
       <span>New Intake</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='employeeHome.html'">
+        <div class="nav-dot dot-blue"></div> Monitor Applications
     </div>
     
     <div class="nav-label">Monitoring</div>
@@ -688,7 +691,9 @@
     <div class="topbar">
       <div class="page-title" id="pageTitle">Dashboard</div>
       <div class="topbar-right">
-        <button class="theme-toggle-btn" id="themeToggle">🌙</button>
+        <button id="themeToggle" onclick="toggleTheme()" style="background: none; border: 1.5px solid var(--color-border-tertiary); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+          🌙
+        </button>
       </div>
     </div>
 
@@ -1177,26 +1182,6 @@ function switchView(viewId, el, title) {
    THEME TOGGLE
 ───────────────────────────────────────────── */
 
-document.addEventListener('DOMContentLoaded', function() {
-  const btn = document.getElementById('themeToggle');
-  btn.addEventListener('click', function() {
-    const html = document.documentElement;
-    const isDark = html.getAttribute('data-theme') === 'dark';
-    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    this.textContent = isDark ? '🌙' : '☀️';
-
-    // Update chart grid colors on theme switch
-    const gridColor = isDark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
-    const tickColor = isDark ? '#999' : '#6e6e73';
-    if (trendChart) {
-      trendChart.options.scales.x.grid.color = gridColor;
-      trendChart.options.scales.y.grid.color = gridColor;
-      trendChart.options.scales.x.ticks.color = tickColor;
-      trendChart.options.scales.y.ticks.color = tickColor;
-      trendChart.update();
-    }
-  });
-
   // Render all sections
   renderPipeline();
   renderDeptBreakdown();
@@ -1205,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', function() {
   renderRecentApps();
   buildTrendChart();
   buildDeptDonut();
-});
+
 </script>
 </body>
 </html>
