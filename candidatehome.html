@@ -944,7 +944,7 @@
 <script>
   // --- CONFIG & AUTH ---
   const API_BASE_URL = "http://127.0.0.1:8000";
-  
+
 async function checkAuth() {
   try {
     const resp = await fetch(`${API_BASE_URL}/candidate`, {
@@ -1076,54 +1076,84 @@ async function checkAuth() {
 
   // --- SUBMIT FUNCTION ---
   async function submitForm() {
-    const missing = required.filter(id => !document.getElementById(id)?.value.trim());
-    if (missing.length) {
-      alert("Please fill: " + missing.join(", "));
-      return;
-    }
-
-    const btn = document.querySelector('.btn-primary');
-    btn.innerText = "Submitting...";
-    btn.disabled = true;
-
-    // Gather all extra details into a single object
-    const details = {};
-    document.querySelectorAll('input, select, textarea').forEach(el => {
-      if (el.id && !required.includes(el.id)) {
-        details[el.id] = el.value;
-      }
-    });
-
-    const payload = {
-      full_name: document.getElementById("name").value,
-      email: document.getElementById("email").value,
-      role_title: document.getElementById("role").value,
-      department: document.getElementById("dept").value,
-      skills: skills,
-      form_details: details
-    };
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/applications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include'
+      // A. Reset Styles
+      document.querySelectorAll('.form-input, .form-select').forEach(el => {
+          el.style.borderColor = "var(--color-border-secondary)";
+          el.style.backgroundColor = "var(--color-background-secondary)";
       });
 
-      if (response.ok) {
-        alert("Application submitted successfully!");
-        localStorage.removeItem("talentflow_draft"); // Nuke the draft
-        window.location.reload(); 
-      } else {
-        throw new Error();
+      // B. Validation Check
+      const missing = required.filter(id => !document.getElementById(id)?.value.trim());
+
+      if (missing.length) {
+          missing.forEach(id => {
+              const el = document.getElementById(id);
+              if (el) {
+                  el.style.borderColor = "#f87171"; // Red border
+                  el.style.backgroundColor = "#fff1f1"; // Light red tint
+              }
+          });
+          
+          const meta = document.getElementById("submitMeta");
+          meta.innerText = "⚠️ Missing required fields (highlighted in red)";
+          meta.style.color = "#f87171";
+          
+          document.getElementById(missing[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
       }
-    } catch (err) {
-      alert("Error submitting application.");
-    } finally {
-      btn.innerText = "Submit Application →";
-      btn.disabled = false;
-    }
+
+      // C. Data Collection
+      const btn = document.querySelector('.btn-primary');
+      btn.innerText = "Submitting...";
+      btn.disabled = true;
+
+      const details = {};
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+          if (el.id && !required.includes(el.id)) {
+              details[el.id] = el.value;
+          }
+      });
+
+      const payload = {
+          full_name: document.getElementById("name").value,
+          email: document.getElementById("email").value,
+          role_title: document.getElementById("role").value,
+          department: document.getElementById("dept").value,
+          skills: skills,
+          form_details: details
+      };
+
+      // D. Final POST
+      try {
+          const response = await fetch(`${API_BASE_URL}/applications`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              credentials: 'include'
+          });
+
+          if (response.ok) {
+              alert("Application Submitted! HR will review it shortly.");
+              localStorage.removeItem("talentflow_draft");
+              window.location.reload(); 
+          } 
+          // --- ADDED: Handle Unauthorized (401) ---
+          else if (response.status === 401) {
+              alert("Your session has expired. Redirecting to login...");
+              window.location.href = 'login.html';
+          } 
+          // ----------------------------------------
+          else {
+              const errData = await response.json();
+              alert("Error: " + (errData.detail || "Submission failed"));
+          }
+      } catch (err) {
+          console.error("Submission error:", err);
+          alert("Submission failed. Check your internet connection.");
+      } finally {
+          btn.innerText = "Submit Application →";
+          btn.disabled = false;
+      }
   }
 
   // Function to save all form fields to LocalStorage
@@ -1171,6 +1201,26 @@ async function checkAuth() {
 
   // Update the INITIALIZE section to include listeners
   document.addEventListener('DOMContentLoaded', () => {
+    const themeBtn = document.getElementById('themeToggle');
+    
+    // Set initial icon based on current theme
+    const updateIcon = (theme) => {
+        themeBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
+    };
+    updateIcon(document.documentElement.getAttribute('data-theme'));
+
+    themeBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        // 1. Update HTML attribute
+        document.documentElement.setAttribute('data-theme', newTheme);
+        // 2. Save to LocalStorage
+        localStorage.setItem('theme', newTheme);
+        // 3. Update Button Icon
+        updateIcon(newTheme);
+    });
+    
     document.body.style.display = "none"; 
     checkAuth();
     

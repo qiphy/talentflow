@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Response, Depends, Cookie, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
-from zai import ZaiClient
+from openai import OpenAI
 from fastapi.responses import JSONResponse # Added this for the fix
 
 load_dotenv()
@@ -14,7 +14,11 @@ app = FastAPI()
 
 # Clients
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-zai_client = ZaiClient(api_key=os.getenv("Z_AI_API_KEY"))
+# OpenRouter uses the OpenAI SDK structure
+zai_client = OpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key=os.getenv("Z_AI_API_KEY"), # Your OpenRouter Key
+)   
 
 app.add_middleware(
     CORSMiddleware,
@@ -260,28 +264,71 @@ class ApplicationData(BaseModel):
     skills: list
     form_details: dict # This catches everything else
 
+import json
+
 @app.post("/applications")
 async def submit_application(payload: ApplicationData, current_user = Depends(get_current_user)):
     user_id = getattr(current_user, "id", None) or current_user.get("id")
     
+    # Initialize AI fields as None (NULL) so we can detect failures in HR dashboard
+    rec_rate = None
+    analysis_text = "Analysis pending (AI gateway timeout or error)."
+
+    # 1. Prepare the prompt
+    prompt = f"""
+    Act as an expert technical recruiter. Analyze this candidate for the role: {payload.role_title}.
+    Department: {payload.department}
+    Skills: {', '.join(payload.skills)}
+    Additional Info: {json.dumps(payload.form_details)}
+
+    Return ONLY a raw JSON object:
+    {{
+      "score": (integer 0-100),
+      "justification": (1-sentence explanation)
+    }}
+    """
+
+    # 2. Call AI via OpenRouter (OpenAI-Compatible Syntax)
     try:
-        data = {
-            "candidate_id": user_id,
-            "full_name": payload.full_name,
-            "email": payload.email,
-            "role_title": payload.role_title,
-            "department": payload.department,
-            "skills": payload.skills,
-            "form_details": payload.form_details
-        }
+        # We use chat.completions.create because .generate() does not exist in the OpenAI SDK
+        completion = zai_client.chat.completions.create(
+            model="z-ai/glm-4.5-air:free", # Use the specific Z.AI model slug here
+            messages=[{"role": "user", "content": prompt}],
+            response_format={ "type": "json_object" } # Forces valid JSON return
+        )
         
-        # Insert into Supabase 'applications' table
-        supabase.table("applications").insert(data).execute()
+        # Correct way to get the text response from an OpenAI-style client
+        raw_ai_response = completion.choices[0].message.content
         
-        return {"status": "success"}
+        # Parse the JSON string into a Python dictionary
+        ai_data = json.loads(raw_ai_response)
+        
+        rec_rate = ai_data.get("score")
+        analysis_text = ai_data.get("justification", "Analysis completed.")
+        
     except Exception as e:
-        print(f"Submission error: {e}")
-        raise HTTPException(status_code=400, detail="Could not save application.")
+        # This keeps the submission alive even if the AI fails
+        print(f"AI Analysis failed (Silent): {str(e)}")
+
+    # 3. Final Data Assembly
+    data = {
+        "candidate_id": user_id,
+        "full_name": payload.full_name,
+        "email": payload.email,
+        "role_title": payload.role_title,
+        "department": payload.department,
+        "skills": payload.skills,
+        "form_details": payload.form_details,
+        "recommendation_rate": rec_rate, # Will be NULL in DB if AI failed
+        "ai_analysis": analysis_text
+    }
+
+    try:
+        supabase.table("applications").insert(data).execute()
+        return {"status": "success", "message": "Application received."}
+    except Exception as e:
+        print(f"SUPABASE ERROR: {str(e)}")
+        raise HTTPException(status_code=400, detail="Database insertion failed.")
 
 @app.get("/me")
 async def me(current_user = Depends(get_current_user)):
