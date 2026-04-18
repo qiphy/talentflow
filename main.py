@@ -126,7 +126,7 @@ async def login(req: LoginRequest):
             print(f"Role lookup warning: {e}")
 
         # 4. Create Response
-        redirect = "/hrhome" if role == "employer" else "/candidatehome"
+        redirect = "/employerHome" if role == "employer" else "/employeeHome"
         res = JSONResponse(content={
             "status": "success",
             "user_id": user_id,
