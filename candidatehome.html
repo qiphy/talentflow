@@ -101,8 +101,8 @@
     }
 
     .nav-item.active {
-      background: #1a2a3a;
-      color: #4a9eff;
+      background: var(--color-nav-active-bg);
+      color: var(--color-nav-active-text);
     }
 
     .nav-dot {
@@ -559,7 +559,7 @@
     </div>
 
     <div class="sidebar-nav">
-      <div class="nav-label active">Workspace</div>
+      <div class="nav-label active">Candidate Workspace</div>
       <div class="nav-item active" onclick="switchView('intake', this)">
         <div class="nav-dot dot-purple"></div> New Intake
       </div>
@@ -567,12 +567,9 @@
         <div class="nav-dot dot-blue"></div> Monitor Applications
       </div>
 
-      <div class="nav-label">Workspace</div>
+      <div class="nav-label">Settings</div>
       <div class="nav-item" onclick="window.location.href='account.html'">
         <div class="nav-dot dot-teal"></div> Account
-      </div>
-      <div class="nav-item" onclick="window.location.href='monitoring.html'">
-        <div class="nav-dot dot-teal"></div> Activity Log
       </div>
     </div>
   </div>

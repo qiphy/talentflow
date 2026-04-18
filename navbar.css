@@ -82,8 +82,8 @@ body {
 }
 
 .nav-item.active {
-    background: #1a2a3a;
-    color: #4a9eff;
+    background: var(--color-nav-active-bg);
+    color: var(--color-nav-active-text);
 }
 
 .nav-dot {
@@ -173,4 +173,3 @@ body {
 }
 
 .view.active { display: block; }
-

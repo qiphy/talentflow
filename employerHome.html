@@ -5,7 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TalentFlow — HR Dashboard</title>
   <link rel="stylesheet" href="design.css" />
+  <script src="theme.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  
+  <script>
+    (function () {
+        const saved = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+
   <style>
     body {
       display: block;
@@ -78,7 +89,7 @@
     }
 
     .nav-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
-    .nav-item.active { background: #1a2a3a; color: #4a9eff; }
+    .nav-item.active { background: var(--color-nav-active-bg); color: var(--color-nav-active-text); }
 
     .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .dot-blue   { background: #4a9eff; }
@@ -639,29 +650,35 @@
       <div class="logo-mark">TalentFlow</div>
       <div class="logo-sub">HR Homepage</div>
     </div>
-<div class="sidebar-nav">
-  <div class="nav-label">Workspace</div>
-  <div class="nav-item" onclick="window.location.href='employerHome.html'">
-    <div class="nav-dot dot-green"></div>
-    <span>Homepage</span>
+  <div class="sidebar-nav">
+    <div class="nav-label">Employer Workspace</div>
+    <div class="nav-item active" onclick="window.location.href='employerHome.html'">
+      <div class="nav-dot dot-red"></div>
+      <span>Homepage</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='candidate.html'">
+      <div class="nav-dot dot-gray"></div>
+      <span>Candidates</span>
+    </div>
+
+    <div class="nav-label">Candidate Workspace</div>
+    <div class="nav-item" onclick="window.location.href='candidatehome.html'">
+      <div class="nav-dot dot-purple"></div>
+      <span>New Intake</span>
+    </div>
+    
+    <div class="nav-label">Monitoring</div>
+    <div class="nav-item" onclick="window.location.href='monitoring.html'">
+      <div class="nav-dot dot-amber"></div>
+      <span>Activity Log</span>
+    </div>
+
+    <div class="nav-label">Settings</div>
+    <div class="nav-item" onclick="window.location.href='account.html'">
+      <div class="nav-dot dot-teal"></div>
+      <span>Account</span>
+    </div>
   </div>
-  <div class="nav-item" onclick="window.location.href='account.html'">
-    <div class="nav-dot dot-purple"></div>
-    <span>Account</span>
-  </div>
-  
-  <div class="nav-label">Candidates</div>
-  <div class="nav-item" onclick="window.location.href='candidate.html'">
-    <div class="nav-dot dot-green"></div>
-    <span>Candidate</span>
-  </div>
-  
-  <div class="nav-label">Monitoring</div>
-  <div class="nav-item" onclick="window.location.href='monitor.html'">
-    <div class="nav-dot dot-green"></div>
-    <span>Monitor</span>
-  </div>
-</div>
 </div>
 
   <!-- MAIN -->
