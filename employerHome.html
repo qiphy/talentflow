@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="navbar.css" />
   <script src="theme.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <script>
     (function () {
@@ -525,9 +527,8 @@
 </div>
 
   <!-- MAIN -->
-  <div class="main">
+<div class="main">
 
-    <!-- TOPBAR -->
     <div class="topbar">
       <div class="page-title" id="pageTitle">Dashboard</div>
       <div class="topbar-right">
@@ -537,75 +538,59 @@
       </div>
     </div>
 
-    <!-- CONTENT -->
     <div class="content">
 
-      <!-- ═══════════════════════════════════════════════════ -->
-      <!-- DASHBOARD VIEW                                       -->
-      <!-- ═══════════════════════════════════════════════════ -->
       <div class="view active" id="dashboard">
 
-        <!-- AI Summary Strip -->
         <div class="ai-strip">
           <div class="ai-strip-icon">✦</div>
-          <div class="ai-strip-text">
-            <strong>GLM Summary:</strong> 47 active applications this week. Engineering pipeline is healthy with 3 candidates at offer stage. Product dept has a bottleneck — 4 candidates stalled in review for 9+ days. 2 hires starting within the next 7 days require equipment provisioning.
+          <div class="ai-strip-text" id="glmSummaryText">
+            <strong>GLM Summary:</strong> Analyzing latest application trends...
           </div>
           <div class="ai-strip-badge">GLM · Live</div>
         </div>
 
-        <!-- Stat Cards Row -->
         <div class="dash-grid" style="margin-bottom:20px">
           <div class="stat-card blue">
             <div class="stat-label">Total Applications</div>
-            <div class="stat-value">147</div>
-            <div class="stat-delta up">↑ 12 this week</div>
+            <div class="stat-value" id="statTotalApps">-</div>
+            <div class="stat-delta up" id="statTotalDelta">Calculating...</div>
           </div>
           <div class="stat-card teal">
             <div class="stat-label">Active Pipelines</div>
-            <div class="stat-value">47</div>
-            <div class="stat-delta up">↑ 5 new today</div>
+            <div class="stat-value" id="statActivePipelines">-</div>
+            <div class="stat-delta up" id="statActiveDelta">...</div>
           </div>
           <div class="stat-card amber">
             <div class="stat-label">Avg. Time to Hire</div>
-            <div class="stat-value">18<span style="font-size:16px;font-weight:500">d</span></div>
-            <div class="stat-delta down">↓ 2d vs last month</div>
+            <div class="stat-value" id="statAvgTime">-</div>
+            <div class="stat-delta" id="statTimeDelta">...</div>
           </div>
           <div class="stat-card green">
             <div class="stat-label">Offer Acceptance</div>
-            <div class="stat-value">84<span style="font-size:16px;font-weight:500">%</span></div>
-            <div class="stat-delta up">↑ 6% vs last qtr</div>
+            <div class="stat-value" id="statOfferRate">-</div>
+            <div class="stat-delta" id="statOfferDelta">...</div>
           </div>
-        </div>
-
-        <!-- Secondary stats -->
-        <div class="dash-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:20px">
           <div class="stat-card purple">
             <div class="stat-label">Interviews Scheduled</div>
-            <div class="stat-value">14</div>
-            <div class="stat-delta">This week</div>
+            <div class="stat-value" id="statInterviews">-</div> <div class="stat-delta">This week</div>
           </div>
           <div class="stat-card red">
             <div class="stat-label">Pending Review</div>
-            <div class="stat-value">11</div>
-            <div class="stat-delta warn">⚠ 4 overdue</div>
+            <div class="stat-value" id="statPending">-</div> <div class="stat-delta warn">⚠ 4 overdue</div>
           </div>
           <div class="stat-card teal">
             <div class="stat-label">Onboarding Active</div>
-            <div class="stat-value">6</div>
-            <div class="stat-delta up">↑ 2 starting soon</div>
+            <div class="stat-value" id="statOnboarding">-</div> <div class="stat-delta up">↑ 2 starting soon</div>
           </div>
           <div class="stat-card amber">
             <div class="stat-label">GLM Extractions</div>
-            <div class="stat-value">132</div>
-            <div class="stat-delta up">98% accuracy</div>
+            <div class="stat-value" id="statExtractions">-</div> <div class="stat-delta up">98% accuracy</div>
           </div>
         </div>
 
-        <!-- Applications over time + Pipeline -->
         <div class="two-col" style="margin-bottom:20px">
 
-          <!-- Applications over time chart -->
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -623,7 +608,6 @@
             </div>
           </div>
 
-          <!-- Application Status Pipeline -->
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -635,7 +619,6 @@
             <div class="pipeline" id="pipelineBar"></div>
             <div class="pipeline-legend" id="pipelineLegend"></div>
 
-            <!-- Stage detail list -->
             <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--color-border-tertiary)">
               <div id="pipelineDetail"></div>
             </div>
@@ -643,10 +626,8 @@
 
         </div>
 
-        <!-- Department breakdown + Upcoming start dates + GLM insights -->
         <div class="three-col" style="margin-bottom:20px">
 
-          <!-- Department breakdown -->
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -660,7 +641,6 @@
             <div id="deptBarList"></div>
           </div>
 
-          <!-- Upcoming start dates -->
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -672,7 +652,6 @@
             <div id="startDatesList"></div>
           </div>
 
-          <!-- GLM extraction insights -->
           <div class="panel">
             <div class="panel-header">
               <div>
@@ -685,12 +664,11 @@
 
         </div>
 
-        <!-- Recent Applications Table -->
         <div class="panel" style="margin-bottom:20px">
           <div class="panel-header">
             <div>
               <div class="panel-title">Recent Applications</div>
-              <div class="panel-sub">Latest 8 submissions across all departments</div>
+              <div class="panel-sub" id="tableSubtext">Latest submissions</div>
             </div>
             <div class="panel-action">View all →</div>
           </div>
@@ -710,34 +688,18 @@
         </div>
 
       </div>
-
-      <!-- OTHER VIEWS (placeholder) -->
-      <div class="view" id="applications">
-        <div class="panel"><div class="card-empty">Applications view — coming soon</div></div>
-      </div>
-      <div class="view" id="intake">
-        <div class="panel"><div class="card-empty">New Intake form — coming soon</div></div>
-      </div>
-      <div class="view" id="glm">
-        <div class="panel"><div class="card-empty">GLM Activity log — coming soon</div></div>
-      </div>
-      <div class="view" id="alerts">
-        <div class="panel"><div class="card-empty">Flags & Alerts — coming soon</div></div>
-      </div>
-      <div class="view" id="reports">
-        <div class="panel"><div class="card-empty">Reports — coming soon</div></div>
-      </div>
-
     </div>
   </div>
-</div>
 
 <script>
- // --- CONFIG & AUTH ---
-  const API_BASE_URL = "http://127.0.0.1:8000";
-  const IS_PREVIEW_MODE = true;
+// --- CONFIG & AUTH ---
+const API_BASE_URL = "http://127.0.0.1:8000";
+const IS_PREVIEW_MODE = false; // Set to false to use real data
 
-  async function checkAuth() {
+let trendChart = null;
+let deptChart = null;
+
+ async function checkAuth() {
     // 1. PREVIEW MODE BYPASS
     if (IS_PREVIEW_MODE) {
       console.warn("TalentFlow: Preview Mode Active. Auth Bypassed.");
@@ -756,7 +718,7 @@
     
     // 2. REAL AUTHENTICATION LOGIC
     try {
-      const resp = await fetch(`${API_BASE_URL}/hr`, {
+      const resp = await fetch(`${API_BASE_URL}/hr/dashboard`, {
         method: 'GET',
         credentials: 'include' 
       });
@@ -795,266 +757,130 @@
     }
   }
 
-  // Call it as soon as the DOM is ready
-  document.addEventListener("DOMContentLoaded", checkAuth);
+/* ─────────────────────────────────────────────
+   GLOBAL STATE
+───────────────────────────────────────────── */
+let DEPT_DATA = [];
+let PIPELINE_STAGES = [];
+let RECENT_APPS = [];
+let UPCOMING_STARTS = [];
+let GLM_INSIGHTS = [];
+let LATEST_TREND = { labels: [], data: [] }; // Stores real Supabase trend data
 
 /* ─────────────────────────────────────────────
-   PLACEHOLDER DATA
-   Replace these with Supabase fetches when ready
+   FETCH DATA FROM BACKEND
 ───────────────────────────────────────────── */
+async function fetchDashboardData() {
+  console.log("Fetching dashboard data...");
+  try {
+    const resp = await fetch(`${API_BASE_URL}/hr/dashboard`, {
+      method: 'GET',
+      credentials: 'include'
+    });
 
-const DEPT_DATA = [
-  { name: 'Engineering', count: 8,  color: '#4a9eff' },
-  { name: 'Product',     count: 4,  color: '#a855f7' },
-  { name: 'Design',      count: 3,  color: '#2dd4bf' },
-  { name: 'HR',          count: 2,  color: '#f59e0b' },
-  { name: 'Finance',     count: 5,  color: '#22c55e' },
-  { name: 'Marketing',   count: 3,  color: '#f97316' },
-  { name: 'Operations',  count: 6,  color: '#ec4899' },
-  { name: 'Legal',       count: 1,  color: '#6b7280' },
-];
+    if (!resp.ok) throw new Error("Backend returned " + resp.status);
 
-const PIPELINE_STAGES = [
-  { label: 'New',        count: 23, color: '#4a9eff', cls: 'new' },
-  { label: 'Reviewing',  count: 11, color: '#a855f7', cls: 'reviewing' },
-  { label: 'Interview',  count: 8,  color: '#22c55e', cls: 'interview' },
-  { label: 'Offer',      count: 3,  color: '#f59e0b', cls: 'offer' },
-  { label: 'Onboarding', count: 6,  color: '#4ade80', cls: 'onboarding' },
-  { label: 'Rejected',   count: 4,  color: '#ef4444', cls: 'rejected' },
-];
+    const data = await resp.json();
+    console.log("Data received:", data);
 
-const UPCOMING_STARTS = [
-  { name: 'Aisha Tan',      role: 'Software Engineer', dept:'Engineering', day: 22, month: 'APR', daysAway: 4,  urgent: true },
-  { name: 'Marcus Osei',    role: 'Product Manager',   dept:'Product',     day: 24, month: 'APR', daysAway: 6,  urgent: true },
-  { name: 'Priya Kapoor',   role: 'UX Designer',       dept:'Design',      day: 1,  month: 'MAY', daysAway: 13, urgent: false },
-  { name: 'Rafi Abdullah',  role: 'Data Analyst',       dept:'Finance',     day: 5,  month: 'MAY', daysAway: 17, urgent: false },
-  { name: 'Linh Nguyen',    role: 'Ops Coordinator',   dept:'Operations',  day: 12, month: 'MAY', daysAway: 24, urgent: false },
-];
+    // 1. Primary Stat Cards Injection
+    const updateEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.innerText = val;
+      else console.warn(`Element ID not found: ${id}`);
+    };
 
-const RECENT_APPS = [
-  { name: 'Zara Malik',     initials:'ZM', role: 'Senior Engineer',    dept: 'Engineering', applied: '2h ago',   status: 'new',        glm: '✓ High' },
-  { name: 'Devraj Patel',   initials:'DP', role: 'Product Designer',   dept: 'Design',      applied: '5h ago',   status: 'reviewing',  glm: '✓ High' },
-  { name: 'Sofia Reyes',    initials:'SR', role: 'Finance Analyst',    dept: 'Finance',     applied: 'Yesterday',status: 'interview',  glm: '✓ Med'  },
-  { name: 'James Lim',      initials:'JL', role: 'Backend Engineer',   dept: 'Engineering', applied: 'Yesterday',status: 'offer',      glm: '✓ High' },
-  { name: 'Amara Diallo',   initials:'AD', role: 'Growth Marketer',    dept: 'Marketing',   applied: '2d ago',   status: 'reviewing',  glm: '~ Med'  },
-  { name: 'Kenji Tanaka',   initials:'KT', role: 'Operations Lead',    dept: 'Operations',  applied: '2d ago',   status: 'new',        glm: '✓ High' },
-  { name: 'Nadia Hassan',   initials:'NH', role: 'Legal Counsel',      dept: 'Legal',       applied: '3d ago',   status: 'rejected',   glm: '✓ Low'  },
-  { name: 'Caleb Mensah',   initials:'CM', role: 'Product Manager',    dept: 'Product',     applied: '3d ago',   status: 'onboarding', glm: '✓ High' },
-];
+    if (data.stats) {
+      updateEl('statTotalApps', data.stats.total_apps);
+      updateEl('statActivePipelines', data.stats.active_pipelines);
+      updateEl('statInterviews', data.stats.interviews);
+      updateEl('statPending', data.stats.pending);
+      updateEl('statOnboarding', data.stats.onboarding);
+      updateEl('statExtractions', data.stats.extractions);
+    }
 
-const GLM_INSIGHTS = [
-  { label: 'Top Skill Detected',   icon: '◈', text: 'Python & SQL appear in 68% of engineering applications this week.' },
-  { label: 'Visa Flag',            icon: '⚑', text: '3 applicants require employer-sponsored work pass — review pending.' },
-  { label: 'Duplicate Detected',   icon: '◎', text: 'Possible duplicate submission from 1 candidate (same email, 2 roles).' },
-  { label: 'Qualification Trend',  icon: '▲', text: "Master's degrees up 22% this month vs Q1 average." },
-  { label: 'Experience Gap',       icon: '◉', text: 'Product dept: 3 of 4 applicants underqualified vs JD requirements.' },
-];
+    // 2. Sync AI Summary Strip
+    const summaryEl = document.getElementById('glmSummaryText');
+    if (summaryEl && data.insights && data.insights.length > 0) {
+      summaryEl.innerHTML = `<strong>GLM Summary:</strong> ${data.insights[0].text}`;
+    }
 
-/* ─── Trend chart data ─── */
-const TREND_DATA = {
-  '4w': {
-    labels: ['Week 1','Week 2','Week 3','Week 4'],
-    data:   [18, 24, 31, 47],
-  },
-  '3m': {
-    labels: ['Jan','Feb','Mar'],
-    data:   [54, 72, 102],
-  },
-  '6m': {
-    labels: ['Oct','Nov','Dec','Jan','Feb','Mar'],
-    data:   [28, 35, 41, 54, 72, 102],
-  },
-};
+    // 3. Update global variables for charts/tables
+    RECENT_APPS = data.recent_apps || [];
+    DEPT_DATA = data.dept_stats || [];
+    PIPELINE_STAGES = data.pipeline || [];
+    GLM_INSIGHTS = data.insights || [];
+    UPCOMING_STARTS = data.upcoming_starts || [];
+    
+    // 4. Capture the REAL trend data from Supabase
+    if (data.trend) {
+      LATEST_TREND = data.trend;
+    }
 
-/* ─────────────────────────────────────────────
-   RENDER FUNCTIONS
-───────────────────────────────────────────── */
-
-// Avatar colors
-const AV_COLORS = ['#1a2a3a','#1f1a2e','#1a2e20','#2e1f0a','#2e0f0f','#0a1a2a'];
-const AV_TEXT   = ['#4a9eff','#a855f7','#22c55e','#f59e0b','#ef4444','#2dd4bf'];
-
-function avatarStyle(i) {
-  const idx = i % AV_COLORS.length;
-  return `background:${AV_COLORS[idx]};color:${AV_TEXT[idx]};`;
-}
-
-function renderPipeline() {
-  const total = PIPELINE_STAGES.reduce((s,p) => s + p.count, 0);
-  const bar   = document.getElementById('pipelineBar');
-  const leg   = document.getElementById('pipelineLegend');
-  const det   = document.getElementById('pipelineDetail');
-
-  bar.innerHTML = PIPELINE_STAGES.map(s => {
-    const pct = (s.count / total * 100).toFixed(1);
-    return `<div class="pipe-stage" title="${s.label}: ${s.count}"
-      style="flex:${s.count};background:${s.color};color:#fff;min-width:${pct > 5 ? 'auto' : '0'}">
-      ${pct > 8 ? s.count : ''}
-    </div>`;
-  }).join('');
-
-  leg.innerHTML = PIPELINE_STAGES.map(s =>
-    `<div class="legend-item">
-      <div class="legend-dot" style="background:${s.color}"></div>
-      ${s.label} <strong style="color:var(--color-text-primary)">${s.count}</strong>
-    </div>`
-  ).join('');
-
-  det.innerHTML = PIPELINE_STAGES.map(s => {
-    const pct = (s.count / total * 100).toFixed(0);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border-tertiary)">
-      <div style="width:10px;height:10px;border-radius:2px;background:${s.color};flex-shrink:0"></div>
-      <div style="flex:1;font-size:12px;color:var(--color-text-primary);font-weight:500">${s.label}</div>
-      <div style="font-size:11px;color:var(--color-text-tertiary)">${pct}%</div>
-      <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);min-width:20px;text-align:right">${s.count}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderDeptBreakdown() {
-  const max = Math.max(...DEPT_DATA.map(d => d.count));
-  const list = document.getElementById('deptBarList');
-  list.innerHTML = DEPT_DATA.map(d => `
-    <div class="dept-row">
-      <div class="dept-name">${d.name}</div>
-      <div class="dept-bar-wrap">
-        <div class="dept-bar" style="width:${(d.count/max*100).toFixed(0)}%;background:${d.color}"></div>
-      </div>
-      <div class="dept-count">${d.count}</div>
-    </div>
-  `).join('');
-}
-
-function renderUpcomingStarts() {
-  const el = document.getElementById('startDatesList');
-  el.innerHTML = UPCOMING_STARTS.map(s => {
-    const urgentStyle = s.urgent
-      ? 'background:#2e1a0a;color:#f59e0b;border-color:#5a3a1a'
-      : 'background:#1a2e1a;color:#4ade80;border-color:#2d5a2d';
-    const boxColor = s.urgent ? '#2e1a0a' : '#0a1a2e';
-    const boxTextColor = s.urgent ? '#f59e0b' : '#4a9eff';
-    return `
-    <div class="start-item">
-      <div class="start-date-box" style="background:${boxColor};border:1px solid ${boxTextColor}22">
-        <div class="month" style="color:${boxTextColor}">${s.month}</div>
-        <div class="day" style="color:${boxTextColor}">${s.day}</div>
-      </div>
-      <div class="start-info">
-        <div class="start-name">${s.name}</div>
-        <div class="start-role">${s.role} · ${s.dept}</div>
-      </div>
-      <div class="days-away" style="${urgentStyle};border:1px solid">in ${s.daysAway}d</div>
-    </div>`;
-  }).join('');
-}
-
-function renderGLMInsights() {
-  const el = document.getElementById('glmInsightsList');
-  el.innerHTML = GLM_INSIGHTS.map(g => `
-    <div class="glm-insight">
-      <div class="glm-insight-icon">${g.icon}</div>
-      <div>
-        <div class="glm-insight-label">${g.label}</div>
-        <div class="glm-insight-text">${g.text}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderRecentApps() {
-  const tb = document.getElementById('recentAppsTable');
-  const statusLabels = {
-    new:'new', reviewing:'reviewing', interview:'interview',
-    offer:'offer', onboarding:'onboarding', rejected:'rejected'
-  };
-  const glmColor = t => t.startsWith('✓') ? '#4ade80' : '#f59e0b';
-
-  tb.innerHTML = RECENT_APPS.map((a,i) => `
-    <tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="${avatarStyle(i)}">${a.initials}</div>
-          <div>
-            <div class="candidate-name">${a.name}</div>
-          </div>
-        </div>
-      </td>
-      <td><span style="font-size:12px;color:var(--color-text-secondary)">${a.role}</span></td>
-      <td><span style="font-size:12px;color:var(--color-text-tertiary)">${a.dept}</span></td>
-      <td><span style="font-size:11px;color:var(--color-text-tertiary)">${a.applied}</span></td>
-      <td><span class="pill ${a.status}"><span class="pill-dot"></span>${statusLabels[a.status]}</span></td>
-      <td><span style="font-size:11px;font-weight:700;color:${glmColor(a.glm)}">${a.glm}</span></td>
-    </tr>
-  `).join('');
+    refreshUI();
+  } catch (err) {
+    console.error("Dashboard Fetch Error:", err);
+  }
 }
 
 /* ─────────────────────────────────────────────
-   CHARTS
+   BUILD TREND CHART (Line Chart)
 ───────────────────────────────────────────── */
-
-let trendChart, deptChart;
-
 function buildTrendChart() {
-  const ctx = document.getElementById('appTrendChart').getContext('2d');
-  const d = TREND_DATA['4w'];
-  trendChart = new Chart(ctx, {
+  const ctx = document.getElementById('appTrendChart');
+  if (!ctx) {
+    console.warn("Canvas 'appTrendChart' not found.");
+    return;
+  }
+
+  console.log("Trend chart initialized");
+
+  // Initialize with empty data; refreshUI() will populate this from Supabase
+  trendChart = new Chart(ctx.getContext('2d'), {
     type: 'line',
     data: {
-      labels: d.labels,
+      labels: [], // Populated by LATEST_TREND.labels
       datasets: [{
-        data: d.data,
+        label: 'Applications',
+        data: [], // Populated by LATEST_TREND.data
         borderColor: '#4a9eff',
-        backgroundColor: 'rgba(74,158,255,0.08)',
+        backgroundColor: 'rgba(74, 158, 255, 0.1)',
         borderWidth: 2,
-        pointBackgroundColor: '#4a9eff',
-        pointRadius: 4,
-        pointHoverRadius: 6,
         tension: 0.4,
         fill: true,
+        pointRadius: 4,
+        pointBackgroundColor: '#4a9eff',
+        pointBorderColor: 'var(--color-background-primary)',
+        pointBorderWidth: 2
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-          ticks: { color: '#6e6e73', font: { size: 11, weight: '600' } }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-          ticks: { color: '#6e6e73', font: { size: 11 }, stepSize: 10 },
-          beginAtZero: true,
-        }
-      }
-    }
-  });
-}
-
-function buildDeptDonut() {
-  const ctx = document.getElementById('deptDonutChart').getContext('2d');
-  deptChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: DEPT_DATA.map(d => d.name),
-      datasets: [{
-        data: DEPT_DATA.map(d => d.count),
-        backgroundColor: DEPT_DATA.map(d => d.color),
-        borderColor: 'transparent',
-        borderWidth: 0,
-        hoverOffset: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '68%',
       plugins: {
         legend: { display: false },
         tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.parsed} applicants`
+          mode: 'index',
+          intersect: false,
+          backgroundColor: '#1a2a3a',
+          titleColor: '#4a9eff',
+          bodyColor: '#fff',
+          borderColor: 'rgba(74, 158, 255, 0.2)',
+          borderWidth: 1
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#6e6e73', font: { size: 10, weight: '600' } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+          ticks: { 
+            color: '#6e6e73', 
+            font: { size: 10 },
+            stepSize: 1 
           }
         }
       }
@@ -1062,39 +888,305 @@ function buildDeptDonut() {
   });
 }
 
-function setChartRange(range, el) {
-  document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  const d = TREND_DATA[range];
-  trendChart.data.labels = d.labels;
-  trendChart.data.datasets[0].data = d.data;
-  trendChart.update();
+/* ─────────────────────────────────────────────
+   BUILD DEPT DONUT (Doughnut Chart)
+───────────────────────────────────────────── */
+function buildDeptDonut() {
+  const ctx = document.getElementById('deptDonutChart');
+  if (!ctx) {
+    console.warn("Canvas 'deptDonutChart' not found.");
+    return;
+  }
+
+  console.log("Dept donut initialized");
+
+  deptChart = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: [], // Populated by DEPT_DATA
+      datasets: [{
+        data: [], // Populated by DEPT_DATA
+        backgroundColor: [
+          '#4a9eff', // Engineering
+          '#a855f7', // Product
+          '#22c55e', // Design
+          '#f59e0b', // HR
+          '#ef4444', // Operations
+          '#2dd4bf'  // Legal
+        ],
+        hoverOffset: 12,
+        borderWidth: 0,
+        weight: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '78%', // Creates the thin minimalist ring look
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2a3a',
+          padding: 10,
+          cornerRadius: 8,
+          titleFont: { size: 12, weight: 'bold' },
+          callbacks: {
+            label: function(context) {
+              return ` ${context.label}: ${context.parsed} candidates`;
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
 /* ─────────────────────────────────────────────
-   NAV
+   UI REFRESH LOGIC
 ───────────────────────────────────────────── */
-
-function switchView(viewId, el, title) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(viewId).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('pageTitle').innerText = title;
-}
-
-/* ─────────────────────────────────────────────
-   THEME TOGGLE
-───────────────────────────────────────────── */
-
-  // Render all sections
+function refreshUI() {
+  // Run all loop-based renderers
   renderPipeline();
   renderDeptBreakdown();
   renderUpcomingStarts();
   renderGLMInsights();
   renderRecentApps();
+  
+  // Update Trend Chart with REAL data from Supabase
+  if (trendChart && LATEST_TREND.labels.length > 0) {
+    trendChart.data.labels = LATEST_TREND.labels;
+    trendChart.data.datasets[0].data = LATEST_TREND.data;
+    trendChart.update();
+  }
+  
+  // Update Donut Chart with REAL Department data
+  if (deptChart && DEPT_DATA.length > 0) {
+    const labels = [];
+    const counts = [];
+    
+    for (const d of DEPT_DATA) {
+      labels.push(d.name);
+      counts.push(d.count);
+    }
+
+    deptChart.data.labels = labels;
+    deptChart.data.datasets[0].data = counts;
+    deptChart.update();
+  }
+}
+
+/* ─────────────────────────────────────────────
+   CHART RANGE SWITCHER
+───────────────────────────────────────────── */
+function setChartRange(range, el) {
+  // UI: Toggle active classes
+  const chips = document.querySelectorAll('.time-chip');
+  for (const chip of chips) {
+    chip.classList.remove('active');
+  }
+  el.classList.add('active');
+
+  // Currently, the backend provides the last 7 days (Real data)
+  // We revert to real data for 4W (default view)
+  if (range === '4w' && LATEST_TREND.labels.length > 0) {
+    trendChart.data.labels = LATEST_TREND.labels;
+    trendChart.data.datasets[0].data = LATEST_TREND.data;
+    trendChart.update();
+  } else {
+    // If user clicks 3M/6M, we show a notice or handle via a separate API call
+    console.log("Historical range requested: " + range);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   RENDER LOGIC (Modified for DB Columns)
+───────────────────────────────────────────── */
+
+/* ─────────────────────────────────────────────
+   AVATAR HELPER
+───────────────────────────────────────────── */
+function avatarStyle(i) {
+  const AV_COLORS = ['#1a2a3a','#1f1a2e','#1a2e20','#2e1f0a','#2e0f0f','#0a1a2a'];
+  const AV_TEXT   = ['#4a9eff','#a855f7','#22c55e','#f59e0b','#ef4444','#2dd4bf'];
+  const idx = i % AV_COLORS.length;
+  return `background:${AV_COLORS[idx]};color:${AV_TEXT[idx]};`;
+}
+
+/* ─────────────────────────────────────────────
+   RENDER PIPELINE
+───────────────────────────────────────────── */
+function renderPipeline() {
+  const bar = document.getElementById('pipelineBar');
+  const leg = document.getElementById('pipelineLegend');
+  const det = document.getElementById('pipelineDetail');
+  if (!bar || !PIPELINE_STAGES.length) return;
+
+  let barHtml = "";
+  let legHtml = "";
+  let detHtml = "";
+
+  const total = PIPELINE_STAGES.reduce((s, p) => s + p.count, 0);
+
+  for (const s of PIPELINE_STAGES) {
+    const pct = total > 0 ? (s.count / total * 100) : 0;
+    
+    // 1. Build Bar
+    barHtml += `<div class="pipe-stage" title="${s.label}: ${s.count}" 
+                style="flex:${s.count}; background:${s.color}; min-width: 2px;">
+                ${pct > 10 ? s.count : ''}
+                </div>`;
+
+    // 2. Build Legend
+    legHtml += `<div class="legend-item">
+                  <div class="legend-dot" style="background:${s.color}"></div>
+                  ${s.label} <strong style="color:var(--color-text-primary)">${s.count}</strong>
+                </div>`;
+
+    // 3. Build Detail
+    detHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border-tertiary)">
+                  <div style="width:10px;height:10px;border-radius:2px;background:${s.color}"></div>
+                  <div style="flex:1;font-size:12px;color:var(--color-text-primary);font-weight:500">${s.label}</div>
+                  <div style="font-size:11px;color:var(--color-text-tertiary)">${pct.toFixed(0)}%</div>
+                  <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);min-width:20px;text-align:right">${s.count}</div>
+                </div>`;
+  }
+
+  bar.innerHTML = barHtml;
+  leg.innerHTML = legHtml;
+  det.innerHTML = detHtml;
+}
+
+/* ─────────────────────────────────────────────
+   RENDER RECENT APPLICATIONS (TABLE)
+───────────────────────────────────────────── */
+function renderRecentApps() {
+  const tb = document.getElementById('recentAppsTable');
+  if (!tb) return;
+
+  let html = "";
+  for (let i = 0; i < RECENT_APPS.length; i++) {
+    const a = RECENT_APPS[i];
+    const initials = a.full_name ? a.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : "??";
+    const appliedDate = new Date(a.created_at).toLocaleDateString();
+    const glmColor = a.recommendation_rate > 70 ? '#4ade80' : '#f59e0b';
+
+    html += `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="${avatarStyle(i)}">${initials}</div>
+          <div class="candidate-name">${a.full_name}</div>
+        </div>
+      </td>
+      <td><span style="font-size:12px">${a.role_title}</span></td>
+      <td><span style="font-size:12px">${a.department}</span></td>
+      <td><span style="font-size:11px">${appliedDate}</span></td>
+      <td><span class="pill ${a.status.toLowerCase()}"><span class="pill-dot"></span>${a.status}</span></td>
+      <td><span style="font-size:11px;font-weight:700;color:${glmColor}">✓ ${a.recommendation_rate}%</span></td>
+    </tr>`;
+  }
+  tb.innerHTML = html;
+}
+
+/* ─────────────────────────────────────────────
+   RENDER DEPT BREAKDOWN
+───────────────────────────────────────────── */
+function renderDeptBreakdown() {
+  const list = document.getElementById('deptBarList');
+  if (!list || !DEPT_DATA.length) return;
+
+  const max = Math.max(...DEPT_DATA.map(d => d.count));
+  let html = "";
+
+  for (const d of DEPT_DATA) {
+    html += `
+    <div class="dept-row" style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <div class="dept-name" style="width:80px; font-size:12px; color:var(--color-text-secondary);">${d.name}</div>
+      <div class="dept-bar-wrap" style="flex:1; background:var(--color-border-tertiary); height:6px; border-radius:3px; overflow:hidden;">
+        <div class="dept-bar" style="width:${(d.count/max*100)}%; background:${d.color || '#4a9eff'}; height:100%;"></div>
+      </div>
+      <div class="dept-count" style="width:20px; font-size:12px; font-weight:700; text-align:right;">${d.count}</div>
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+/* ─────────────────────────────────────────────
+   RENDER GLM INSIGHTS
+───────────────────────────────────────────── */
+function renderGLMInsights() {
+  const list = document.getElementById('glmInsightsList');
+  if (!list || !GLM_INSIGHTS.length) return;
+
+  let html = "";
+  for (const g of GLM_INSIGHTS) {
+    html += `
+    <div class="glm-insight" style="display:flex; gap:12px; margin-bottom:16px;">
+      <div class="glm-insight-icon" style="color:#4a9eff; font-size:16px;">${g.icon || '✦'}</div>
+      <div>
+        <div class="glm-insight-label" style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--color-text-tertiary);">${g.label}</div>
+        <div class="glm-insight-text" style="font-size:12px; color:var(--color-text-primary); margin-top:2px;">${g.text}</div>
+      </div>
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+/* ─────────────────────────────────────────────
+   RENDER UPCOMING STARTS
+───────────────────────────────────────────── */
+function renderUpcomingStarts() {
+  const el = document.getElementById('startDatesList');
+  if (!el) return;
+  
+  if (!UPCOMING_STARTS.length) {
+      el.innerHTML = '<div style="font-size:12px; color:var(--color-text-tertiary); text-align:center; padding:20px;">No starts scheduled</div>';
+      return;
+  }
+
+  let html = "";
+  for (const s of UPCOMING_STARTS) {
+    const urgentStyle = s.urgent ? 'border:1px solid #f59e0b; color:#f59e0b;' : 'border:1px solid #4ade80; color:#4ade80;';
+    html += `
+    <div class="start-item" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+      <div class="start-date-box" style="width:40px; height:40px; border-radius:8px; background:var(--color-background-secondary); display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid var(--color-border-tertiary);">
+        <div style="font-size:9px; font-weight:800;">${s.month}</div>
+        <div style="font-size:14px; font-weight:800;">${s.day}</div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:13px; font-weight:700;">${s.name}</div>
+        <div style="font-size:11px; color:var(--color-text-tertiary);">${s.role}</div>
+      </div>
+      <div style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; ${urgentStyle}">in ${s.daysAway}d</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function updateDeptDonut() {
+  deptChart.data.labels = DEPT_DATA.map(d => d.name);
+  deptChart.data.datasets[0].data = DEPT_DATA.map(d => d.count);
+  deptChart.data.datasets[0].backgroundColor = DEPT_DATA.map(d => d.color || '#4a9eff');
+  deptChart.update();
+}
+
+/* ─────────────────────────────────────────────
+   INITIALIZATION
+───────────────────────────────────────────── */
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // 1. Check Auth
+  await checkAuth(); 
+  
+  // 2. Initialize Empty Charts
   buildTrendChart();
   buildDeptDonut();
+  
+  // 3. Fetch Real Data from Supabase/FastAPI
+  if (!IS_PREVIEW_MODE) {
+    await fetchDashboardData();
+  }
+});
 
 </script>
 </body>
