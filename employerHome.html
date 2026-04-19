@@ -490,7 +490,213 @@
       .content { padding: 16px; }
       .dash-grid { grid-template-columns: 1fr 1fr; }
     }
-  </style>
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7); /* Dims the dashboard */
+      backdrop-filter: blur(4px);    /* Optional: blurs the background */
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--color-background-primary);
+      width: 90%;
+      max-width: 900px;
+      max-height: 80vh;
+      border-radius: 12px;
+      border: 1px solid var(--color-border-tertiary);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .modal-body {
+      padding: 0 20px 20px 20px;
+      overflow-y: auto; /* Scrollable if there are many candidates */
+    }
+
+    .close-btn {
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--color-text-tertiary);
+    }
+
+  .close-btn:hover { color: var(--color-text-primary); }
+
+  /* Modal Table Specifics */
+.modal-body .dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.modal-body th {
+  text-align: left;
+  padding: 12px 15px;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  border-bottom: 1px solid var(--color-border-tertiary);
+  letter-spacing: 0.05em;
+}
+
+.modal-body td {
+  padding: 16px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+}
+
+/* Fix for the avatar/name container */
+.candidate-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.candidate-name-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.candidate-primary-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.candidate-sub-text {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* The gap color acts as the border color if cells have a background */
+  background-color: rgba(255, 255, 255, 0.05); 
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  gap: 1px; /* This creates the thin "border" between cells */
+}
+
+.cal-day-head {
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cal-cell {
+  background: #111; /* Match your dashboard background */
+  min-height: 100px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.2s;
+}
+
+.cal-cell:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cal-cell.today {
+  background: rgba(74, 158, 255, 0.05);
+  box-shadow: inset 0 0 0 1px var(--color-primary); /* Blue inner border for today */
+}
+
+.cal-btn {
+  color: #4a9eff;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.05em;
+}
+
+.cal-day-head {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+.cal-cell {
+  min-height: 100px; /* Ensure it's tall enough to see the text */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.cal-cell.today {
+    background: rgba(74, 158, 255, 0.08) !important;
+    border: 1px solid var(--color-primary) !important;
+}
+
+.cal-date-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+}
+
+.cal-event {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-nav-btn {
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-tertiary);
+  color: var(--color-text-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.cal-nav-btn:hover {
+  background: var(--color-border-tertiary);
+  border-color: var(--color-text-tertiary);
+}
+
+/* Ensure event lists wrap correctly */
+.cal-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -541,6 +747,13 @@
     <div class="content">
 
       <div class="view active" id="dashboard">
+
+        <div id="dbStatusBanner" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; font-weight: 600; align-items: center; gap: 10px;">
+          <span style="font-size: 18px;">⚠️</span>
+        <div>
+            <strong>Connection Alert:</strong> No data retrieved. Supabase may be down or the API key has expired.
+          </div>
+        </div>
 
         <div class="ai-strip">
           <div class="ai-strip-icon">✦</div>
@@ -614,7 +827,7 @@
                 <div class="panel-title">Status Pipeline</div>
                 <div class="panel-sub">Current application flow</div>
               </div>
-              <div class="panel-action">View all</div>
+              <div class="panel-action" onclick="openCandidateModal()" style="cursor:pointer">View all</div>
             </div>
             <div class="pipeline" id="pipelineBar"></div>
             <div class="pipeline-legend" id="pipelineLegend"></div>
@@ -647,7 +860,7 @@
                 <div class="panel-title">Upcoming Starts</div>
                 <div class="panel-sub">Next 30 days</div>
               </div>
-              <div class="panel-action">Calendar</div>
+              <div class="panel-action cal-btn" onclick="openCalendarModal()">Calendar</div>
             </div>
             <div id="startDatesList"></div>
           </div>
@@ -670,7 +883,7 @@
               <div class="panel-title">Recent Applications</div>
               <div class="panel-sub" id="tableSubtext">Latest submissions</div>
             </div>
-            <div class="panel-action">View all →</div>
+            <div class="panel-action" onclick="window.location.href='candidate.html'" style="cursor: pointer;">View all →</div>
           </div>
           <table class="app-table">
             <thead>
@@ -691,6 +904,57 @@
     </div>
   </div>
 
+  <div id="candidateModal" class="modal-overlay" onclick="closeCandidateModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title">Master Candidate List</h2>
+        <p class="modal-sub">Full directory of all applicants in the pipeline</p>
+      </div>
+      <div class="close-btn" onclick="closeCandidateModal()">&times;</div>
+    </div>
+    
+    <div class="modal-body">
+      <div id="modalStatsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border-tertiary);">
+        </div>
+
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Stage</th>
+            <th style="text-align: right;">Match</th>
+          </tr>
+        </thead>
+        <tbody id="modalTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="calendarModal" class="modal-overlay" onclick="closeCalendarModal()">
+  <div class="modal-content" style="max-width: 850px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-box">
+        <h2 id="calMonthTitle" style="margin:0; font-size:18px; color:var(--color-text-primary);">Month Year</h2>
+        <p style="margin:4px 0 0; font-size:12px; color:var(--color-text-tertiary);">Onboarding & Start Dates</p>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-left: auto; margin-right: 20px;">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">&#10094;</button>
+        <button class="cal-nav-btn" onclick="jumpToToday()">TODAY</button>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">&#10095;</button>
+      </div>
+      <span class="close-btn" onclick="closeCalendarModal()">&times;</span>
+    </div>
+    <div class="modal-body" style="padding: 20px;">
+      <div id="calendarGrid" class="calendar-grid">
+          </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // --- CONFIG & AUTH ---
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -698,6 +962,7 @@ const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 let trendChart = null;
 let deptChart = null;
+const DEPT_COLORS = ['#4a9eff', '#a855f7', '#22c55e', '#f59e0b', '#ef4444', '#2dd4bf'];
 
  async function checkAuth() {
     // 1. PREVIEW MODE BYPASS
@@ -772,6 +1037,8 @@ let LATEST_TREND = { labels: [], data: [] }; // Stores real Supabase trend data
 ───────────────────────────────────────────── */
 async function fetchDashboardData() {
   console.log("Fetching dashboard data...");
+  const banner = document.getElementById('dbStatusBanner'); // Ensure this ID exists in your HTML
+  
   try {
     const resp = await fetch(`${API_BASE_URL}/hr/dashboard`, {
       method: 'GET',
@@ -782,6 +1049,17 @@ async function fetchDashboardData() {
 
     const data = await resp.json();
     console.log("Data received:", data);
+
+    // --- NEW: SUPABASE DOWN CHECK ---
+    // If we get a valid response but RECENT_APPS is 0, it's a major red flag.
+    if (!data.recent_apps || data.recent_apps.length === 0) {
+      if (banner) {
+        banner.style.display = 'flex';
+        banner.innerHTML = `<strong>⚠️ Database Alert:</strong> Successfully reached backend, but Supabase returned 0 records. Check connection or RLS policies.`;
+      }
+    } else {
+      if (banner) banner.style.display = 'none';
+    }
 
     // 1. Primary Stat Cards Injection
     const updateEl = (id, val) => {
@@ -805,21 +1083,35 @@ async function fetchDashboardData() {
       summaryEl.innerHTML = `<strong>GLM Summary:</strong> ${data.insights[0].text}`;
     }
 
-    // 3. Update global variables for charts/tables
+    // 3. Update global variables
     RECENT_APPS = data.recent_apps || [];
     DEPT_DATA = data.dept_stats || [];
     PIPELINE_STAGES = data.pipeline || [];
     GLM_INSIGHTS = data.insights || [];
-    UPCOMING_STARTS = data.upcoming_starts || [];
     
-    // 4. Capture the REAL trend data from Supabase
+    // Calendar Data Sync
+    UPCOMING_STARTS = data.upcoming_starts || [];
+    window.UPCOMING_STARTS_DATA = UPCOMING_STARTS; 
+    
     if (data.trend) {
       LATEST_TREND = data.trend;
     }
 
     refreshUI();
+
+    // Re-render calendar if open
+    const calModal = document.getElementById('calendarModal');
+    if (calModal && calModal.style.display === 'flex') {
+        renderCalendar();
+    }
+
   } catch (err) {
     console.error("Dashboard Fetch Error:", err);
+    // CRITICAL: Tell the user the backend/Supabase is unreachable
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.innerHTML = `<strong>❌ Connection Error:</strong> Unable to reach the HR server. Backend might be down.`;
+    }
   }
 }
 
@@ -906,14 +1198,7 @@ function buildDeptDonut() {
       labels: [], // Populated by DEPT_DATA
       datasets: [{
         data: [], // Populated by DEPT_DATA
-        backgroundColor: [
-          '#4a9eff', // Engineering
-          '#a855f7', // Product
-          '#22c55e', // Design
-          '#f59e0b', // HR
-          '#ef4444', // Operations
-          '#2dd4bf'  // Legal
-        ],
+        backgroundColor: DEPT_COLORS,
         hoverOffset: 12,
         borderWidth: 0,
         weight: 1
@@ -978,23 +1263,45 @@ function refreshUI() {
 /* ─────────────────────────────────────────────
    CHART RANGE SWITCHER
 ───────────────────────────────────────────── */
-function setChartRange(range, el) {
-  // UI: Toggle active classes
+async function setChartRange(range, el) {
+  // 1. UI: Toggle active classes for visual feedback
   const chips = document.querySelectorAll('.time-chip');
   for (const chip of chips) {
     chip.classList.remove('active');
   }
   el.classList.add('active');
 
-  // Currently, the backend provides the last 7 days (Real data)
-  // We revert to real data for 4W (default view)
-  if (range === '4w' && LATEST_TREND.labels.length > 0) {
-    trendChart.data.labels = LATEST_TREND.labels;
-    trendChart.data.datasets[0].data = LATEST_TREND.data;
-    trendChart.update();
-  } else {
-    // If user clicks 3M/6M, we show a notice or handle via a separate API call
-    console.log("Historical range requested: " + range);
+  console.log(`Requesting historical data for: ${range}`);
+
+  try {
+    // 2. Fetch data specifically for this range
+    const resp = await fetch(`${API_BASE_URL}/hr/dashboard?range_type=${range}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (!resp.ok) throw new Error("Failed to fetch range data");
+
+    const data = await resp.json();
+
+    // 3. Update the Trend Chart with the new labels and counts
+    if (data.trend && trendChart) {
+      trendChart.data.labels = data.trend.labels;
+      trendChart.data.datasets[0].data = data.trend.data;
+      
+      // STYLING TWEAK: Make points larger for monthly views (3M/6M)
+      // Since there are fewer dots, larger points make the trend clearer.
+      trendChart.data.datasets[0].pointRadius = (range === '4w') ? 4 : 6;
+      trendChart.data.datasets[0].pointHoverRadius = (range === '4w') ? 6 : 8;
+
+      trendChart.update();
+      
+      // Update our global state
+      LATEST_TREND = data.trend;
+    }
+
+  } catch (err) {
+    console.error("Error updating chart range:", err);
   }
 }
 
@@ -1021,32 +1328,33 @@ function renderPipeline() {
   const det = document.getElementById('pipelineDetail');
   if (!bar || !PIPELINE_STAGES.length) return;
 
+  const PIPELINE_LIMIT = 1000; // Your new capacity limit
+  const total = PIPELINE_STAGES.reduce((s, p) => s + p.count, 0);
+
   let barHtml = "";
   let legHtml = "";
   let detHtml = "";
 
-  const total = PIPELINE_STAGES.reduce((s, p) => s + p.count, 0);
-
   for (const s of PIPELINE_STAGES) {
-    const pct = total > 0 ? (s.count / total * 100) : 0;
+    // Calculate width relative to the 1000 limit, not the current total
+    const widthPct = (s.count / PIPELINE_LIMIT) * 100;
+    const shareOfCurrent = total > 0 ? (s.count / total * 100) : 0;
     
-    // 1. Build Bar
+    // 1. Build Bar - Use width instead of flex
     barHtml += `<div class="pipe-stage" title="${s.label}: ${s.count}" 
-                style="flex:${s.count}; background:${s.color}; min-width: 2px;">
-                ${pct > 10 ? s.count : ''}
+                style="width:${widthPct}%; background:${s.color}; height:100%; min-width: 2px;">
                 </div>`;
 
-    // 2. Build Legend
+    // 2. Build Legend & Detail (keep these as they were)
     legHtml += `<div class="legend-item">
                   <div class="legend-dot" style="background:${s.color}"></div>
                   ${s.label} <strong style="color:var(--color-text-primary)">${s.count}</strong>
                 </div>`;
 
-    // 3. Build Detail
     detHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border-tertiary)">
                   <div style="width:10px;height:10px;border-radius:2px;background:${s.color}"></div>
                   <div style="flex:1;font-size:12px;color:var(--color-text-primary);font-weight:500">${s.label}</div>
-                  <div style="font-size:11px;color:var(--color-text-tertiary)">${pct.toFixed(0)}%</div>
+                  <div style="font-size:11px;color:var(--color-text-tertiary)">${shareOfCurrent.toFixed(0)}%</div>
                   <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);min-width:20px;text-align:right">${s.count}</div>
                 </div>`;
   }
@@ -1098,12 +1406,16 @@ function renderDeptBreakdown() {
   const max = Math.max(...DEPT_DATA.map(d => d.count));
   let html = "";
 
-  for (const d of DEPT_DATA) {
+  for (let i = 0; i < DEPT_DATA.length; i++) {
+    const d = DEPT_DATA[i];
+    // Pick the color from the shared palette based on the index
+    const barColor = DEPT_COLORS[i % DEPT_COLORS.length];
+
     html += `
     <div class="dept-row" style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
       <div class="dept-name" style="width:80px; font-size:12px; color:var(--color-text-secondary);">${d.name}</div>
       <div class="dept-bar-wrap" style="flex:1; background:var(--color-border-tertiary); height:6px; border-radius:3px; overflow:hidden;">
-        <div class="dept-bar" style="width:${(d.count/max*100)}%; background:${d.color || '#4a9eff'}; height:100%;"></div>
+        <div class="dept-bar" style="width:${(d.count/max*100)}%; background:${barColor}; height:100%;"></div>
       </div>
       <div class="dept-count" style="width:20px; font-size:12px; font-weight:700; text-align:right;">${d.count}</div>
     </div>`;
@@ -1168,6 +1480,179 @@ function updateDeptDonut() {
   deptChart.data.datasets[0].data = DEPT_DATA.map(d => d.count);
   deptChart.data.datasets[0].backgroundColor = DEPT_DATA.map(d => d.color || '#4a9eff');
   deptChart.update();
+}
+
+function openCandidateModal() {
+  const modal = document.getElementById('candidateModal');
+  modal.style.display = 'flex';
+  renderModalTable();
+}
+
+function closeCandidateModal(event) {
+  document.getElementById('candidateModal').style.display = 'none';
+}
+
+function renderModalTable() {
+  const tbody = document.getElementById('modalTableBody');
+  const statsGrid = document.getElementById('modalStatsGrid');
+  if (!tbody || !statsGrid) return;
+
+  // 1. Render Top Summary (The list from your screenshot)
+  let statsHtml = "";
+  const totalApps = PIPELINE_STAGES.reduce((sum, s) => sum + s.count, 0);
+
+  for (const s of PIPELINE_STAGES) {
+    const pct = totalApps > 0 ? Math.round((s.count / totalApps) * 100) : 0;
+    
+    statsHtml += `
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid var(--color-border-tertiary);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 8px; height: 8px; border-radius: 2px; background: ${s.color};"></div>
+        <span style="font-size: 12px; font-weight: 500; color: var(--color-text-secondary);">${s.label}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 11px; color: var(--color-text-tertiary);">${pct}%</span>
+        <span style="font-size: 14px; font-weight: 700; color: var(--color-text-primary);">${s.count}</span>
+      </div>
+    </div>`;
+  }
+  statsGrid.innerHTML = statsHtml;
+
+  // 2. Render Table Rows
+  let tableHtml = "";
+  const colors = {
+    "New": "#4a9eff", "Reviewing": "#a855f7", "Interview": "#22c55e",
+    "Offer": "#f59e0b", "Onboarding": "#4ade80", "Rejected": "#ef4444"
+  };
+
+  for (let i = 0; i < RECENT_APPS.length; i++) {
+    const a = RECENT_APPS[i];
+    const rawStatus = (a.status || "New").replace(/_/g, ' ').title();
+    
+    // Resolve color
+    let statusColor = "#6b7280";
+    if (colors[rawStatus]) statusColor = colors[rawStatus];
+    else if (rawStatus.includes("Offer")) statusColor = colors["Offer"];
+    
+    const score = a.recommendation_rate || 0;
+    const scoreColor = score > 70 ? '#4ade80' : (score > 40 ? '#f59e0b' : '#6e6e73');
+
+    tableHtml += `
+    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.03)">
+      <td style="padding:16px 0;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="avatar" style="${avatarStyle(i)}">${a.full_name[0]}</div>
+          <div style="display:flex; flex-direction:column;">
+            <span style="font-weight:600; font-size:14px; color:var(--color-text-primary);">${a.full_name}</span>
+            <span style="font-size:10px; color:var(--color-text-tertiary);">ID: ${a.id.substring(0,8)}</span>
+          </div>
+        </div>
+      </td>
+      <td style="font-size:13px; color:var(--color-text-secondary);">${a.role_title}</td>
+      <td style="font-size:13px; color:var(--color-text-tertiary);">${a.department}</td>
+      <td>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:8px; height:8px; border-radius:50%; background:${statusColor}; box-shadow: 0 0 8px ${statusColor}66;"></div>
+          <span style="font-size:11px; font-weight:700; color:${statusColor}; text-transform:uppercase;">${rawStatus}</span>
+        </div>
+      </td>
+      <td style="text-align: right; font-weight: 700; color: ${scoreColor}; font-size: 14px;">${score}%</td>
+    </tr>`;
+  }
+  tbody.innerHTML = tableHtml;
+}
+
+// Ensure String.prototype.title is defined outside
+if (!String.prototype.title) {
+  String.prototype.title = function() {
+    return this.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  };
+}
+
+// State management
+let calViewDate = new Date(); // Defaults to "Now"
+
+function openCalendarModal() {
+    document.getElementById('calendarModal').style.display = 'flex';
+    renderCalendar();
+}
+
+function changeMonth(step) {
+    // Move the state forward or backward by 1 month
+    calViewDate.setMonth(calViewDate.getMonth() + step);
+    renderCalendar();
+}
+
+function jumpToToday() {
+    calViewDate = new Date();
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const title = document.getElementById('calMonthTitle');
+    if (!grid || !title) return;
+
+    const year = calViewDate.getFullYear();
+    const month = calViewDate.getMonth();
+    const monthNameLong = calViewDate.toLocaleString('default', { month: 'long' });
+    const monthNameShort = calViewDate.toLocaleString('default', { month: 'short' }).toUpperCase();
+
+    title.innerText = `${monthNameLong} ${year}`;
+
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startOffset = (firstDay.getDay() + 6) % 7;
+
+    let html = `
+        <div class="cal-day-head">MON</div><div class="cal-day-head">TUE</div><div class="cal-day-head">WED</div>
+        <div class="cal-day-head">THU</div><div class="cal-day-head">FRI</div><div class="cal-day-head">SAT</div><div class="cal-day-head">SUN</div>
+    `;
+
+    const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+    for (let i = 0; i < totalCells; i++) {
+        const dayNum = i - startOffset + 1;
+
+        if (i < startOffset || dayNum > daysInMonth) {
+            html += `<div class="cal-cell empty" style="opacity:0.1; border:none;"></div>`;
+        } else {
+            let eventHtml = "";
+            
+            // Check the global data synced from the backend
+            if (window.UPCOMING_STARTS_DATA && window.UPCOMING_STARTS_DATA.length > 0) {
+                window.UPCOMING_STARTS_DATA.forEach(s => {
+                    const isSameDay = parseInt(s.day) === dayNum;
+                    // Check if data month "APR" matches view month "APR"
+                    const isSameMonth = s.month.toUpperCase().includes(monthNameShort) || 
+                                       monthNameShort.includes(s.month.toUpperCase());
+
+                    if (isSameDay && isSameMonth) {
+                        const color = s.urgent ? '#f59e0b' : '#4a9eff';
+                        eventHtml += `
+                            <div class="cal-event" style="background:${color}22; color:${color}; border:1px solid ${color}44; margin-top:4px;">
+                                ${s.name.split(' ')[0]}
+                            </div>`;
+                    }
+                });
+            }
+
+            const isToday = (dayNum === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) ? 'today' : '';
+
+            html += `
+                <div class="cal-cell ${isToday}">
+                    <div class="cal-date-num">${dayNum}</div>
+                    <div class="cal-event-list" style="display:flex; flex-direction:column; gap:2px;">
+                        ${eventHtml}
+                    </div>
+                </div>`;
+        }
+    }
+    grid.innerHTML = html;
+}
+
+function closeCalendarModal() {
+  document.getElementById('calendarModal').style.display = 'none';
 }
 
 /* ─────────────────────────────────────────────

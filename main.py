@@ -9,6 +9,7 @@ from supabase import create_client, Client
 from openai import OpenAI
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
+from typing import List, Optional
 
 load_dotenv()
 
@@ -220,28 +221,35 @@ async def submit_application(payload: ApplicationData, current_user = Depends(ge
     return {"status": "success"}
 
 # --- HR DASHBOARD ENDPOINT ---
-
 @app.get("/hr/dashboard")
-async def hr_dashboard(current_user = Depends(get_current_user)):
-    """Aggregates real application data including time-series trends."""
+async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_current_user)):
+    """Aggregates real application data with daily vs monthly time-series bucketing."""
     user_id = getattr(current_user, "id", None) or current_user.get("id")
     profile = get_profile(user_id)
     
     if not profile or profile.get("role") != "employer":
-        raise HTTPException(status_code=403, detail="Access denied.")
+        raise HTTPException(status_code=403, detail="Access denied. Employer role required.")
 
     try:
         # 1. Fetch all applications
         resp = supabase.table("applications").select("*").order("created_at", desc=True).execute()
         apps = resp.data or []
+        print(f"DEBUG: Found {len(apps)} applications in Supabase")
 
-        # 2. Process Pipeline Stages
+        # 2. Process Pipeline Stages (Case-Insensitive & Underscore Handling)
         stages = ["New", "Reviewing", "Interview", "Offer", "Onboarding", "Rejected"]
         pipeline_counts = {stage: 0 for stage in stages}
         for a in apps:
-            status = a.get("status", "New")
-            if status in pipeline_counts:
-                pipeline_counts[status] += 1
+            # Map "offer_accepted" -> "Offer Accepted" then match against stage labels
+            raw_status = a.get("status", "New").replace("_", " ").title()
+            if raw_status in pipeline_counts:
+                pipeline_counts[raw_status] += 1
+            else:
+                # Fallback: if it's "Offer Accepted", increment "Offer"
+                for stage in stages:
+                    if stage in raw_status:
+                        pipeline_counts[stage] += 1
+                        break
         
         colors = {
             "New": "#4a9eff", "Reviewing": "#a855f7", "Interview": "#22c55e",
@@ -263,24 +271,39 @@ async def hr_dashboard(current_user = Depends(get_current_user)):
             for dept, count in dept_map.items()
         ]
 
-        # 4. NEW: Process Trend Data (Last 7 Days)
+        # 4. DYNAMIC TREND LOGIC (Daily vs Monthly Aggregation)
         today = datetime.now()
         trend_labels = []
         trend_counts = []
 
-        for i in range(6, -1, -1):
-            day_date = today - timedelta(days=i)
-            day_label = day_date.strftime('%d %b') # e.g., "19 Apr"
-            trend_labels.append(day_label)
+        if range_type == "4w":
+            # DAILY VIEW: Last 7 days
+            for i in range(6, -1, -1):
+                day_date = today - timedelta(days=i)
+                day_label = day_date.strftime('%d %b')
+                comparison_key = day_date.strftime('%Y-%m-%d')
+                
+                # Count apps where the YYYY-MM-DD matches
+                count = sum(1 for a in apps if a.get('created_at', '').split('T')[0].split(' ')[0] == comparison_key)
+                
+                trend_labels.append(day_label)
+                trend_counts.append(count)
+        else:
+            # MONTHLY VIEW: Last 3 or 6 months
+            months_to_track = 3 if range_type == "3m" else 6
             
-            # Count apps created on this specific day
-            count = 0
-            for a in apps:
-                # Extract date from '2026-04-19T14:30:00+00:00'
-                created_dt = datetime.fromisoformat(a['created_at'].replace('Z', '+00:00'))
-                if created_dt.strftime('%d %b') == day_label:
-                    count += 1
-            trend_counts.append(count)
+            for i in range(months_to_track - 1, -1, -1):
+                # Calculate the target month by looking back blocks of ~30 days
+                # This ensures we get the correct Month names
+                target_date = today.replace(day=1) - timedelta(days=i*30)
+                month_label = target_date.strftime('%b') # "Feb", "Mar", etc.
+                month_key = target_date.strftime('%Y-%m') # "2026-02"
+                
+                # Count apps where the YYYY-MM matches the start of the timestamp
+                count = sum(1 for a in apps if a.get('created_at', '').startswith(month_key))
+                
+                trend_labels.append(month_label)
+                trend_counts.append(count)
 
         # 5. Build AI Insights
         insights = [
@@ -295,23 +318,53 @@ async def hr_dashboard(current_user = Depends(get_current_user)):
                 "text": f"{len(high_performers)} candidates have a recommendation rate over 80%."
             })
 
+        # 5. Process Upcoming Starts (DYNAMIC)
+        upcoming_starts = []
+        today_date = datetime.now().date()
+
+        for a in apps:
+            # Normalize the status to lowercase for comparison
+            status = (a.get("status") or "").lower().strip()
+            start_date_str = a.get("start_date")
+            
+            # Match against your database values: 'onboarding' or 'offer_accepted'
+            if status in ["onboarding", "offer_accepted"] and start_date_str:
+                try:
+                    start_dt = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                    delta = (start_dt - today_date).days
+                    
+                    # Include if starting in the next 90 days
+                    if delta >= 0:
+                        upcoming_starts.append({
+                            "name": a.get("full_name"),
+                            "role": a.get("role_title") or "Position",
+                            "dept": a.get("department") or "General",
+                            "day": start_dt.day,
+                            "month": start_dt.strftime('%b').upper(), # e.g. "APR"
+                            "daysAway": delta,
+                            "urgent": delta <= 7
+                        })
+                except Exception as e:
+                    print(f"DEBUG: Date Parse Error for {a.get('full_name')}: {e}")
+
+        # Sort soonest first
+        upcoming_starts.sort(key=lambda x: x['daysAway'])
+
+        # 6. Aggregated Return
         return {
             "recent_apps": apps[:10],
             "pipeline": formatted_pipeline,
             "dept_stats": formatted_depts,
             "insights": insights,
-            "upcoming_starts": [
-                {"name": "Aisha Tan", "role": "Software Engineer", "dept":"Engineering", "day": 22, "month": "APR", "daysAway": 4, "urgent": True}
-            ],
+            "upcoming_starts": upcoming_starts, # NOW DYNAMIC
             "stats": {
                 "total_apps": len(apps),
-                "active_pipelines": len([a for a in apps if a.get("status") != "Rejected"]),
+                "active_pipelines": sum(pipeline_counts[s] for s in stages if s != "Rejected"),
                 "interviews": pipeline_counts.get("Interview", 0),
                 "pending": pipeline_counts.get("Reviewing", 0),
                 "onboarding": pipeline_counts.get("Onboarding", 0),
                 "extractions": len(apps) * 4 
             },
-            # THIS IS THE REAL TREND DATA
             "trend": {
                 "labels": trend_labels,
                 "data": trend_counts
