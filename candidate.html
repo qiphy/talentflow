@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TalentFlow — Candidates</title>
+  <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="navbar.css" />
+  <script src="theme.js" defer></script>
+
+  <script>
+    (function () {
+      const saved = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+    })();
+  </script>
+
+  <style>
+
+    /* ── FIX: override any flex/center layout from navbar.css on .content ── */
+    .content {
+      display: block !important;
+      padding: 28px 32px !important;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* ── STATUS PILLS ── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .pill.new        { background: #1a2a3a; color: #4a9eff; }
+    .pill.new .pill-dot        { background: #4a9eff; }
+    .pill.reviewing  { background: #1f1a2e; color: #a855f7; }
+    .pill.reviewing .pill-dot  { background: #a855f7; }
+    .pill.interview  { background: #1a2e20; color: #22c55e; }
+    .pill.interview .pill-dot  { background: #22c55e; }
+    .pill.offer      { background: #2e1f0a; color: #f59e0b; }
+    .pill.offer .pill-dot      { background: #f59e0b; }
+    .pill.onboarding { background: #0f1f0f; color: #4ade80; }
+    .pill.onboarding .pill-dot { background: #4ade80; }
+    .pill.rejected   { background: #2e0f0f; color: #ef4444; }
+    .pill.rejected .pill-dot   { background: #ef4444; }
+
+    /* ── SUMMARY BAR ── */
+    .summary-bar {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 16px 24px;
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      margin-bottom: 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .summary-val {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+      line-height: 1;
+    }
+
+    .summary-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .summary-divider {
+      width: 1px;
+      background: var(--color-border-tertiary);
+      align-self: stretch;
+    }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 24px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 180px;
+      max-width: 340px;
+      padding: 8px 14px;
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-md);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus { border-color: #4a9eff; }
+    .search-input::placeholder { color: var(--color-text-tertiary); }
+
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-md);
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+      font-size: 12px;
+      font-family: var(--font-sans);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .filter-chip {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: var(--color-background-secondary);
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      border: 1px solid var(--color-border-tertiary);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .filter-chip.active {
+      background: #1a2a3a;
+      color: #4a9eff;
+      border-color: #2a4a6a;
+    }
+
+    /* ── POSITIONS CONTAINER ── */
+    #positionsContainer {
+      display: block;
+      width: 100%;
+    }
+
+    /* ── POSITION GROUP ── */
+    .position-group {
+      margin-bottom: 24px;
+      width: 100%;
+    }
+
+    .position-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+      margin-bottom: 10px;
+    }
+
+    .position-header:hover { background: var(--color-border-tertiary); }
+
+    .position-chevron {
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .position-group.collapsed .position-chevron { transform: rotate(-90deg); }
+    .position-group.collapsed .candidate-list   { display: none; }
+
+    .position-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .position-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      flex: 1;
+    }
+
+    .position-dept {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 1px;
+    }
+
+    .position-count {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-text-secondary);
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .position-avg {
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    /* ── CANDIDATE LIST ── */
+    .candidate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 4px;
+    }
+
+    /* ── COLUMN HEADERS ── */
+    .list-col-headers {
+      display: grid;
+      grid-template-columns: 38px 1.8fr 160px 120px 110px 110px 38px;
+      gap: 12px;
+      padding: 4px 16px;
+      margin-bottom: 4px;
+    }
+
+    .list-col-headers span {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    /* ── CANDIDATE ROW ── */
+    .candidate-row {
+      display: grid;
+      grid-template-columns: 38px 1.8fr 160px 120px 110px 110px 38px;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      transition: border-color 0.15s, background 0.15s;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .candidate-row:hover {
+      border-color: var(--color-border-secondary);
+      background: var(--color-background-secondary);
+    }
+
+    /* ── AVATAR ── */
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .cand-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cand-meta {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── AI SCORE ── */
+    .ai-score-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ai-score-bar-bg {
+      flex: 1;
+      height: 5px;
+      background: var(--color-border-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .ai-score-bar {
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    .ai-score-pct {
+      font-size: 13px;
+      font-weight: 800;
+      min-width: 36px;
+      text-align: right;
+      letter-spacing: -0.02em;
+      flex-shrink: 0;
+    }
+
+    /* ── AI BADGE ── */
+    .ai-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .ai-badge.strong   { background: #0a1f0a; color: #4ade80; border: 1px solid #1f4a1f; }
+    .ai-badge.good     { background: #0a1a2e; color: #4a9eff; border: 1px solid #1a3a5a; }
+    .ai-badge.moderate { background: #2e1f0a; color: #f59e0b; border: 1px solid #5a3a1a; }
+    .ai-badge.weak     { background: #2e0f0f; color: #ef4444; border: 1px solid #5a1a1a; }
+
+    /* ── EXPAND BTN ── */
+    .expand-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: var(--color-text-tertiary);
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-tertiary);
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .expand-btn:hover { background: var(--color-border-tertiary); color: var(--color-text-primary); }
+
+    /* ── CANDIDATE DRAWER ── */
+    .candidate-drawer {
+      display: none;
+      margin: -2px 0 6px 56px;
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-tertiary);
+      border-top: none;
+      border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+      padding: 20px 20px 16px;
+      animation: slideDown 0.15s ease;
+    }
+
+    .candidate-drawer.open { display: block; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .drawer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .drawer-field label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .drawer-field span {
+      font-size: 13px;
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+
+    .drawer-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 14px;
+    }
+
+    .skill-tag {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-secondary);
+      color: var(--color-text-secondary);
+    }
+
+    .drawer-ai {
+      background: #0a180a;
+      border: 1px solid #1f4a1f;
+      border-radius: var(--border-radius-md);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    .drawer-ai-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4ade80;
+      margin-bottom: 5px;
+    }
+
+    .drawer-ai-text {
+      font-size: 12px;
+      color: #86efac;
+      line-height: 1.6;
+    }
+
+    .drawer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 14px;
+      border-top: 1px solid var(--color-border-tertiary);
+    }
+
+    .drawer-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: var(--border-radius-md);
+      cursor: pointer;
+      border: 1px solid var(--color-border-secondary);
+      background: var(--color-background-primary);
+      color: var(--color-text-secondary);
+      transition: all 0.15s;
+    }
+
+    .drawer-btn:hover  { border-color: #4a9eff; color: #4a9eff; }
+    .drawer-btn.primary { background: #4a9eff; color: #fff; border-color: #4a9eff; }
+    .drawer-btn.primary:hover { background: #3a7ecc; }
+    .drawer-btn.danger  { border-color: #5a1a1a; color: #ef4444; }
+    .drawer-btn.danger:hover { background: #2e0f0f; }
+
+    /* ── EMPTY ── */
+    .card-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-tertiary);
+      font-size: 13px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1100px) {
+      .list-col-headers,
+      .candidate-row {
+        grid-template-columns: 38px 1fr 130px 110px 100px;
+      }
+      .list-col-headers span:nth-child(6),
+      .list-col-headers span:nth-child(7),
+      .candidate-row > div:nth-child(6),
+      .candidate-row > div:nth-child(7) { display: none; }
+    }
+
+    @media (max-width: 900px) {
+      .main { margin-left: 0; }
+      .content { padding: 16px !important; }
+      .list-col-headers,
+      .candidate-row { grid-template-columns: 38px 1fr 120px 100px; }
+      .list-col-headers span:nth-child(5),
+      .candidate-row > div:nth-child(5) { display: none; }
+      .drawer-grid { grid-template-columns: 1fr 1fr; }
+      .search-input { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">TalentFlow</div>
+      <div class="logo-sub">HR Homepage</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-label">Employer Workspace</div>
+      <div class="nav-item" onclick="window.location.href='employerHome.html'">
+        <div class="nav-dot dot-red"></div><span>Homepage</span>
+      </div>
+      <div class="nav-item active">
+        <div class="nav-item active" onclick="window.location.href='candidate.html'">
+    <div class="nav-dot dot-gray"></div><span>Candidates</span>
+  </div>
+      </div>
+      <div class="nav-label">Monitoring</div>
+      <div class="nav-item" onclick="window.location.href='monitoring.html'">
+        <div class="nav-dot dot-amber"></div><span>Activity Log</span>
+      </div>
+      <div class="nav-label">Settings</div>
+      <div class="nav-item" onclick="window.location.href='employerAcc.html'">
+        <div class="nav-dot dot-teal"></div><span>Account</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title">Candidates</div>
+      <div class="topbar-right">
+        <button id="themeToggle" onclick="toggleTheme()"
+          style="background:none;border:1.5px solid var(--color-border-tertiary);border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;">
+          🌙
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- Summary bar -->
+      <div class="summary-bar">
+        <div class="summary-item">
+          <div class="summary-val" id="sumTotal">—</div>
+          <div class="summary-label">Total Candidates</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <div class="summary-val" id="sumPositions">—</div>
+          <div class="summary-label">Open Positions</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <div class="summary-val" style="color:#4ade80" id="sumStrong">—</div>
+          <div class="summary-label">Strong Matches</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <div class="summary-val" style="color:#f59e0b" id="sumReview">—</div>
+          <div class="summary-label">Needs Review</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <div class="summary-val" style="color:#4a9eff" id="sumAvgScore">—</div>
+          <div class="summary-label">Avg AI Score</div>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <input class="search-input" id="searchInput"
+          placeholder="Search candidates, roles, departments..."
+          oninput="filterCandidates()">
+        <select class="filter-select" id="deptFilter" onchange="filterCandidates()">
+          <option value="">All Departments</option>
+          <option>Engineering</option>
+          <option>Product</option>
+          <option>Design</option>
+          <option>Finance</option>
+          <option>Marketing</option>
+          <option>Operations</option>
+          <option>Legal</option>
+        </select>
+        <select class="filter-select" id="statusFilter" onchange="filterCandidates()">
+          <option value="">All Statuses</option>
+          <option value="new">New</option>
+          <option value="reviewing">Reviewing</option>
+          <option value="interview">Interview</option>
+          <option value="offer">Offer</option>
+          <option value="onboarding">Onboarding</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <div class="filter-chip active" onclick="setScoreFilter('all',this)">All</div>
+        <div class="filter-chip" onclick="setScoreFilter('strong',this)">Strong ≥80%</div>
+        <div class="filter-chip" onclick="setScoreFilter('good',this)">Good 60–79%</div>
+        <div class="filter-chip" onclick="setScoreFilter('weak',this)">&lt;60%</div>
+      </div>
+
+      <!-- Positions -->
+      <div id="positionsContainer"></div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── PLACEHOLDER DATA — swap with Supabase ── */
+
+const POSITIONS = [
+  {
+    id: 'eng-senior', title: 'Senior Software Engineer', dept: 'Engineering', color: '#4a9eff',
+    candidates: [
+      { id:1,  name:'Zara Malik',    initials:'ZM', experience:'6 yrs', location:'Kuala Lumpur',  applied:'2h ago',    status:'new',        score:92, skills:['Python','React','PostgreSQL','Docker'],             ai:'Exceptional match. Exceeds all technical requirements. Strong system design background from previous role at Grab. Recommended for fast-track interview.' },
+      { id:2,  name:'James Lim',     initials:'JL', experience:'5 yrs', location:'Petaling Jaya', applied:'Yesterday', status:'offer',      score:88, skills:['Node.js','AWS','TypeScript','Kubernetes'],          ai:'Strong candidate. Solid full-stack profile with cloud infrastructure experience. Minor gap in React — recommend a brief technical screen to confirm.' },
+      { id:3,  name:'Kenji Tanaka',  initials:'KT', experience:'4 yrs', location:'Remote',        applied:'2d ago',    status:'new',        score:74, skills:['Java','Spring Boot','MySQL'],                       ai:'Good foundational skills but missing cloud/DevOps experience. Worth interviewing if pipeline is thin. Consider for mid-level track instead.' },
+      { id:4,  name:'Priya Sharma',  initials:'PS', experience:'3 yrs', location:'Kuala Lumpur',  applied:'3d ago',    status:'reviewing',  score:61, skills:['Python','Django','SQLite'],                         ai:'Below seniority threshold. Strong junior profile — may be suitable if the role is re-scoped. Currently underqualified for senior responsibilities.' },
+    ]
+  },
+  {
+    id: 'prod-manager', title: 'Product Manager', dept: 'Product', color: '#a855f7',
+    candidates: [
+      { id:5,  name:'Caleb Mensah',  initials:'CM', experience:'7 yrs', location:'Cyberjaya',     applied:'3d ago',    status:'onboarding', score:95, skills:['Roadmapping','SQL','Figma','OKRs','Agile'],         ai:'Outstanding fit. Extensive B2B SaaS PM experience. Led 0→1 product launches at two companies. Highest-scoring candidate for this role.' },
+      { id:6,  name:'Amara Diallo',  initials:'AD', experience:'4 yrs', location:'Remote',        applied:'2d ago',    status:'reviewing',  score:71, skills:['Jira','User Research','A/B Testing'],               ai:'Solid mid-level PM. Strong on discovery and research, weaker on metrics and data. Recommend data-skills assessment before moving to interview.' },
+      { id:7,  name:'Devraj Patel',  initials:'DP', experience:'2 yrs', location:'Kuala Lumpur',  applied:'5h ago',    status:'reviewing',  score:54, skills:['Notion','Slack','Basic SQL'],                       ai:'Limited experience for this level. Suitable for associate PM or if role scope is adjusted. Not recommended for full PM responsibilities currently.' },
+    ]
+  },
+  {
+    id: 'design-ux', title: 'UX Designer', dept: 'Design', color: '#2dd4bf',
+    candidates: [
+      { id:8,  name:'Sofia Reyes',   initials:'SR', experience:'5 yrs', location:'Penang',        applied:'Yesterday', status:'interview',  score:87, skills:['Figma','Prototyping','User Testing','Design Systems'], ai:'Strong portfolio with enterprise SaaS experience. Excellent systems thinking. Recommended to advance — conduct portfolio review in interview.' },
+      { id:9,  name:'Linh Nguyen',   initials:'LN', experience:'3 yrs', location:'Kuala Lumpur',  applied:'4d ago',    status:'new',        score:68, skills:['Figma','Sketch','Wireframing'],                      ai:'Competent mid-level designer. Lacks systems design experience but shows strong visual craft. Suitable if willing to invest in mentorship.' },
+    ]
+  },
+  {
+    id: 'fin-analyst', title: 'Finance Analyst', dept: 'Finance', color: '#22c55e',
+    candidates: [
+      { id:10, name:'Rafi Abdullah', initials:'RA', experience:'4 yrs', location:'Kuala Lumpur',  applied:'2d ago',    status:'new',        score:81, skills:['Excel','Power BI','SAP','Financial Modelling'],     ai:'Solid analytical profile. Experience in financial modelling and SAP aligns well. Recommend scheduling a case study assessment.' },
+      { id:11, name:'Min Chen',      initials:'MC', experience:'2 yrs', location:'Petaling Jaya', applied:'5d ago',    status:'reviewing',  score:58, skills:['Excel','QuickBooks','Basic SQL'],                   ai:'Early-career profile. Adequate foundational skills but lacks depth in financial modelling and enterprise tools required for this role.' },
+    ]
+  },
+  {
+    id: 'mkt-growth', title: 'Growth Marketer', dept: 'Marketing', color: '#f97316',
+    candidates: [
+      { id:12, name:'Amara Diallo',  initials:'AD', experience:'4 yrs', location:'Remote',        applied:'2d ago',    status:'reviewing',  score:76, skills:['SEO','Google Ads','Analytics','HubSpot'],           ai:'Strong performance marketing background. Good channel mix experience. Slight gap in product-led growth strategy — worth exploring in interview.' },
+      { id:13, name:'Yusuf Omar',    initials:'YO', experience:'5 yrs', location:'Kuala Lumpur',  applied:'1d ago',    status:'new',        score:83, skills:['Growth Hacking','SQL','Mixpanel','Meta Ads'],       ai:'Excellent match. Data-driven marketer with proven growth track record. Strong attribution modelling skills. Advance to interview immediately.' },
+    ]
+  },
+  {
+    id: 'ops-coord', title: 'Operations Coordinator', dept: 'Operations', color: '#ec4899',
+    candidates: [
+      { id:14, name:'Nadia Hassan',  initials:'NH', experience:'3 yrs', location:'Shah Alam',     applied:'3d ago',    status:'rejected',   score:42, skills:['MS Office','Scheduling'],                           ai:'Insufficient operational experience. Limited exposure to cross-functional coordination. Not recommended for this role at this time.' },
+      { id:15, name:'Tariq Farouk',  initials:'TF', experience:'5 yrs', location:'Kuala Lumpur',  applied:'1d ago',    status:'new',        score:79, skills:['ERP','Logistics','Process Mapping','SAP'],          ai:'Good operational profile. ERP and logistics experience is relevant. Recommend a structured interview focusing on process improvement scenarios.' },
+    ]
+  },
+  {
+    id: 'legal-counsel', title: 'Legal Counsel', dept: 'Legal', color: '#6b7280',
+    candidates: [
+      { id:16, name:'Mei Lin',       initials:'ML', experience:'8 yrs', location:'Kuala Lumpur',  applied:'4d ago',    status:'interview',  score:90, skills:['Contract Law','Employment Law','Compliance','IP'],  ai:'Highly qualified. Extensive in-house legal experience in tech sector. Strong match across all requirements. Advance to final round.' },
+    ]
+  },
+  {
+    id: 'eng-backend', title: 'Backend Engineer', dept: 'Engineering', color: '#4a9eff',
+    candidates: [
+      { id:17, name:'Marcus Osei',   initials:'MO', experience:'4 yrs', location:'Remote',        applied:'1d ago',    status:'new',        score:85, skills:['Go','PostgreSQL','Redis','Microservices'],           ai:'Strong backend profile. Microservices and distributed systems experience is a strong fit. Recommend technical screen on system design.' },
+      { id:18, name:'Aisha Tan',     initials:'AT', experience:'3 yrs', location:'Kuala Lumpur',  applied:'2d ago',    status:'interview',  score:77, skills:['Python','FastAPI','MySQL','Docker'],                 ai:'Competent backend engineer. Solid Python/FastAPI stack matches requirements. Cloud experience is limited — probe on AWS/GCP in interview.' },
+    ]
+  },
+];
+
+/* ── STATE ── */
+let activeScoreFilter = 'all';
+
+/* ── HELPERS ── */
+const AV_COLORS = ['#1a2a3a','#1f1a2e','#1a2e20','#2e1f0a','#0a1a2e','#1a1a2e'];
+const AV_TEXT   = ['#4a9eff','#a855f7','#22c55e','#f59e0b','#2dd4bf','#ec4899'];
+const av = i => { const x = i % AV_COLORS.length; return `background:${AV_COLORS[x]};color:${AV_TEXT[x]};`; };
+
+function scoreColor(s) {
+  if (s >= 80) return '#4ade80';
+  if (s >= 60) return '#4a9eff';
+  if (s >= 45) return '#f59e0b';
+  return '#ef4444';
+}
+
+function scoreBadgeClass(s) {
+  if (s >= 80) return 'strong';
+  if (s >= 60) return 'good';
+  if (s >= 45) return 'moderate';
+  return 'weak';
+}
+
+function scoreBadgeLabel(s) {
+  if (s >= 80) return 'Strong match';
+  if (s >= 60) return 'Good match';
+  if (s >= 45) return 'Moderate';
+  return 'Weak match';
+}
+
+function passesScore(s) {
+  if (activeScoreFilter === 'strong') return s >= 80;
+  if (activeScoreFilter === 'good')   return s >= 60 && s < 80;
+  if (activeScoreFilter === 'weak')   return s < 60;
+  return true;
+}
+
+/* ── RENDER ── */
+function renderAll() {
+  const search = (document.getElementById('searchInput').value || '').toLowerCase();
+  const dept   = document.getElementById('deptFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  const container = document.getElementById('positionsContainer');
+
+  let total = 0, strong = 0, review = 0, scoreSum = 0, scoreN = 0, posCount = 0;
+
+  const html = POSITIONS.map(pos => {
+    if (dept && pos.dept !== dept) return '';
+
+    const cands = pos.candidates
+      .filter(c => {
+        if (status && c.status !== status) return false;
+        if (!passesScore(c.score)) return false;
+        if (search && !c.name.toLowerCase().includes(search) &&
+            !pos.title.toLowerCase().includes(search) &&
+            !pos.dept.toLowerCase().includes(search)) return false;
+        return true;
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (!cands.length) return '';
+
+    posCount++;
+    total += cands.length;
+    cands.forEach(c => {
+      if (c.score >= 80) strong++;
+      if (c.status === 'reviewing') review++;
+      scoreSum += c.score;
+      scoreN++;
+    });
+
+    const avg = Math.round(cands.reduce((a,c) => a+c.score,0) / cands.length);
+
+    const rows = cands.map((c, i) => {
+      const did = `drawer-${pos.id}-${c.id}`;
+      const col = scoreColor(c.score);
+      const skills = c.skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
+
+      return `<div>
+        <div class="candidate-row" onclick="toggleDrawer('${did}')">
+          <div class="avatar" style="${av(i)}">${c.initials}</div>
+          <div style="min-width:0">
+            <div class="cand-name">${c.name}</div>
+            <div class="cand-meta">${c.experience} · ${c.location}</div>
+          </div>
+          <div class="ai-score-wrap">
+            <div class="ai-score-bar-bg">
+              <div class="ai-score-bar" style="width:${c.score}%;background:${col}"></div>
+            </div>
+            <div class="ai-score-pct" style="color:${col}">${c.score}%</div>
+          </div>
+          <div><span class="pill ${c.status}"><span class="pill-dot"></span>${c.status}</span></div>
+          <div style="font-size:11px;color:var(--color-text-tertiary)">${c.applied}</div>
+          <div><span class="ai-badge ${scoreBadgeClass(c.score)}">${scoreBadgeLabel(c.score)}</span></div>
+          <div class="expand-btn" id="btn-${did}" onclick="event.stopPropagation();toggleDrawer('${did}')">+</div>
+        </div>
+        <div class="candidate-drawer" id="${did}">
+          <div class="drawer-grid">
+            <div class="drawer-field"><label>Experience</label><span>${c.experience}</span></div>
+            <div class="drawer-field"><label>Location</label><span>${c.location}</span></div>
+            <div class="drawer-field"><label>Applied</label><span>${c.applied}</span></div>
+          </div>
+          <div class="drawer-field" style="margin-bottom:6px"><label>Skills detected by GLM</label></div>
+          <div class="drawer-skills">${skills}</div>
+          <div class="drawer-ai">
+            <div class="drawer-ai-label">✦ GLM AI Assessment</div>
+            <div class="drawer-ai-text">${c.ai}</div>
+          </div>
+          <div class="drawer-actions">
+            <button class="drawer-btn primary" onclick="event.stopPropagation()">Schedule Interview</button>
+            <button class="drawer-btn" onclick="event.stopPropagation()">Move Stage</button>
+            <button class="drawer-btn" onclick="event.stopPropagation()">View Full Profile</button>
+            <button class="drawer-btn danger" onclick="event.stopPropagation()">Reject</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="position-group" id="pos-${pos.id}">
+        <div class="position-header" onclick="toggleGroup('pos-${pos.id}')">
+          <div class="position-chevron">▼</div>
+          <div class="position-dot" style="background:${pos.color}"></div>
+          <div style="flex:1;min-width:0">
+            <div class="position-name">${pos.title}</div>
+            <div class="position-dept">${pos.dept}</div>
+          </div>
+          <div class="position-count">${cands.length} candidate${cands.length !== 1 ? 's':''}</div>
+          <div class="position-avg" style="color:${scoreColor(avg)}">Avg ${avg}%</div>
+        </div>
+        <div class="candidate-list">
+          <div class="list-col-headers">
+            <span></span><span>Candidate</span><span>AI Fit Score</span>
+            <span>Status</span><span>Applied</span><span>Match</span><span></span>
+          </div>
+          ${rows}
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = html || '<div class="card-empty">No candidates match your filters.</div>';
+
+  document.getElementById('sumTotal').textContent    = total;
+  document.getElementById('sumPositions').textContent = posCount;
+  document.getElementById('sumStrong').textContent   = strong;
+  document.getElementById('sumReview').textContent   = review;
+  document.getElementById('sumAvgScore').textContent = scoreN ? Math.round(scoreSum/scoreN)+'%' : '—';
+}
+
+function toggleGroup(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+function toggleDrawer(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const opening = !el.classList.contains('open');
+  document.querySelectorAll('.candidate-drawer.open').forEach(d => {
+    d.classList.remove('open');
+    const b = document.getElementById('btn-' + d.id);
+    if (b) b.textContent = '+';
+  });
+  if (opening) {
+    el.classList.add('open');
+    const b = document.getElementById('btn-' + id);
+    if (b) b.textContent = '×';
+  }
+}
+
+function filterCandidates() { renderAll(); }
+
+function setScoreFilter(val, el) {
+  activeScoreFilter = val;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderAll();
+}
+
+document.addEventListener('DOMContentLoaded', renderAll);
+</script>
+</body>
+</html>
