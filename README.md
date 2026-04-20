@@ -223,6 +223,10 @@ The API will be available at `http://127.0.0.1:8000`.
 
 Open the project folder with VS Code Live Server (or any local server on port `5500`). Navigate to `login.html` to begin.
 
+```bash
+python3 -m http.server 5500
+```
+
 **3. Create an account:**
 
 Sign up as either an **Employer** or **Employee** via the signup page.

@@ -764,245 +764,326 @@
 </div>
 <script>
 // --- CONFIG & AUTH ---
-  const API_BASE_URL = "http://127.0.0.1:8000";
-  const IS_PREVIEW_MODE = false;
+const API_BASE_URL = "http://127.0.0.1:8000";
+const IS_PREVIEW_MODE = true; // Set to false for production
 
-  async function checkAuth() {
-    if (IS_PREVIEW_MODE) {
-      console.warn("TalentFlow: Preview Mode Active.");
-      document.body.style.display = "block";
-      document.body.style.opacity = "1";
-      return true;
+async function checkAuth() {
+  if (IS_PREVIEW_MODE) {
+    console.warn("TalentFlow: Preview Mode Active.");
+    document.body.style.display = "block";
+    document.body.style.opacity = "1";
+    return true;
+  }
+  
+  try {
+    const resp = await fetch(`${API_BASE_URL}/account-info`, {
+      method: 'GET',
+      credentials: 'include' 
+    });
+
+    if (resp.ok) {
+        const profile = await resp.json();
+        const title = document.getElementById("pageTitle");
+        if (title && profile.full_name) {
+            const firstName = profile.full_name.split(' ')[0];
+            title.innerText = `Welcome, ${firstName}`;
+        }
+        
+        if (!localStorage.getItem("talentflow_draft")) {
+            if (document.getElementById("name")) document.getElementById("name").value = profile.full_name || "";
+            if (document.getElementById("email")) document.getElementById("email").value = profile.email || "";
+        }
+
+        document.body.style.display = "block";
+        setTimeout(() => document.body.style.opacity = "1", 50);
+        return true;
+    } else {
+        window.location.href = 'login.html';
+        return false;
     }
-    
+  } catch (err) {
+    console.error("Connection error:", err);
+    window.location.href = 'login.html';
+    return false;
+  }
+}
+
+// --- NEW: AI EXTRACTION LOGIC ---
+function triggerUpload() {
+  const fileInput = document.getElementById('fileInput');
+  fileInput.click();
+
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // UI Feedback
+    const glmBox = document.getElementById('glmBox');
+    const glmTags = document.getElementById('glmTags');
+    glmBox.style.display = 'block';
+    glmTags.innerHTML = '<span class="infer-tag">GLM is parsing PDF...</span>';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-      // Use /account-info to get the current profile data
-      const resp = await fetch(`${API_BASE_URL}/account-info`, {
-        method: 'GET',
-        credentials: 'include' 
+      const resp = await fetch(`${API_BASE_URL}/extract-cv`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
       });
 
-      if (resp.ok) {
-          const profile = await resp.json();
-          
-          // Update greeting
-          const title = document.getElementById("pageTitle");
-          if (title && profile.full_name) {
-              const firstName = profile.full_name.split(' ')[0];
-              title.innerText = `Welcome, ${firstName}`;
-          }
-          
-          // Pre-fill name and email if empty
-          if (!localStorage.getItem("talentflow_draft")) {
-              if (document.getElementById("name")) document.getElementById("name").value = profile.full_name || "";
-              if (document.getElementById("email")) document.getElementById("email").value = profile.email || "";
-          }
+      if (!resp.ok) throw new Error("Extraction failed");
 
-          document.body.style.display = "block";
-          setTimeout(() => document.body.style.opacity = "1", 50);
-          return true;
-      } else {
-          window.location.href = 'login.html';
-          return false;
-      }
+      const data = await resp.json();
+      
+      // The backend returns { "extracted_data": { ... } }
+      autoFillForm(data.extracted_data);
+      
+      glmTags.innerHTML = '<span class="infer-tag" style="background:#1d9e75; border-color:#1D9E75; color:white;">Success: Data Mapped</span>';
     } catch (err) {
-      console.error("Connection error:", err);
-      window.location.href = 'login.html';
-      return false;
+      console.error(err);
+      glmTags.innerHTML = '<span class="infer-tag" style="background:#ef4444; border-color:#ef4444; color:white;">AI Extraction Failed</span>';
     }
+  };
+}
+
+function autoFillForm(data) {
+  // Mapping logic: Backend Key -> Frontend ID
+  const fieldMap = {
+    "full_name": "name",
+    "email": "email",
+    "role_title": "role",
+    "department": "dept",
+    "employment_type": "emptype",
+    "start_date": "date",
+    "location_type": "location",
+    "hiring_manager": "manager",
+    "years_experience": "experience",
+    "highest_qualification": "qualification",
+    "previous_employer": "prevemployer"
+  };
+
+  Object.keys(fieldMap).forEach(apiKey => {
+    const elementId = fieldMap[apiKey];
+    const element = document.getElementById(elementId);
+    const value = data[apiKey];
+
+    if (element && value) {
+      element.value = value;
+      // Logical UI feedback: Highlight auto-filled fields
+      element.style.border = "1px solid #4ade80";
+      setTimeout(() => {
+        element.style.border = "1px solid var(--color-border-secondary)";
+      }, 3000);
+    }
+  });
+
+  // Special Handling for Skills Array
+  if (Array.isArray(data.skills)) {
+    skills = [...new Set([...skills, ...data.skills])]; // Merge and unique
+    renderSkills();
   }
 
-  // --- UI LOGIC ---
-  var skills = [];
-  const required = ["name","email","role","emptype","dept","date","location","manager"];
+  updateProgress();
+  saveDraft();
+}
 
-  function switchView(viewId, el) {
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    document.getElementById(viewId).classList.add("active");
-    
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    el.classList.add("active");
-  }
+// --- UI LOGIC ---
+var skills = [];
+const required = ["name","email","role","emptype","dept","date","location","manager"];
 
-  function renderSkills() {
-    const container = document.getElementById("skillTags");
-    if (!container) return;
-    container.innerHTML = skills.map(s => `
-      <div class="skill-tag">
-        ${s}<span class="remove" onclick="removeSkill('${s}')">×</span>
-      </div>
-    `).join('');
-  }
+function switchView(viewId, el) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById(viewId).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  el.classList.add("active");
+}
 
-  function removeSkill(s) {
-    skills = skills.filter(x => x !== s);
+function addSkill() {
+  const input = document.getElementById("skillInput");
+  const val = input.value.trim();
+  if (val && !skills.includes(val)) {
+    skills.push(val);
     renderSkills();
     saveDraft();
   }
+  input.value = "";
+}
 
-  function updateProgress() {
-    const filled = required.filter(id => {
-      const el = document.getElementById(id);
-      return el && el.value.trim() !== "";
-    }).length;
-    
-    const pct = Math.round((filled / required.length) * 100);
-    const bar = document.getElementById("progressBar");
-    const pctLabel = document.getElementById("progressPct");
-    
-    if (bar) bar.style.width = pct + "%";
-    if (pctLabel) pctLabel.innerText = pct + "%";
+function renderSkills() {
+  const container = document.getElementById("skillTags");
+  if (!container) return;
+  container.innerHTML = skills.map(s => `
+    <div class="skill-tag">
+      ${s}<span class="remove" onclick="removeSkill('${s}')">×</span>
+    </div>
+  `).join('');
+}
 
-    const label = document.getElementById("progressLabel");
+function removeSkill(s) {
+  skills = skills.filter(x => x !== s);
+  renderSkills();
+  saveDraft();
+}
+
+function updateProgress() {
+  const filled = required.filter(id => {
+    const el = document.getElementById(id);
+    return el && el.value.trim() !== "";
+  }).length;
+  
+  const pct = Math.round((filled / required.length) * 100);
+  const bar = document.getElementById("progressBar");
+  const pctLabel = document.getElementById("progressPct");
+  
+  if (bar) bar.style.width = pct + "%";
+  if (pctLabel) pctLabel.innerText = pct + "%";
+
+  const label = document.getElementById("progressLabel");
+  const meta = document.getElementById("submitMeta");
+  
+  if (pct === 100) {
+    label.innerText = "Ready to submit";
+    meta.innerText = "All required fields complete";
+    meta.style.color = "var(--color-text-tertiary)";
+  } else {
+    label.innerText = `Step ${Math.ceil(pct/25) || 1} of 4`;
+    meta.innerText = `${filled} of ${required.length} fields filled`;
+  }
+}
+
+// --- SUBMIT FUNCTION ---
+async function submitForm() {
+    const btn = document.querySelector('.btn-primary');
     const meta = document.getElementById("submitMeta");
-    
-    if (pct === 100) {
-      label.innerText = "Ready to submit";
-      meta.innerText = "All required fields complete";
-      meta.style.color = "var(--color-text-tertiary)";
-    } else {
-      label.innerText = `Step ${Math.ceil(pct/25) || 1} of 4`;
-      meta.innerText = `${filled} of ${required.length} fields filled`;
-    }
-  }
 
-  // --- SUBMIT FUNCTION ---
-  async function submitForm() {
-      const btn = document.querySelector('.btn-primary');
-      const meta = document.getElementById("submitMeta");
-
-      // Reset Styles
-      document.querySelectorAll('.form-input, .form-select').forEach(el => {
-          el.style.borderColor = "var(--color-border-secondary)";
-          el.style.backgroundColor = "var(--color-background-secondary)";
-      });
-
-      // Validation
-      const missing = required.filter(id => !document.getElementById(id)?.value.trim());
-
-      if (missing.length) {
-          missing.forEach(id => {
-              const el = document.getElementById(id);
-              if (el) {
-                  el.style.borderColor = "#f87171";
-                  el.style.backgroundColor = "rgba(248, 113, 113, 0.05)";
-              }
-          });
-          meta.innerText = "⚠️ Missing required fields (highlighted in red)";
-          meta.style.color = "#f87171";
-          document.getElementById(missing[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return;
-      }
-
-      btn.innerText = "Submitting...";
-      btn.disabled = true;
-
-      // Collect additional form details (Experience, Manager, etc.)
-      const details = {};
-      document.querySelectorAll('input, select, textarea').forEach(el => {
-          if (el.id && !["name", "email", "role", "dept"].includes(el.id)) {
-              details[el.id] = el.value;
-          }
-      });
-
-      const payload = {
-          full_name: document.getElementById("name").value,
-          email: document.getElementById("email").value,
-          role_title: document.getElementById("role").value,
-          department: document.getElementById("dept").value,
-          skills: skills,
-          form_details: details
-      };
-
-      try {
-          const response = await fetch(`${API_BASE_URL}/applications`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-              credentials: 'include'
-          });
-
-          if (response.ok) {
-              alert("Application Submitted Successfully!");
-              localStorage.removeItem("talentflow_draft");
-              window.location.reload(); 
-          } else if (response.status === 401) {
-              window.location.href = 'login.html';
-          } else {
-              const err = await response.json();
-              alert("Error: " + (err.detail || "Submission failed"));
-          }
-      } catch (err) {
-          console.error("Submission error:", err);
-          alert("Submission failed. Please check your connection.");
-      } finally {
-          btn.innerText = "Submit Application →";
-          btn.disabled = false;
-      }
-  }
-
-  // --- DRAFT LOGIC ---
-  function saveDraft() {
-    const draft = {
-      skills: skills,
-      timestamp: new Date().getTime()
-    };
-    document.querySelectorAll('input, select, textarea').forEach(field => {
-      if (field.id) draft[field.id] = field.value;
-    });
-    localStorage.setItem("talentflow_draft", JSON.stringify(draft));
-  }
-
-  function loadDraft() {
-    const saved = localStorage.getItem("talentflow_draft");
-    if (!saved) return;
-
-    const data = JSON.parse(saved);
-    Object.keys(data).forEach(key => {
-      const el = document.getElementById(key);
-      if (el && key !== "skills") el.value = data[key];
+    document.querySelectorAll('.form-input, .form-select').forEach(el => {
+        el.style.borderColor = "var(--color-border-secondary)";
+        el.style.backgroundColor = "var(--color-background-secondary)";
     });
 
-    if (data.skills) {
-      skills = data.skills;
-      renderSkills();
-    }
-    updateProgress();
-  }
+    const missing = required.filter(id => !document.getElementById(id)?.value.trim());
 
-  // --- INITIALIZATION ---
-  document.addEventListener('DOMContentLoaded', async () => {
-    // Hide initially to prevent flicker
-    document.body.style.opacity = "0";
-    
-    const isAuth = await checkAuth();
-    if (!isAuth) return;
-
-    loadDraft();
-
-    // Auto-save & Progress listeners
-    document.querySelectorAll('input, select, textarea').forEach(el => {
-      el.addEventListener('input', () => {
-        saveDraft();
-        updateProgress();
-      });
-    });
-
-    // Theme Toggle Setup
-    const themeBtn = document.getElementById('themeToggle');
-    if (themeBtn) {
-        const updateIcon = (theme) => themeBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
-        updateIcon(document.documentElement.getAttribute('data-theme'));
-
-        themeBtn.addEventListener('click', () => {
-            const current = document.documentElement.getAttribute('data-theme');
-            const target = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', target);
-            localStorage.setItem('theme', target);
-            updateIcon(target);
+    if (missing.length) {
+        missing.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.borderColor = "#f87171";
+                el.style.backgroundColor = "rgba(248, 113, 113, 0.05)";
+            }
         });
+        meta.innerText = "⚠️ Missing required fields (highlighted in red)";
+        meta.style.color = "#f87171";
+        document.getElementById(missing[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
     }
+
+    btn.innerText = "Submitting...";
+    btn.disabled = true;
+
+    const details = {};
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.id && !["name", "email", "role", "dept"].includes(el.id)) {
+            details[el.id] = el.value;
+        }
+    });
+
+    const payload = {
+        full_name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        role_title: document.getElementById("role").value,
+        department: document.getElementById("dept").value,
+        skills: skills,
+        form_details: details
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/applications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            alert("Application Submitted Successfully!");
+            localStorage.removeItem("talentflow_draft");
+            window.location.reload(); 
+        } else if (response.status === 401) {
+            window.location.href = 'login.html';
+        } else {
+            const err = await response.json();
+            alert("Error: " + (err.detail || "Submission failed"));
+        }
+    } catch (err) {
+        console.error("Submission error:", err);
+        alert("Submission failed. Please check your connection.");
+    } finally {
+        btn.innerText = "Submit Application →";
+        btn.disabled = false;
+    }
+}
+
+// --- DRAFT LOGIC ---
+function saveDraft() {
+  const draft = {
+    skills: skills,
+    timestamp: new Date().getTime()
+  };
+  document.querySelectorAll('input, select, textarea').forEach(field => {
+    if (field.id) draft[field.id] = field.value;
   });
+  localStorage.setItem("talentflow_draft", JSON.stringify(draft));
+}
+
+function loadDraft() {
+  const saved = localStorage.getItem("talentflow_draft");
+  if (!saved) return;
+
+  const data = JSON.parse(saved);
+  Object.keys(data).forEach(key => {
+    const el = document.getElementById(key);
+    if (el && key !== "skills") el.value = data[key];
+  });
+
+  if (data.skills) {
+    skills = data.skills;
+    renderSkills();
+  }
+  updateProgress();
+}
+
+// --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', async () => {
+  document.body.style.opacity = "0";
+  
+  const isAuth = await checkAuth();
+  if (!isAuth) return;
+
+  loadDraft();
+
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      saveDraft();
+      updateProgress();
+    });
+  });
+
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+      const updateIcon = (theme) => themeBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
+      updateIcon(document.documentElement.getAttribute('data-theme'));
+
+      themeBtn.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme');
+          const target = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', target);
+          localStorage.setItem('theme', target);
+          updateIcon(target);
+      });
+  }
+});
 </script>
 </body>
 </html>

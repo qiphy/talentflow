@@ -301,6 +301,7 @@ async def process_ai_logs(user_id: str, app_id: str, new_status: str):
     except Exception as e:
         print(f"Background Logging Error: {e}")
 
+
 # --- UPDATED: HR Dashboard (Now joins with application_status) ---
 @app.get("/hr/dashboard")
 async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_current_user)):
