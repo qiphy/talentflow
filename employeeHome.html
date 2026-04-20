@@ -849,14 +849,13 @@ function triggerUpload() {
 }
 
 function autoFillForm(data) {
-  // Mapping logic: Backend Key -> Frontend ID
+  // Ensure these keys match your Python system_instruction EXACTLY
   const fieldMap = {
     "full_name": "name",
     "email": "email",
     "role_title": "role",
     "department": "dept",
     "employment_type": "emptype",
-    "start_date": "date",
     "location_type": "location",
     "hiring_manager": "manager",
     "years_experience": "experience",
@@ -871,17 +870,18 @@ function autoFillForm(data) {
 
     if (element && value) {
       element.value = value;
-      // Logical UI feedback: Highlight auto-filled fields
-      element.style.border = "1px solid #4ade80";
+      // Visual feedback: brief green glow to prove it worked
+      element.style.borderColor = "#4ade80";
       setTimeout(() => {
-        element.style.border = "1px solid var(--color-border-secondary)";
-      }, 3000);
+        element.style.borderColor = "var(--color-border-secondary)";
+      }, 2000);
+    } else {
+      console.warn(`Could not fill field: ${elementId}. Value from AI:`, value);
     }
   });
 
-  // Special Handling for Skills Array
   if (Array.isArray(data.skills)) {
-    skills = [...new Set([...skills, ...data.skills])]; // Merge and unique
+    skills = [...new Set([...skills, ...data.skills])]; 
     renderSkills();
   }
 

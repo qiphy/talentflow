@@ -648,16 +648,13 @@ let isPreviewMode = false;
  * INITIALIZATION & AUTH GATE
  */
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Check for Preview Param first
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('preview') === 'true') {
         enablePreviewMode();
-        return; // Stop here if previewing
+        return;
     }
 
-    // 2. Otherwise, check real Auth
     const authData = await checkAuth();
-    
     if (authData && authData.authenticated) {
         isPreviewMode = false;
         fetchCandidates();
@@ -666,20 +663,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-/**
- * AUTH CHECKER
- */
 async function checkAuth() {
     try {
-      const resp = await fetch(`${API_BASE}/me`, {
-        method: 'GET',
-        credentials: 'include' 
-      });
-
-      if (resp.ok) {
-          const data = await resp.json();
-          return { authenticated: true, profile: data };
-      }
+      const resp = await fetch(`${API_BASE}/me`, { method: 'GET', credentials: 'include' });
+      if (resp.ok) return { authenticated: true, profile: await resp.json() };
       return { authenticated: false };
     } catch (err) {
       console.error("Connection error:", err);
@@ -687,40 +674,30 @@ async function checkAuth() {
     }
 }
 
-/**
- * PREVIEW MODE (Mock Data)
- */
 function enablePreviewMode() {
     isPreviewMode = true;
-    console.log("🚀 TalentFlow: Preview Mode Enabled");
-    
     const banner = document.createElement('div');
     banner.style = "background: #f59e0b; color: #000; text-align: center; padding: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; position: sticky; top: 0; z-index: 9999;";
     banner.innerText = "Preview Mode — Changes will not be saved to Supabase";
     document.body.prepend(banner);
 
-    const mockData = [
-        {
-            id: "mock-1",
-            role_title: "Senior AI Engineer",
-            department: "Engineering",
-            full_name: "James Howlett",
-            recommendation_rate: 94,
-            status: "new",
-            created_at: new Date().toISOString(),
-            ai_analysis: "Exceptional candidate with deep LLM expertise. High match for TalentFlow core stack.",
-            skills: ["Python", "PyTorch", "FastAPI"],
-            form_details: { experience: "8", location: "Remote" }
-        }
-    ];
-
+    const mockData = [{
+        id: "mock-1",
+        role_title: "Senior AI Engineer",
+        department: "Engineering",
+        full_name: "James Howlett",
+        recommendation_rate: 94,
+        status: "new",
+        created_at: new Date().toISOString(),
+        ai_analysis: "Exceptional candidate with deep LLM expertise.",
+        skills: ["Python", "FastAPI"],
+        form_details: { experience: "8", location: "Remote" },
+        start_date: null
+    }];
     processApplications(mockData);
     renderAll();
 }
 
-/**
- * DATA FETCHING
- */
 async function fetchCandidates() {
     try {
         const response = await fetch(`${API_BASE}/hr/dashboard`, {
@@ -728,27 +705,22 @@ async function fetchCandidates() {
             headers: { "Content-Type": "application/json" },
             credentials: "include" 
         });
-
         if (response.status === 401 || response.status === 403) {
             window.location.href = "login.html";
             return;
         }
-
         const data = await response.json();
         processApplications(data.recent_apps || []);
         renderAll();
-        
     } catch (error) {
         console.error("Critical error fetching candidates:", error);
         const container = document.getElementById('positionsContainer');
-        if (container) {
-            container.innerHTML = '<div class="card-empty">Failed to connect to backend server.</div>';
-        }
+        if (container) container.innerHTML = '<div class="card-empty">Failed to connect to backend server.</div>';
     }
 }
 
 /**
- * DATA TRANSFORMER
+ * DATA TRANSFORMER - FIXED FOR NULL SAFETY
  */
 function processApplications(apps) {
     const groups = apps.reduce((acc, app) => {
@@ -763,14 +735,14 @@ function processApplications(apps) {
             };
         }
         
-        // Fix for 'undefined' start dates
-        // Look at the new column first, fallback to the old junk drawer if needed
-        const displayDate = app.start_date || app.form_details?.date || "Not set";
+        // DETERMINISTIC FIX: Safe date check
+        const rawDate = app.start_date || (app.form_details ? app.form_details.date : null);
+        const displayDate = rawDate ? rawDate : "Not set";
 
         acc[key].candidates.push({
             id: app.id,
             name: app.full_name || "Unknown Candidate",
-            initials: (app.full_name || "??").split(' ').map(n => n[0]).join('').toUpperCase(),
+            initials: (app.full_name || "??").split(' ').map(n => n ? n[0] : '').join('').toUpperCase(),
             experience: app.form_details?.experience || "N/A",
             location: app.form_details?.location || "Unknown",
             applied: formatAppliedDate(app.created_at),
@@ -778,11 +750,10 @@ function processApplications(apps) {
             score: app.recommendation_rate || 0,
             skills: Array.isArray(app.skills) ? app.skills : [],
             ai: app.ai_analysis || "No AI assessment available.",
-            startDate: displayDate // Added this to the candidate object
+            startDate: displayDate 
         });
         return acc;
     }, {});
-
     POSITIONS_DATA = Object.values(groups);
 }
 
@@ -790,9 +761,10 @@ function processApplications(apps) {
  * CORE RENDER ENGINE
  */
 function renderAll() {
-    const search = (document.getElementById('searchInput').value || '').toLowerCase();
-    const deptFilter = document.getElementById('deptFilter').value;
-    const statusVal = document.getElementById('statusFilter').value;
+    const searchInput = document.getElementById('searchInput');
+    const search = (searchInput ? searchInput.value : '').toLowerCase();
+    const deptFilter = document.getElementById('deptFilter')?.value;
+    const statusVal = document.getElementById('statusFilter')?.value;
     const container = document.getElementById('positionsContainer');
 
     if (!container) return;
@@ -805,9 +777,7 @@ function renderAll() {
 
         const activeCands = pos.candidates.filter(c => {
             if (c.status === 'rejected') {
-                if (!search || c.name.toLowerCase().includes(search)) {
-                    rejectedPool.push({ ...c, roleTitle: pos.title });
-                }
+                if (!search || c.name.toLowerCase().includes(search)) rejectedPool.push({ ...c, roleTitle: pos.title });
                 return false;
             }
             if (statusVal && c.status !== statusVal) return false;
@@ -827,7 +797,7 @@ function renderAll() {
             scoreN++;
         });
 
-        const avgScore = Math.round(activeCands.reduce((a,c) => a + c.score, 0) / activeCands.length);
+        const avgScore = scoreN ? Math.round(activeCands.reduce((a,c) => a + c.score, 0) / activeCands.length) : 0;
         return renderPositionGroup(pos, activeCands, avgScore);
     }).join('');
 
@@ -839,28 +809,24 @@ function renderAll() {
                     <div class="position-chevron">▼</div>
                     <div class="position-dot" style="background:#ef4444"></div>
                     <div style="flex:1;min-width:0">
-                        <div class="position-name" style="color: #ef4444">Rejected Candidates</div>
-                        <div class="position-dept">Historical Archive</div>
+                        <div class="position-name" style="color: #ef4444">Rejected Archive</div>
+                        <div class="position-dept">Historical Records</div>
                     </div>
-                    <div class="position-count">${rejectedPool.length} Profiles</div>
+                    <div class="position-count">${rejectedPool.length}</div>
                 </div>
                 <div class="candidate-list">
-                    <div class="list-col-headers">
-                        <span></span><span>Candidate</span><span>AI Fit Score</span>
-                        <span>Status</span><span>Applied</span><span>Match</span><span></span>
-                    </div>
                     ${rejectedPool.map((c, i) => renderCandidateRow(c, i, `rej-${c.id}`)).join('')}
                 </div>
             </div>`;
     }
 
-    container.innerHTML = (activeHtml + rejectedHtml) || '<div class="card-empty">No candidates found matching your criteria.</div>';
+    container.innerHTML = (activeHtml + rejectedHtml) || '<div class="card-empty">No candidates found.</div>';
 
-    document.getElementById('sumTotal').textContent    = totalActive + rejectedPool.length;
-    document.getElementById('sumPositions').textContent = activePosCount;
-    document.getElementById('sumStrong').textContent   = strongCount;
-    document.getElementById('sumReview').textContent   = reviewCount;
-    document.getElementById('sumAvgScore').textContent = scoreN ? Math.round(scoreSum/scoreN)+'%' : '—';
+    if (document.getElementById('sumTotal')) document.getElementById('sumTotal').textContent = totalActive + rejectedPool.length;
+    if (document.getElementById('sumPositions')) document.getElementById('sumPositions').textContent = activePosCount;
+    if (document.getElementById('sumStrong')) document.getElementById('sumStrong').textContent = strongCount;
+    if (document.getElementById('sumReview')) document.getElementById('sumReview').textContent = reviewCount;
+    if (document.getElementById('sumAvgScore')) document.getElementById('sumAvgScore').textContent = scoreN ? Math.round(scoreSum/scoreN)+'%' : '—';
 }
 
 function renderPositionGroup(pos, cands, avg) {
@@ -873,7 +839,7 @@ function renderPositionGroup(pos, cands, avg) {
                     <div class="position-name">${pos.title}</div>
                     <div class="position-dept">${pos.dept}</div>
                 </div>
-                <div class="position-count">${cands.length} candidate${cands.length !== 1 ? 's':''}</div>
+                <div class="position-count">${cands.length}</div>
                 <div class="position-avg" style="color:${scoreColor(avg)}">Avg ${avg}%</div>
             </div>
             <div class="candidate-list">
@@ -891,6 +857,9 @@ function renderCandidateRow(c, i, drawerId) {
     const avColors = ['#1a2a3a','#1f1a2e','#1a2e20','#2e1f0a','#0a1a2e','#1a1a2e'];
     const avText = ['#4a9eff','#a855f7','#22c55e','#f59e0b','#2dd4bf','#ec4899'];
     const avStyle = `background:${avColors[i % 6]}; color:${avText[i % 6]};`;
+    
+    // SAFE NAME FOR ONCLICK
+    const safeName = (c.name || "Candidate").replace(/'/g, "\\'");
 
     return `
         <div>
@@ -898,7 +867,7 @@ function renderCandidateRow(c, i, drawerId) {
                 <div class="avatar" style="${avStyle}">${c.initials}</div>
                 <div style="min-width:0">
                     <div class="cand-name">${c.name}</div>
-                    <div class="cand-meta">${c.experience} · ${c.location} ${c.roleTitle ? `(${c.roleTitle})` : ''}</div>
+                    <div class="cand-meta">${c.experience} · ${c.location}</div>
                 </div>
                 <div class="ai-score-wrap">
                     <div class="ai-score-bar-bg">
@@ -915,9 +884,8 @@ function renderCandidateRow(c, i, drawerId) {
                 <div class="drawer-grid">
                     <div class="drawer-field"><label>Experience</label><span>${c.experience}</span></div>
                     <div class="drawer-field"><label>Location</label><span>${c.location}</span></div>
-                    <div class="drawer-field"><label>Applied</label><span>${c.applied}</span></div>
+                    <div class="drawer-field"><label>Proposed Start</label><span style="color:#4a9eff; font-weight:700;">${c.startDate}</span></div>
                 </div>
-                <div class="drawer-field" style="margin-bottom:6px"><label>Candidate Skills</label></div>
                 <div class="drawer-skills">${c.skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}</div>
                 <div class="drawer-ai">
                     <div class="drawer-ai-label">✦ GLM AI Summary</div>
@@ -928,7 +896,7 @@ function renderCandidateRow(c, i, drawerId) {
                         `<button class="drawer-btn primary" onclick="event.stopPropagation(); updateStatus('${c.id}', 'new')">Restore Profile</button>` :
                         `<button class="drawer-btn primary" onclick="event.stopPropagation()">Schedule Interview</button>
                          <button class="drawer-btn" onclick="event.stopPropagation(); handleMoveStage('${c.id}')">Move Stage</button>
-                         <button class="drawer-btn danger" onclick="event.stopPropagation(); handleReject('${c.id}', '${c.name.replace(/'/g, "\\'")}')">Reject</button>`
+                         <button class="drawer-btn danger" onclick="event.stopPropagation(); handleReject('${c.id}', '${safeName}')">Reject</button>`
                     }
                 </div>
             </div>
@@ -939,8 +907,7 @@ function renderCandidateRow(c, i, drawerId) {
  * UI ACTION HANDLERS
  */
 function toggleGroup(id) {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('collapsed');
+    document.getElementById(id)?.classList.toggle('collapsed');
 }
 
 function toggleDrawer(id) {
@@ -961,18 +928,9 @@ function toggleDrawer(id) {
     if (btn) btn.textContent = isOpening ? '×' : '+';
 }
 
-/**
- * UPDATED: Status handler with start_date support
- */
 async function updateStatus(applicationId, newStatus, startDate = null) {
     const overlay = document.getElementById('ai-loading-overlay');
-    const subtext = document.getElementById('loading-subtext');
-
-    if (overlay) {
-        overlay.style.display = 'flex';
-        if (newStatus === 'onboarding') subtext.innerText = "Finalizing onboarding and scheduling start date...";
-        else subtext.innerText = "Updating pipeline and recording activity...";
-    }
+    if (overlay) overlay.style.display = 'flex';
 
     if (isPreviewMode) {
         await new Promise(r => setTimeout(r, 600));
@@ -996,47 +954,26 @@ async function updateStatus(applicationId, newStatus, startDate = null) {
             credentials: "include"
         });
 
-        if (response.ok) {
-            await fetchCandidates();
-        } else {
-            const error = await response.json();
-            alert("Update failed: " + (error.detail || "Session expired."));
-        }
+        if (response.ok) await fetchCandidates();
+        else alert("Update failed.");
     } catch (error) {
         console.error("Error updating status:", error);
-        alert("Connection error: Unable to sync with GLM server.");
     } finally {
         if (overlay) overlay.style.display = 'none';
     }
 }
 
 function handleReject(id, name) {
-    if (confirm(`Move ${name} to Rejected Archive?`)) {
-        updateStatus(id, 'rejected');
-    }
+    if (confirm(`Move ${name} to Rejected Archive?`)) updateStatus(id, 'rejected');
 }
 
-/**
- * UPDATED: Stage mover with date prompt for onboarding
- */
 function handleMoveStage(id) {
     const next = prompt("Enter stage (New, Reviewing, Interview, Offer, Onboarding):");
     if (!next) return;
-
     const choice = next.toLowerCase().trim();
-    const valid = ['new', 'reviewing', 'interview', 'offer', 'onboarding'];
-
-    if (!valid.includes(choice)) {
-        alert("Invalid stage entered.");
-        return;
-    }
-
-    // New logic for Onboarding
     if (choice === 'onboarding') {
         const dateStr = prompt("Set Start Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (dateStr) {
-            updateStatus(id, choice, dateStr);
-        }
+        if (dateStr) updateStatus(id, choice, dateStr);
     } else {
         updateStatus(id, choice);
     }
@@ -1081,7 +1018,8 @@ function toggleTheme() {
     const target = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', target);
     localStorage.setItem('theme', target);
-    document.getElementById('themeToggle').textContent = target === 'dark' ? '🌙' : '☀️';
+    const themeBtn = document.getElementById('themeToggle');
+    if (themeBtn) themeBtn.textContent = target === 'dark' ? '🌙' : '☀️';
 }
 </script>
 </body>

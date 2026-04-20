@@ -1,15 +1,16 @@
 import os
 import json
-from typing import Optional
+import io
+import fitz  # PyMuPDF: Install with 'pip install pymupdf'
+from typing import Optional, List
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Response, Depends, Cookie, Request, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Response, Depends, Cookie, Request, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from openai import OpenAI
 from fastapi.responses import JSONResponse
-from datetime import datetime, timedelta
-from typing import List, Optional
 
 load_dotenv()
 
@@ -59,6 +60,10 @@ class ApplicationData(BaseModel):
     skills: list
     form_details: dict
 
+class StatusUpdate(BaseModel):
+    status: str
+    start_date: Optional[str] = None
+
 # --- HELPERS ---
 def get_current_user(access_token: Optional[str] = Cookie(None)):
     if not access_token:
@@ -80,6 +85,75 @@ def get_profile(user_id: str):
         print(f"Database lookup failed for UUID {user_id}: {e}")
         return None
 
+@app.post("/extract-cv")
+async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_current_user)):
+    user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
+    
+    try:
+        # 1. Extract Text from PDF
+        file_content = await file.read()
+        pdf_stream = io.BytesIO(file_content)
+        doc = fitz.open(stream=pdf_stream, filetype="pdf")
+        raw_text = "".join([page.get_text() for page in doc])
+        doc.close()
+
+        if not raw_text.strip():
+            print(f"DEBUG [CV]: File {file.filename} contained no readable text.")
+            raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
+
+        print(f"DEBUG [CV]: Extracting text from {file.filename} ({len(raw_text)} chars)...")
+
+        # 2. AI Parsing Prompt
+        system_instruction = (
+            "You are a deterministic HR Data Parser. Extract info from the CV into a VALID JSON object.\n"
+            "STRICT CATEGORY RULES:\n"
+            "- department: [Engineering, Product, Design, HR, Finance, Marketing, Operations, Legal, Sales]\n"
+            "- employment_type: [Full-time, Part-time, Contract, Internship, Freelance]\n"
+            "- location_type: [Remote, Hybrid, On-site]\n"
+            "Keys: full_name, email, role_title, department, employment_type, location_type, "
+            "hiring_manager, years_experience, highest_qualification, previous_employer, skills (array).\n"
+            "Use empty strings for unknowns. Return ONLY the JSON object."
+        )
+
+        completion = zai_client.chat.completions.create(
+            model="z-ai/glm-4.5-air:free",
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": f"Parse this CV text: {raw_text[:4000]}"}
+            ],
+            response_format={ "type": "json_object" }
+        )
+        
+        # 3. Robust JSON Parsing & Logging
+        raw_ai_content = completion.choices[0].message.content
+        print(f"\n[GLM RAW RESPONSE]\n{raw_ai_content}\n")
+
+        # Clean AI response if it includes Markdown code blocks
+        if "```json" in raw_ai_content:
+            raw_ai_content = raw_ai_content.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_ai_content:
+            raw_ai_content = raw_ai_content.split("```")[1].split("```")[0].strip()
+
+        extracted_data = json.loads(raw_ai_content)
+        print(f"DEBUG [CV]: Parsed successfully. Candidate: {extracted_data.get('full_name')}")
+
+        # 4. Log the Extraction Event to Activity Logs
+        await log_ai_event(
+            user_id, 
+            "cv_extraction", 
+            f"AI parsed CV for {extracted_data.get('full_name', 'Unknown Candidate')}",
+            {"filename": file.filename, "extracted_keys": list(extracted_data.keys())}
+        )
+
+        return {"status": "success", "extracted_data": extracted_data}
+
+    except json.JSONDecodeError as je:
+        print(f"CRITICAL [CV]: JSON Decode Error: {je}")
+        raise HTTPException(status_code=500, detail="AI returned invalid JSON format.")
+    except Exception as e:
+        print(f"CRITICAL [CV]: Extraction Failure: {e}")
+        raise HTTPException(status_code=500, detail=f"CV Parsing failed: {str(e)}")
+
 # --- AUTH ENDPOINTS ---
 @app.post("/signup")
 async def signup(payload: SignupRequest):
@@ -87,11 +161,10 @@ async def signup(payload: SignupRequest):
         raise HTTPException(status_code=400, detail="Terms must be accepted.")
     
     try:
-        # 1. Create Auth User
         auth_response = supabase.auth.sign_up({
             "email": payload.email, 
             "password": payload.password,
-            "options": {"data": {"full_name": payload.full_name}} # Sync to metadata
+            "options": {"data": {"full_name": payload.full_name}} 
         })
         
         user = getattr(auth_response, "user", None) or (getattr(auth_response, "data", None) and getattr(auth_response.data, "user", None))
@@ -99,7 +172,6 @@ async def signup(payload: SignupRequest):
         
         user_id = getattr(user, "id", None)
 
-        # 2. Create Profile Row
         profile = {
             "id": user_id,
             "full_name": payload.full_name,
@@ -110,7 +182,7 @@ async def signup(payload: SignupRequest):
         }
         supabase.table("profiles").upsert(profile).execute()
 
-        redirect = "/hr" if payload.role == "employer" else "/candidate"
+        redirect = "/employerHome" if payload.role == "employer" else "/employeeHome"
         return {"status": "success", "redirect": redirect}
 
     except Exception as e:
@@ -125,74 +197,81 @@ async def login(req: LoginRequest):
              raise HTTPException(status_code=401, detail="Invalid credentials.")
 
         user_id = session.user.id
-        
-        # Verify Role
         profile = get_profile(user_id)
         if not profile or profile.get("role") != req.role:
             supabase.auth.sign_out()
             raise HTTPException(status_code=403, detail=f"Account is not registered as {req.role}.")
 
         redirect = "/employerHome" if profile.get("role") == "employer" else "/employeeHome"
-        
         res = JSONResponse(content={"status": "success", "redirect": redirect})
         cookie_age = 7 * 24 * 3600 if req.remember else 3600
         
         res.set_cookie(key="access_token", value=session.access_token, httponly=True, secure=False, samesite="lax", max_age=cookie_age, path="/")
-        if session.refresh_token:
-            res.set_cookie(key="refresh_token", value=session.refresh_token, httponly=True, secure=False, samesite="lax", max_age=30*24*3600, path="/")
         return res
-
-    except HTTPException as he: raise he
-    except Exception as e: raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/logout")
 async def logout():
     res = JSONResponse(content={"status": "success", "redirect": "/login"})
     res.delete_cookie("access_token", path="/")
-    res.delete_cookie("refresh_token", path="/")
     return res
 
 # --- ACCOUNT MANAGEMENT ---
-
 @app.get("/account-info")
 async def get_account_info(current_user = Depends(get_current_user)):
-    """Fetches full profile data for the Account Settings page."""
     user_id = getattr(current_user, "id", None) or current_user.get("id")
     profile = get_profile(user_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found.")
     return profile
 
+@app.patch("/applications/{app_id}/status")
+async def update_app_status(app_id: str, payload: StatusUpdate, bg_tasks: BackgroundTasks, current_user = Depends(get_current_user)):
+    user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
+    
+    try:
+        # 1. Update the application status and start_date
+        update_data = {"status": payload.status.lower()}
+        if payload.start_date:
+            update_data["start_date"] = payload.start_date
+
+        # Update the application status record specifically for this employer
+        # We use upsert to ensure a status row exists for the application/employer pair
+        supabase.table("application_status").upsert({
+            "application_id": app_id,
+            "employer_id": user_id,
+            "status": payload.status.lower(),
+            "updated_at": datetime.now().isoformat()
+        }, on_conflict="application_id,employer_id").execute()
+        
+        # 2. Also update the top-level start_date on the application if provided
+        if payload.start_date:
+            supabase.table("applications").update({"start_date": payload.start_date}).eq("id", app_id).execute()
+
+        # 3. Log the event via AI
+        bg_tasks.add_task(log_ai_event, user_id, "pipeline_move", f"Moved candidate to {payload.status}", {"app_id": app_id})
+        
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Update Error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.patch("/update-account")
 async def update_account(payload: ProfileUpdate, current_user = Depends(get_current_user)):
-    """Updates specific profile fields."""
     user_id = getattr(current_user, "id", None) or current_user.get("id")
-    
     update_data = payload.dict(exclude_unset=True)
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No changes provided.")
-
     try:
         supabase.table("profiles").update(update_data).eq("id", user_id).execute()
         return {"status": "success", "message": "Profile updated."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# --- DASHBOARDS & APPLICATIONS ---
-
-@app.get("/candidate")
-async def candidate_dashboard(current_user = Depends(get_current_user)):
-    user_id = getattr(current_user, "id", None) or current_user.get("id")
-    profile = get_profile(user_id)
-    if not profile or profile.get("role") != "employee":
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return {"status": "success", "profile": profile}
-
+# --- APPLICATIONS & DASHBOARD ---
 @app.post("/applications")
 async def submit_application(payload: ApplicationData, current_user = Depends(get_current_user)):
     user_id = getattr(current_user, "id", None) or current_user.get("id")
     
-    # AI Analysis Logic
     prompt = f"Analyze candidate for {payload.role_title}. Skills: {payload.skills}"
     try:
         completion = zai_client.chat.completions.create(
@@ -218,132 +297,48 @@ async def submit_application(payload: ApplicationData, current_user = Depends(ge
     }
 
     supabase.table("applications").insert(data).execute()
-
-    await log_ai_event(
-        user_id=user_id,
-        event_type="application_submission",
-        raw_description=f"New application from {payload.full_name} for {payload.role_title}",
-        context_data={"dept": payload.department, "skills": payload.skills}
-    )
-
+    await log_ai_event(user_id, "application_submission", f"New application from {payload.full_name}", {"dept": payload.department})
     return {"status": "success"}
 
-# --- ADD THIS MODEL ---
-class StatusUpdate(BaseModel):
-    status: str
-    start_date: Optional[str] = None
-
-@app.patch("/applications/{app_id}/status")
-async def update_app_status(
-    app_id: str, 
-    payload: StatusUpdate, 
-    bg_tasks: BackgroundTasks, # Add this parameter
-    current_user = Depends(get_current_user)
-):
+@app.get("/hr/dashboard")
+async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_current_user)):
+    # Ensure user_id is a string for consistent comparison
     user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
     
     try:
-        # 1. IMMEDIATE ACTION: Update the status table
-        # We do this first so the UI refreshes accurately
-        status_data = {
-            "application_id": app_id,
-            "employer_id": user_id,
-            "status": payload.status.lower(),
-            "updated_at": datetime.now().isoformat()
-        }
-
-        supabase.table("application_status").upsert(
-            status_data, 
-            on_conflict="application_id,employer_id" 
-        ).execute()
-
-        # 2. BACKGROUND ACTION: AI Processing & Logging
-        # This will run after the response is sent to the user
-        bg_tasks.add_task(process_ai_logs, user_id, app_id, payload.status)
-
-        if payload.status.lower() == "onboarding" and payload.start_date:
-            supabase.table("applications").update({"start_date": payload.start_date}).eq("id", app_id).execute()
-
-        # 3. RETURN INSTANTLY
-        return {"status": "success"}
-
-    except Exception as e:
-        print(f"PATCH Error Detail: {str(e)}") 
-        raise HTTPException(status_code=400, detail=str(e))
-
-# Helper function for background processing
-async def process_ai_logs(user_id: str, app_id: str, new_status: str):
-    try:
-        if new_status.lower() == "onboarding":
-            cand_resp = supabase.table("applications").select("form_details, full_name").eq("id", app_id).single().execute()
-            candidate = cand_resp.data
-            
-            # Check if 'date' exists inside the form_details JSONB
-            form_details = candidate.get("form_details") or {}
-            start_date = form_details.get("date")
-            
-            if not start_date:
-                name = candidate.get("full_name", "Unknown")
-                await log_ai_event(
-                    user_id, 
-                    "logic_conflict", 
-                    f"Onboarding started for {name} without a start date in form details.",
-                    {"severity": "warning", "issue": "NULL_START_DATE", "app_id": app_id}
-                )
-
-        # Standard Activity Log
-        await log_ai_event(
-            user_id, 
-            "pipeline_move", 
-            f"Candidate status updated to {new_status}",
-            {"app_id": app_id, "new_status": new_status}
-        )
-    except Exception as e:
-        print(f"Background Logging Error: {e}")
-
-
-# --- UPDATED: HR Dashboard (Now joins with application_status) ---
-@app.get("/hr/dashboard")
-async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_current_user)):
-    """Aggregates isolated application data for the specific employer."""
-    user_id = getattr(current_user, "id", None) or current_user.get("id")
-    profile = get_profile(user_id)
-    
-    if not profile or profile.get("role") != "employer":
-        raise HTTPException(status_code=403, detail="Access denied. Employer role required.")
-
-    try:
-        # 1. Fetch applications with an isolated join
-        resp = supabase.table("applications") \
-            .select("*, application_status!left(status)") \
-            .eq("application_status.employer_id", user_id) \
-            .order("created_at", desc=True) \
+        # FIX: Remove the .eq filter from the main query to ensure all apps are fetched.
+        # We filter by employer_id inside the application_status join instead.
+        resp = supabase.table("applications")\
+            .select("*, application_status!left(status, employer_id)")\
+            .order("created_at", desc=True)\
             .execute()
         
-        raw_apps = resp.data or []
         apps = []
-
-        for a in raw_apps:
+        for a in resp.data or []:
             status_entries = a.get("application_status", [])
-            current_status = status_entries[0].get("status", "new") if status_entries else "new"
             
-            app_item = {
-                "id": a.get("id"),
-                "full_name": a.get("full_name"),
-                "name": a.get("full_name"),
-                "role_title": a.get("role_title"),
-                "department": a.get("department"),
-                "status": current_status,
-                "start_date": a.get("start_date"),
-                "created_at": a.get("created_at"),
-                "recommendation_rate": a.get("recommendation_rate", 0),
-            }
-            apps.append(app_item)
+            # Filter the status entries to find the one belonging to THIS employer
+            # If none exists, the candidate is "new" to this employer
+            current_status = "new"
+            if status_entries:
+                # If it's a list (Supabase join return), find the matching employer_id
+                if isinstance(status_entries, list):
+                    match = next((s for s in status_entries if str(s.get('employer_id')) == user_id), None)
+                    current_status = match.get("status", "new") if match else "new"
+                else:
+                    # If it's a single object
+                    if str(status_entries.get('employer_id')) == user_id:
+                        current_status = status_entries.get("status", "new")
 
-        # --- 2. Process Pipeline Stages (RESTORED COLORS) ---
+            apps.append({
+                **a, 
+                "status": current_status, 
+                "name": a.get("full_name") or "Unknown Candidate"
+            })
+
+        # --- 1. Pipeline & Metadata ---
         stages = ["New", "Reviewing", "Interview", "Offer", "Onboarding", "Rejected"]
         pipeline_counts = {stage: 0 for stage in stages}
-        
         for a in apps:
             raw_status = a.get("status", "New").replace("_", " ").title()
             for s in stages:
@@ -351,162 +346,118 @@ async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_curren
                     pipeline_counts[s] += 1
                     break
         
-        # Your original specific color mapping
-        colors = {
-            "New": "#4a9eff", "Reviewing": "#a855f7", "Interview": "#22c55e",
-            "Offer": "#f59e0b", "Onboarding": "#4ade80", "Rejected": "#ef4444"
-        }
-        
-        formatted_pipeline = [
-            {"label": s, "count": pipeline_counts[s], "color": colors.get(s, "#6b7280")} 
-            for s in stages
-        ]
+        colors = {"New": "#4a9eff", "Reviewing": "#a855f7", "Interview": "#22c55e", "Offer": "#f59e0b", "Onboarding": "#4ade80", "Rejected": "#ef4444"}
+        formatted_pipeline = [{"label": s, "count": pipeline_counts[s], "color": colors.get(s, "#6b7280")} for s in stages]
 
-        # 3. Department Stats
+        # --- 2. Department Stats ---
         dept_map = {}
         for a in apps:
-            d = a.get("department", "Other")
+            d = a.get("department") or "General"
             dept_map[d] = dept_map.get(d, 0) + 1
         formatted_depts = [{"name": dept, "count": count} for dept, count in dept_map.items()]
 
-        # 4. Metrics
-        onboarded_apps = [a for a in apps if a['status'] == 'onboarding']
-        avg_time = "0 Days"
-        if onboarded_apps:
-            total_days = 0
-            for a in onboarded_apps:
-                try:
-                    start = datetime.fromisoformat(a['created_at'].replace('Z', '+00:00'))
-                    total_days += max((datetime.now(start.tzinfo) - start).days, 0)
-                except: continue
-            avg_time = f"{round(total_days / len(onboarded_apps))} Days"
+        upcoming_starts = []
+        for a in apps:
+            # Look for the top-level 'start_date' column
+            s_date = a.get("start_date")
+            
+            # Defensive check: if it's not at top-level, check if it's in the status join
+            if not s_date:
+                # Sometimes start_date is stored in the application_status table instead
+                status_entries = a.get("application_status", [])
+                if isinstance(status_entries, list) and status_entries:
+                    s_date = status_entries[0].get("start_date")
 
-        offers_sent = pipeline_counts.get("Offer", 0) + pipeline_counts.get("Onboarding", 0)
-        acceptance_rate = f"{round((pipeline_counts.get('Onboarding', 0)/offers_sent)*100)}%" if offers_sent > 0 else "0%"
+            if s_date and a.get("status") != "rejected":
+                print(f"DEBUG: Found start_date {s_date} for {a.get('full_name')}")
+                upcoming_starts.append({
+                    "id": a.get("id"), 
+                    "full_name": a.get("full_name"), 
+                    "role_title": a.get("role_title"), 
+                    "start_date": s_date
+                })
 
-        # 5. Trend (FIXED: This now populates the chart)
+        # Deterministic sort
+        upcoming_starts.sort(key=lambda x: str(x['start_date']))
+
+        # --- 4. Dynamic Trend Logic ---
         today = datetime.now()
         trend_labels, trend_counts = [], []
-        for i in range(6, -1, -1):
-            day_date = today - timedelta(days=i)
-            day_label = day_date.strftime('%d %b')
-            comp_key = day_date.strftime('%Y-%m-%d')
-            count = sum(1 for a in apps if a.get('created_at', '').split('T')[0] == comp_key)
-            trend_labels.append(day_label)
-            trend_counts.append(count)
 
-        # 6. Upcoming Starts
-        upcoming_starts = [{"id": a["id"], "name": a["name"], "role": a["role_title"], "start_date": a["start_date"]} 
-                           for a in apps if a.get("status") == "onboarding" and a.get("start_date")]
-        upcoming_starts.sort(key=lambda x: x['start_date'])
+        if range_type == "4w":
+            for i in range(6, -1, -1):
+                day_date = today - timedelta(days=i)
+                trend_labels.append(day_date.strftime('%d %b'))
+                comp_key = day_date.strftime('%Y-%m-%d')
+                trend_counts.append(sum(1 for a in apps if a.get('created_at', '').split('T')[0] == comp_key))
+        
+        elif range_type == "3m":
+            for i in range(11, -1, -1):
+                start_week = today - timedelta(weeks=i+1)
+                end_week = today - timedelta(weeks=i)
+                trend_labels.append(f"Wk {12-i}")
+                count = sum(1 for a in apps if start_week <= datetime.fromisoformat(a.get('created_at').replace('Z', '+00:00')).replace(tzinfo=None) < end_week)
+                trend_counts.append(count)
+                
+        elif range_type == "6m":
+            for i in range(5, -1, -1):
+                month_date = today - timedelta(days=i*30)
+                trend_labels.append(month_date.strftime('%b'))
+                start_month = today - timedelta(days=(i+1)*30)
+                end_month = today - timedelta(days=i*30)
+                count = sum(1 for a in apps if start_month <= datetime.fromisoformat(a.get('created_at').replace('Z', '+00:00')).replace(tzinfo=None) < end_month)
+                trend_counts.append(count)
 
-        # 7. GLM Summary (Linking the AI Strip)
-        top_dept = formatted_depts[0]['name'] if formatted_depts else "N/A"
-        live_summary = f"GLM has extracted {len(apps) * 12} data points. Top hiring focus is {top_dept}. Velocity: {avg_time}."
-
+        # --- 5. Return ---
         return {
             "recent_apps": apps[:10],
             "upcoming_starts": upcoming_starts[:5],
-            "pipeline": formatted_pipeline,
             "dept_stats": formatted_depts,
-            "glm_summary": live_summary,
+            "pipeline": formatted_pipeline,
+            "glm_summary": f"GLM parsed {len(apps)*12} data points. Active pipeline: {sum(pipeline_counts.values()) - pipeline_counts.get('Rejected', 0)} candidates.",
             "stats": {
-                "total_apps": len(apps),
-                "active_pipelines": sum(pipeline_counts[s] for s in stages if s != "Rejected"),
+                "total_apps": len(apps), 
+                "active_pipelines": sum(pipeline_counts.values()) - pipeline_counts.get("Rejected", 0),
                 "interviews": pipeline_counts.get("Interview", 0),
                 "pending": pipeline_counts.get("Reviewing", 0) + pipeline_counts.get("New", 0),
-                "onboarding": pipeline_counts.get("Onboarding", 0),
-                "extractions": len(apps) * 12,
-                "avg_time_to_hire": avg_time,
-                "offer_acceptance": acceptance_rate
+                "onboarding": pipeline_counts.get("Onboarding", 0), 
+                "extractions": len(apps)*12
             },
-            "trend": {
-                "labels": trend_labels,
-                "data": trend_counts
-            }
+            "trend": {"labels": trend_labels, "data": trend_counts}
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-# -- AI Logging -- #    
+        print(f"CRITICAL ERROR [HR_DASHBOARD]: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal dashboard processing error.")
+
+# --- LOGGING & MONITORING ---
 async def log_ai_event(user_id: str, event_type: str, raw_description: str, context_data: dict):
-    # 1. Clean the context data
     clean_context = json.loads(json.dumps(context_data, default=str))
-
-    # SYSTEM PROMPT: Sets the persona and strict rules
-    system_instruction = (
-        "You are a deterministic System Log Analyst. Analyze events for an HR platform. "
-        "Rules: 1. Be extremely concise (max 15 words). 2. No conversational filler or 'This is a...'. "
-        "3. Use technical language. 4. If an anomaly exists, flag the specific missing variable."
-    )
-
-    # USER PROMPT: Provides the specific data
-    analysis_prompt = f"""
-    Event: {raw_description}
-    Context: {json.dumps(clean_context)}
-    
-    Task: Categorize and provide a sharp technical insight.
-    Return JSON format: {{"category": "info|warning|error", "ai_insight": "string"}}
-    """
+    system_instruction = "You are a deterministic System Log Analyst. Be concise (max 15 words). No conversational filler."
+    analysis_prompt = f"Event: {raw_description}\nContext: {json.dumps(clean_context)}\nReturn JSON: {{'category': 'info|warning|error', 'ai_insight': 'string'}}"
     
     try:
         completion = zai_client.chat.completions.create(
             model="z-ai/glm-4.5-air:free",
-            messages=[
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": analysis_prompt}
-            ],
+            messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": analysis_prompt}],
             response_format={ "type": "json_object" }
         )
         analysis = json.loads(completion.choices[0].message.content)
-    except Exception as e:
-        print(f"AI Logging Inference Failed: {e}")
-        analysis = {"category": "info", "ai_insight": "Standard system event log recorded."}
+    except:
+        analysis = {"category": "info", "ai_insight": "System event logged."}
 
-    # 2. Database Insert
-    try:
-        result = supabase.table("activity_logs").insert({
-            "user_id": str(user_id), 
-            "event_type": event_type,
-            "description": raw_description,
-            "category": analysis.get("category", "info"),
-            "ai_note": analysis.get("ai_insight", ""),
-            "metadata": clean_context 
-        }).execute()
-        return result
-    except Exception as e:
-        print(f"CRITICAL DATABASE ERROR: {e}")
-        raise e
+    supabase.table("activity_logs").insert({
+        "user_id": str(user_id), "event_type": event_type, "description": raw_description,
+        "category": analysis.get("category", "info"), "ai_note": analysis.get("ai_insight", ""), "metadata": clean_context 
+    }).execute()
 
-# -- Getting Monitoring Logs -- #
 @app.get("/monitoring/logs")
 async def get_monitoring_logs(current_user = Depends(get_current_user)):
-    user_id = getattr(current_user, "id", None) or current_user.get("id")
-    
     try:
-        # Fetching logs
         resp = supabase.table("activity_logs").select("*").order("created_at", desc=True).limit(20).execute()
-        
-        # DEBUG: Check your terminal! If this prints [], your table is empty.
-        print(f"DEBUG: Found {len(resp.data)} logs for monitoring.") 
-        
         return resp.data
     except Exception as e:
-        print(f"ERROR: {e}")
-        raise HTTPException(status_code=500, detail="Database connection failed")
-
-# --- HR PROFILE ENDPOINT (for the welcome message) ---
-@app.get("/hr")
-async def hr_info(current_user = Depends(get_current_user)):
-    user_id = getattr(current_user, "id", None) or current_user.get("id")
-    profile = get_profile(user_id)
-    if not profile or profile.get("role") != "employer":
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return {"status": "success", "profile": profile}
+        raise HTTPException(status_code=500, detail="Log retrieval failed")
 
 @app.get("/me")
 async def me(current_user = Depends(get_current_user)):
-    return {
-        "id": getattr(current_user, "id", None),
-        "email": getattr(current_user, "email", None)
-    }
+    return {"id": getattr(current_user, "id", None), "email": getattr(current_user, "email", None)}

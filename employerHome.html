@@ -804,7 +804,7 @@
                 <div class="panel-sub">Weekly intake volume</div>
               </div>
               <div class="chip-row">
-                <div class="time-chip active" onclick="setChartRange('4w',this)">4W</div>
+                <div class="time-chip active" onclick="setChartRange('4w',this)">1W</div>
                 <div class="time-chip" onclick="setChartRange('3m',this)">3M</div>
                 <div class="time-chip" onclick="setChartRange('6m',this)">6M</div>
               </div>
@@ -1065,24 +1065,19 @@ async function fetchDashboardData() {
 
     // 2. Process Upcoming Starts (Transform DB dates for UI)
     // We map the raw ISO date into { day, month, daysAway } for the UI components
+    // Inside fetchDashboardData in employerHome.js
     UPCOMING_STARTS = (data.upcoming_starts || []).map(start => {
-        // 1. Split the "2026-04-29" string manually to avoid timezone shifts
         const [y, m, d] = start.start_date.split('-').map(Number);
         const startDate = new Date(y, m - 1, d); 
-        
         const now = new Date();
         now.setHours(0, 0, 0, 0);
-        
-        const diffDays = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
+        const diffDays = Math.ceil((startDate - now) / 86400000);
 
         return {
-            ...start, // <--- THIS IS THE FIX. It keeps full_name, name, role_title, etc.
-            
-            // Ensure 'name' and 'role' are mapped for components using those specific keys
-            name: start.full_name || start.name,
-            role: start.role_title || start.role || "Position TBD",
-            
-            // Date helpers for the Calendar and Stats
+            ...start,
+            // UI MAPPING: Bridge backend keys to frontend renderer keys
+            name: start.full_name, 
+            role: start.role_title,
             day: d,
             monthNum: m - 1,
             year: y,
@@ -1091,6 +1086,12 @@ async function fetchDashboardData() {
             urgent: diffDays <= 7 && diffDays >= 0
         };
     });
+
+    // Update the global calendar source too
+    window.UPCOMING_STARTS_DATA = UPCOMING_STARTS;
+
+    // Trigger the visual update
+    renderUpcomingStarts();
 
     // 3. Update Global State
     RECENT_APPS = data.recent_apps || [];
@@ -1271,44 +1272,50 @@ function refreshUI() {
    CHART RANGE SWITCHER
 ───────────────────────────────────────────── */
 async function setChartRange(range, el) {
-  // 1. UI: Toggle active classes for visual feedback
+  // 1. UI Switch: Immediate visual feedback
   const chips = document.querySelectorAll('.time-chip');
-  for (const chip of chips) {
-    chip.classList.remove('active');
-  }
+  chips.forEach(c => c.classList.remove('active'));
   el.classList.add('active');
 
-  console.log(`Requesting historical data for: ${range}`);
+  console.log(`Fetching historical trend: ${range}`);
 
   try {
-    // 2. Fetch data specifically for this range
+    // 2. Fetch range-specific data
     const resp = await fetch(`${API_BASE_URL}/hr/dashboard?range_type=${range}`, {
       method: 'GET',
       credentials: 'include'
     });
 
-    if (!resp.ok) throw new Error("Failed to fetch range data");
-
+    if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
     const data = await resp.json();
 
-    // 3. Update the Trend Chart with the new labels and counts
+    // 3. Update Global Instance
+    // We use the 'trendChart' variable declared at the top of your script
     if (data.trend && trendChart) {
+      
+      // Directly assign the new arrays
       trendChart.data.labels = data.trend.labels;
       trendChart.data.datasets[0].data = data.trend.data;
-      
-      // STYLING TWEAK: Make points larger for monthly views (3M/6M)
-      // Since there are fewer dots, larger points make the trend clearer.
+
+      // 4. Dynamic Styling
+      // Increase point visibility for 3M/6M views where data is less dense
       trendChart.data.datasets[0].pointRadius = (range === '4w') ? 4 : 6;
       trendChart.data.datasets[0].pointHoverRadius = (range === '4w') ? 6 : 8;
 
+      // 5. Force Redraw
+      // Using 'none' or a short duration makes the transition feel snappier
       trendChart.update();
       
-      // Update our global state
+      // Update global state for other components
       LATEST_TREND = data.trend;
+      
+      console.log("Trend chart updated successfully.");
+    } else {
+      console.error("TrendChart instance is null. Check initialization.");
     }
 
   } catch (err) {
-    console.error("Error updating chart range:", err);
+    console.error("Chart Range Update Error:", err);
   }
 }
 
