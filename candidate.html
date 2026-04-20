@@ -511,6 +511,8 @@
       .drawer-grid { grid-template-columns: 1fr 1fr; }
       .search-input { max-width: 100%; }
     }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -625,248 +627,462 @@
   </div>
 </div>
 
+<div id="ai-loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0, 0, 0, 0.7); z-index:9999; backdrop-filter: blur(8px); flex-direction:column; align-items:center; justify-content:center;">
+    <div class="spinner" style="border: 3px solid rgba(74, 158, 255, 0.1); border-left-color: #4a9eff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+    <div style="margin-top: 20px; color: #4a9eff; font-family: var(--font-sans); font-weight: 800; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase;">
+        ✦ GLM-4.5 AI Syncing...
+    </div>
+    <div id="loading-subtext" style="margin-top: 8px; color: var(--color-text-tertiary); font-size: 11px;">
+        Finalizing deterministic state in Supabase
+    </div>
+</div>
+
 <script>
-/* ── PLACEHOLDER DATA — swap with Supabase ── */
-
-const POSITIONS = [
-  {
-    id: 'eng-senior', title: 'Senior Software Engineer', dept: 'Engineering', color: '#4a9eff',
-    candidates: [
-      { id:1,  name:'Zara Malik',    initials:'ZM', experience:'6 yrs', location:'Kuala Lumpur',  applied:'2h ago',    status:'new',        score:92, skills:['Python','React','PostgreSQL','Docker'],             ai:'Exceptional match. Exceeds all technical requirements. Strong system design background from previous role at Grab. Recommended for fast-track interview.' },
-      { id:2,  name:'James Lim',     initials:'JL', experience:'5 yrs', location:'Petaling Jaya', applied:'Yesterday', status:'offer',      score:88, skills:['Node.js','AWS','TypeScript','Kubernetes'],          ai:'Strong candidate. Solid full-stack profile with cloud infrastructure experience. Minor gap in React — recommend a brief technical screen to confirm.' },
-      { id:3,  name:'Kenji Tanaka',  initials:'KT', experience:'4 yrs', location:'Remote',        applied:'2d ago',    status:'new',        score:74, skills:['Java','Spring Boot','MySQL'],                       ai:'Good foundational skills but missing cloud/DevOps experience. Worth interviewing if pipeline is thin. Consider for mid-level track instead.' },
-      { id:4,  name:'Priya Sharma',  initials:'PS', experience:'3 yrs', location:'Kuala Lumpur',  applied:'3d ago',    status:'reviewing',  score:61, skills:['Python','Django','SQLite'],                         ai:'Below seniority threshold. Strong junior profile — may be suitable if the role is re-scoped. Currently underqualified for senior responsibilities.' },
-    ]
-  },
-  {
-    id: 'prod-manager', title: 'Product Manager', dept: 'Product', color: '#a855f7',
-    candidates: [
-      { id:5,  name:'Caleb Mensah',  initials:'CM', experience:'7 yrs', location:'Cyberjaya',     applied:'3d ago',    status:'onboarding', score:95, skills:['Roadmapping','SQL','Figma','OKRs','Agile'],         ai:'Outstanding fit. Extensive B2B SaaS PM experience. Led 0→1 product launches at two companies. Highest-scoring candidate for this role.' },
-      { id:6,  name:'Amara Diallo',  initials:'AD', experience:'4 yrs', location:'Remote',        applied:'2d ago',    status:'reviewing',  score:71, skills:['Jira','User Research','A/B Testing'],               ai:'Solid mid-level PM. Strong on discovery and research, weaker on metrics and data. Recommend data-skills assessment before moving to interview.' },
-      { id:7,  name:'Devraj Patel',  initials:'DP', experience:'2 yrs', location:'Kuala Lumpur',  applied:'5h ago',    status:'reviewing',  score:54, skills:['Notion','Slack','Basic SQL'],                       ai:'Limited experience for this level. Suitable for associate PM or if role scope is adjusted. Not recommended for full PM responsibilities currently.' },
-    ]
-  },
-  {
-    id: 'design-ux', title: 'UX Designer', dept: 'Design', color: '#2dd4bf',
-    candidates: [
-      { id:8,  name:'Sofia Reyes',   initials:'SR', experience:'5 yrs', location:'Penang',        applied:'Yesterday', status:'interview',  score:87, skills:['Figma','Prototyping','User Testing','Design Systems'], ai:'Strong portfolio with enterprise SaaS experience. Excellent systems thinking. Recommended to advance — conduct portfolio review in interview.' },
-      { id:9,  name:'Linh Nguyen',   initials:'LN', experience:'3 yrs', location:'Kuala Lumpur',  applied:'4d ago',    status:'new',        score:68, skills:['Figma','Sketch','Wireframing'],                      ai:'Competent mid-level designer. Lacks systems design experience but shows strong visual craft. Suitable if willing to invest in mentorship.' },
-    ]
-  },
-  {
-    id: 'fin-analyst', title: 'Finance Analyst', dept: 'Finance', color: '#22c55e',
-    candidates: [
-      { id:10, name:'Rafi Abdullah', initials:'RA', experience:'4 yrs', location:'Kuala Lumpur',  applied:'2d ago',    status:'new',        score:81, skills:['Excel','Power BI','SAP','Financial Modelling'],     ai:'Solid analytical profile. Experience in financial modelling and SAP aligns well. Recommend scheduling a case study assessment.' },
-      { id:11, name:'Min Chen',      initials:'MC', experience:'2 yrs', location:'Petaling Jaya', applied:'5d ago',    status:'reviewing',  score:58, skills:['Excel','QuickBooks','Basic SQL'],                   ai:'Early-career profile. Adequate foundational skills but lacks depth in financial modelling and enterprise tools required for this role.' },
-    ]
-  },
-  {
-    id: 'mkt-growth', title: 'Growth Marketer', dept: 'Marketing', color: '#f97316',
-    candidates: [
-      { id:12, name:'Amara Diallo',  initials:'AD', experience:'4 yrs', location:'Remote',        applied:'2d ago',    status:'reviewing',  score:76, skills:['SEO','Google Ads','Analytics','HubSpot'],           ai:'Strong performance marketing background. Good channel mix experience. Slight gap in product-led growth strategy — worth exploring in interview.' },
-      { id:13, name:'Yusuf Omar',    initials:'YO', experience:'5 yrs', location:'Kuala Lumpur',  applied:'1d ago',    status:'new',        score:83, skills:['Growth Hacking','SQL','Mixpanel','Meta Ads'],       ai:'Excellent match. Data-driven marketer with proven growth track record. Strong attribution modelling skills. Advance to interview immediately.' },
-    ]
-  },
-  {
-    id: 'ops-coord', title: 'Operations Coordinator', dept: 'Operations', color: '#ec4899',
-    candidates: [
-      { id:14, name:'Nadia Hassan',  initials:'NH', experience:'3 yrs', location:'Shah Alam',     applied:'3d ago',    status:'rejected',   score:42, skills:['MS Office','Scheduling'],                           ai:'Insufficient operational experience. Limited exposure to cross-functional coordination. Not recommended for this role at this time.' },
-      { id:15, name:'Tariq Farouk',  initials:'TF', experience:'5 yrs', location:'Kuala Lumpur',  applied:'1d ago',    status:'new',        score:79, skills:['ERP','Logistics','Process Mapping','SAP'],          ai:'Good operational profile. ERP and logistics experience is relevant. Recommend a structured interview focusing on process improvement scenarios.' },
-    ]
-  },
-  {
-    id: 'legal-counsel', title: 'Legal Counsel', dept: 'Legal', color: '#6b7280',
-    candidates: [
-      { id:16, name:'Mei Lin',       initials:'ML', experience:'8 yrs', location:'Kuala Lumpur',  applied:'4d ago',    status:'interview',  score:90, skills:['Contract Law','Employment Law','Compliance','IP'],  ai:'Highly qualified. Extensive in-house legal experience in tech sector. Strong match across all requirements. Advance to final round.' },
-    ]
-  },
-  {
-    id: 'eng-backend', title: 'Backend Engineer', dept: 'Engineering', color: '#4a9eff',
-    candidates: [
-      { id:17, name:'Marcus Osei',   initials:'MO', experience:'4 yrs', location:'Remote',        applied:'1d ago',    status:'new',        score:85, skills:['Go','PostgreSQL','Redis','Microservices'],           ai:'Strong backend profile. Microservices and distributed systems experience is a strong fit. Recommend technical screen on system design.' },
-      { id:18, name:'Aisha Tan',     initials:'AT', experience:'3 yrs', location:'Kuala Lumpur',  applied:'2d ago',    status:'interview',  score:77, skills:['Python','FastAPI','MySQL','Docker'],                 ai:'Competent backend engineer. Solid Python/FastAPI stack matches requirements. Cloud experience is limited — probe on AWS/GCP in interview.' },
-    ]
-  },
-];
-
-/* ── STATE ── */
+/* ── CONFIG & STATE ── */
+const API_BASE = "http://127.0.0.1:8000";
+let POSITIONS_DATA = [];
 let activeScoreFilter = 'all';
+let isPreviewMode = false; 
 
-/* ── HELPERS ── */
-const AV_COLORS = ['#1a2a3a','#1f1a2e','#1a2e20','#2e1f0a','#0a1a2e','#1a1a2e'];
-const AV_TEXT   = ['#4a9eff','#a855f7','#22c55e','#f59e0b','#2dd4bf','#ec4899'];
-const av = i => { const x = i % AV_COLORS.length; return `background:${AV_COLORS[x]};color:${AV_TEXT[x]};`; };
+/**
+ * INITIALIZATION & AUTH GATE
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Check for Preview Param first
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('preview') === 'true') {
+        enablePreviewMode();
+        return; // Stop here if previewing
+    }
 
-function scoreColor(s) {
-  if (s >= 80) return '#4ade80';
-  if (s >= 60) return '#4a9eff';
-  if (s >= 45) return '#f59e0b';
-  return '#ef4444';
+    // 2. Otherwise, check real Auth
+    const authData = await checkAuth();
+    
+    if (authData && authData.authenticated) {
+        isPreviewMode = false;
+        fetchCandidates();
+    } else {
+        window.location.href = "login.html";
+    }
+});
+
+/**
+ * AUTH CHECKER
+ */
+async function checkAuth() {
+    try {
+      const resp = await fetch(`${API_BASE}/me`, {
+        method: 'GET',
+        credentials: 'include' 
+      });
+
+      if (resp.ok) {
+          const data = await resp.json();
+          return { authenticated: true, profile: data };
+      }
+      return { authenticated: false };
+    } catch (err) {
+      console.error("Connection error:", err);
+      return { authenticated: false };
+    }
 }
 
-function scoreBadgeClass(s) {
-  if (s >= 80) return 'strong';
-  if (s >= 60) return 'good';
-  if (s >= 45) return 'moderate';
-  return 'weak';
+/**
+ * PREVIEW MODE (Mock Data)
+ */
+function enablePreviewMode() {
+    isPreviewMode = true;
+    console.log("🚀 TalentFlow: Preview Mode Enabled");
+    
+    const banner = document.createElement('div');
+    banner.style = "background: #f59e0b; color: #000; text-align: center; padding: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; position: sticky; top: 0; z-index: 9999;";
+    banner.innerText = "Preview Mode — Changes will not be saved to Supabase";
+    document.body.prepend(banner);
+
+    const mockData = [
+        {
+            id: "mock-1",
+            role_title: "Senior AI Engineer",
+            department: "Engineering",
+            full_name: "James Howlett",
+            recommendation_rate: 94,
+            status: "new",
+            created_at: new Date().toISOString(),
+            ai_analysis: "Exceptional candidate with deep LLM expertise. High match for TalentFlow core stack.",
+            skills: ["Python", "PyTorch", "FastAPI"],
+            form_details: { experience: "8", location: "Remote" }
+        }
+    ];
+
+    processApplications(mockData);
+    renderAll();
 }
 
-function scoreBadgeLabel(s) {
-  if (s >= 80) return 'Strong match';
-  if (s >= 60) return 'Good match';
-  if (s >= 45) return 'Moderate';
-  return 'Weak match';
+/**
+ * DATA FETCHING
+ */
+async function fetchCandidates() {
+    try {
+        const response = await fetch(`${API_BASE}/hr/dashboard`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include" 
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        const data = await response.json();
+        processApplications(data.recent_apps || []);
+        renderAll();
+        
+    } catch (error) {
+        console.error("Critical error fetching candidates:", error);
+        const container = document.getElementById('positionsContainer');
+        if (container) {
+            container.innerHTML = '<div class="card-empty">Failed to connect to backend server.</div>';
+        }
+    }
 }
 
-function passesScore(s) {
-  if (activeScoreFilter === 'strong') return s >= 80;
-  if (activeScoreFilter === 'good')   return s >= 60 && s < 80;
-  if (activeScoreFilter === 'weak')   return s < 60;
-  return true;
+/**
+ * DATA TRANSFORMER
+ */
+function processApplications(apps) {
+    const groups = apps.reduce((acc, app) => {
+        const key = app.role_title || "Unspecified Role";
+        if (!acc[key]) {
+            acc[key] = {
+                id: key.toLowerCase().replace(/\s+/g, '-'),
+                title: key,
+                dept: app.department || "General",
+                color: getDeptColor(app.department),
+                candidates: []
+            };
+        }
+        
+        // Fix for 'undefined' start dates
+        // Look at the new column first, fallback to the old junk drawer if needed
+        const displayDate = app.start_date || app.form_details?.date || "Not set";
+
+        acc[key].candidates.push({
+            id: app.id,
+            name: app.full_name || "Unknown Candidate",
+            initials: (app.full_name || "??").split(' ').map(n => n[0]).join('').toUpperCase(),
+            experience: app.form_details?.experience || "N/A",
+            location: app.form_details?.location || "Unknown",
+            applied: formatAppliedDate(app.created_at),
+            status: app.status || "new",
+            score: app.recommendation_rate || 0,
+            skills: Array.isArray(app.skills) ? app.skills : [],
+            ai: app.ai_analysis || "No AI assessment available.",
+            startDate: displayDate // Added this to the candidate object
+        });
+        return acc;
+    }, {});
+
+    POSITIONS_DATA = Object.values(groups);
 }
 
-/* ── RENDER ── */
+/**
+ * CORE RENDER ENGINE
+ */
 function renderAll() {
-  const search = (document.getElementById('searchInput').value || '').toLowerCase();
-  const dept   = document.getElementById('deptFilter').value;
-  const status = document.getElementById('statusFilter').value;
-  const container = document.getElementById('positionsContainer');
+    const search = (document.getElementById('searchInput').value || '').toLowerCase();
+    const deptFilter = document.getElementById('deptFilter').value;
+    const statusVal = document.getElementById('statusFilter').value;
+    const container = document.getElementById('positionsContainer');
 
-  let total = 0, strong = 0, review = 0, scoreSum = 0, scoreN = 0, posCount = 0;
+    if (!container) return;
 
-  const html = POSITIONS.map(pos => {
-    if (dept && pos.dept !== dept) return '';
+    let totalActive = 0, strongCount = 0, reviewCount = 0, scoreSum = 0, scoreN = 0, activePosCount = 0;
+    let rejectedPool = [];
 
-    const cands = pos.candidates
-      .filter(c => {
-        if (status && c.status !== status) return false;
-        if (!passesScore(c.score)) return false;
-        if (search && !c.name.toLowerCase().includes(search) &&
-            !pos.title.toLowerCase().includes(search) &&
-            !pos.dept.toLowerCase().includes(search)) return false;
-        return true;
-      })
-      .sort((a, b) => b.score - a.score);
+    const activeHtml = POSITIONS_DATA.map(pos => {
+        if (deptFilter && pos.dept !== deptFilter) return '';
 
-    if (!cands.length) return '';
+        const activeCands = pos.candidates.filter(c => {
+            if (c.status === 'rejected') {
+                if (!search || c.name.toLowerCase().includes(search)) {
+                    rejectedPool.push({ ...c, roleTitle: pos.title });
+                }
+                return false;
+            }
+            if (statusVal && c.status !== statusVal) return false;
+            if (!passesScore(c.score)) return false;
+            if (search && !c.name.toLowerCase().includes(search) && !pos.title.toLowerCase().includes(search)) return false;
+            return true;
+        }).sort((a, b) => b.score - a.score);
 
-    posCount++;
-    total += cands.length;
-    cands.forEach(c => {
-      if (c.score >= 80) strong++;
-      if (c.status === 'reviewing') review++;
-      scoreSum += c.score;
-      scoreN++;
-    });
+        if (activeCands.length === 0) return '';
 
-    const avg = Math.round(cands.reduce((a,c) => a+c.score,0) / cands.length);
+        activePosCount++;
+        totalActive += activeCands.length;
+        activeCands.forEach(c => {
+            if (c.score >= 80) strongCount++;
+            if (c.status === 'reviewing') reviewCount++;
+            scoreSum += c.score;
+            scoreN++;
+        });
 
-    const rows = cands.map((c, i) => {
-      const did = `drawer-${pos.id}-${c.id}`;
-      const col = scoreColor(c.score);
-      const skills = c.skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
-
-      return `<div>
-        <div class="candidate-row" onclick="toggleDrawer('${did}')">
-          <div class="avatar" style="${av(i)}">${c.initials}</div>
-          <div style="min-width:0">
-            <div class="cand-name">${c.name}</div>
-            <div class="cand-meta">${c.experience} · ${c.location}</div>
-          </div>
-          <div class="ai-score-wrap">
-            <div class="ai-score-bar-bg">
-              <div class="ai-score-bar" style="width:${c.score}%;background:${col}"></div>
-            </div>
-            <div class="ai-score-pct" style="color:${col}">${c.score}%</div>
-          </div>
-          <div><span class="pill ${c.status}"><span class="pill-dot"></span>${c.status}</span></div>
-          <div style="font-size:11px;color:var(--color-text-tertiary)">${c.applied}</div>
-          <div><span class="ai-badge ${scoreBadgeClass(c.score)}">${scoreBadgeLabel(c.score)}</span></div>
-          <div class="expand-btn" id="btn-${did}" onclick="event.stopPropagation();toggleDrawer('${did}')">+</div>
-        </div>
-        <div class="candidate-drawer" id="${did}">
-          <div class="drawer-grid">
-            <div class="drawer-field"><label>Experience</label><span>${c.experience}</span></div>
-            <div class="drawer-field"><label>Location</label><span>${c.location}</span></div>
-            <div class="drawer-field"><label>Applied</label><span>${c.applied}</span></div>
-          </div>
-          <div class="drawer-field" style="margin-bottom:6px"><label>Skills detected by GLM</label></div>
-          <div class="drawer-skills">${skills}</div>
-          <div class="drawer-ai">
-            <div class="drawer-ai-label">✦ GLM AI Assessment</div>
-            <div class="drawer-ai-text">${c.ai}</div>
-          </div>
-          <div class="drawer-actions">
-            <button class="drawer-btn primary" onclick="event.stopPropagation()">Schedule Interview</button>
-            <button class="drawer-btn" onclick="event.stopPropagation()">Move Stage</button>
-            <button class="drawer-btn" onclick="event.stopPropagation()">View Full Profile</button>
-            <button class="drawer-btn danger" onclick="event.stopPropagation()">Reject</button>
-          </div>
-        </div>
-      </div>`;
+        const avgScore = Math.round(activeCands.reduce((a,c) => a + c.score, 0) / activeCands.length);
+        return renderPositionGroup(pos, activeCands, avgScore);
     }).join('');
 
-    return `
-      <div class="position-group" id="pos-${pos.id}">
-        <div class="position-header" onclick="toggleGroup('pos-${pos.id}')">
-          <div class="position-chevron">▼</div>
-          <div class="position-dot" style="background:${pos.color}"></div>
-          <div style="flex:1;min-width:0">
-            <div class="position-name">${pos.title}</div>
-            <div class="position-dept">${pos.dept}</div>
-          </div>
-          <div class="position-count">${cands.length} candidate${cands.length !== 1 ? 's':''}</div>
-          <div class="position-avg" style="color:${scoreColor(avg)}">Avg ${avg}%</div>
-        </div>
-        <div class="candidate-list">
-          <div class="list-col-headers">
-            <span></span><span>Candidate</span><span>AI Fit Score</span>
-            <span>Status</span><span>Applied</span><span>Match</span><span></span>
-          </div>
-          ${rows}
-        </div>
-      </div>`;
-  }).join('');
+    let rejectedHtml = '';
+    if (rejectedPool.length > 0) {
+        rejectedHtml = `
+            <div class="position-group collapsed" id="pos-rejected" style="margin-top: 40px; opacity: 0.85;">
+                <div class="position-header" onclick="toggleGroup('pos-rejected')" style="border-color: #5a1a1a; background: #1a0f0f;">
+                    <div class="position-chevron">▼</div>
+                    <div class="position-dot" style="background:#ef4444"></div>
+                    <div style="flex:1;min-width:0">
+                        <div class="position-name" style="color: #ef4444">Rejected Candidates</div>
+                        <div class="position-dept">Historical Archive</div>
+                    </div>
+                    <div class="position-count">${rejectedPool.length} Profiles</div>
+                </div>
+                <div class="candidate-list">
+                    <div class="list-col-headers">
+                        <span></span><span>Candidate</span><span>AI Fit Score</span>
+                        <span>Status</span><span>Applied</span><span>Match</span><span></span>
+                    </div>
+                    ${rejectedPool.map((c, i) => renderCandidateRow(c, i, `rej-${c.id}`)).join('')}
+                </div>
+            </div>`;
+    }
 
-  container.innerHTML = html || '<div class="card-empty">No candidates match your filters.</div>';
+    container.innerHTML = (activeHtml + rejectedHtml) || '<div class="card-empty">No candidates found matching your criteria.</div>';
 
-  document.getElementById('sumTotal').textContent    = total;
-  document.getElementById('sumPositions').textContent = posCount;
-  document.getElementById('sumStrong').textContent   = strong;
-  document.getElementById('sumReview').textContent   = review;
-  document.getElementById('sumAvgScore').textContent = scoreN ? Math.round(scoreSum/scoreN)+'%' : '—';
+    document.getElementById('sumTotal').textContent    = totalActive + rejectedPool.length;
+    document.getElementById('sumPositions').textContent = activePosCount;
+    document.getElementById('sumStrong').textContent   = strongCount;
+    document.getElementById('sumReview').textContent   = reviewCount;
+    document.getElementById('sumAvgScore').textContent = scoreN ? Math.round(scoreSum/scoreN)+'%' : '—';
 }
 
+function renderPositionGroup(pos, cands, avg) {
+    return `
+        <div class="position-group" id="pos-${pos.id}">
+            <div class="position-header" onclick="toggleGroup('pos-${pos.id}')">
+                <div class="position-chevron">▼</div>
+                <div class="position-dot" style="background:${pos.color}"></div>
+                <div style="flex:1;min-width:0">
+                    <div class="position-name">${pos.title}</div>
+                    <div class="position-dept">${pos.dept}</div>
+                </div>
+                <div class="position-count">${cands.length} candidate${cands.length !== 1 ? 's':''}</div>
+                <div class="position-avg" style="color:${scoreColor(avg)}">Avg ${avg}%</div>
+            </div>
+            <div class="candidate-list">
+                <div class="list-col-headers">
+                    <span></span><span>Candidate</span><span>AI Fit Score</span>
+                    <span>Status</span><span>Applied</span><span>Match</span><span></span>
+                </div>
+                ${cands.map((c, i) => renderCandidateRow(c, i, `active-${pos.id}-${c.id}`)).join('')}
+            </div>
+        </div>`;
+}
+
+function renderCandidateRow(c, i, drawerId) {
+    const col = scoreColor(c.score);
+    const avColors = ['#1a2a3a','#1f1a2e','#1a2e20','#2e1f0a','#0a1a2e','#1a1a2e'];
+    const avText = ['#4a9eff','#a855f7','#22c55e','#f59e0b','#2dd4bf','#ec4899'];
+    const avStyle = `background:${avColors[i % 6]}; color:${avText[i % 6]};`;
+
+    return `
+        <div>
+            <div class="candidate-row" onclick="toggleDrawer('${drawerId}')">
+                <div class="avatar" style="${avStyle}">${c.initials}</div>
+                <div style="min-width:0">
+                    <div class="cand-name">${c.name}</div>
+                    <div class="cand-meta">${c.experience} · ${c.location} ${c.roleTitle ? `(${c.roleTitle})` : ''}</div>
+                </div>
+                <div class="ai-score-wrap">
+                    <div class="ai-score-bar-bg">
+                        <div class="ai-score-bar" style="width:${c.score}%;background:${col}"></div>
+                    </div>
+                    <div class="ai-score-pct" style="color:${col}">${c.score}%</div>
+                </div>
+                <div><span class="pill ${c.status}"><span class="pill-dot"></span>${c.status}</span></div>
+                <div style="font-size:11px;color:var(--color-text-tertiary)">${c.applied}</div>
+                <div><span class="ai-badge ${scoreBadgeClass(c.score)}">${scoreBadgeLabel(c.score)}</span></div>
+                <div class="expand-btn" id="btn-${drawerId}">+</div>
+            </div>
+            <div class="candidate-drawer" id="${drawerId}">
+                <div class="drawer-grid">
+                    <div class="drawer-field"><label>Experience</label><span>${c.experience}</span></div>
+                    <div class="drawer-field"><label>Location</label><span>${c.location}</span></div>
+                    <div class="drawer-field"><label>Applied</label><span>${c.applied}</span></div>
+                </div>
+                <div class="drawer-field" style="margin-bottom:6px"><label>Candidate Skills</label></div>
+                <div class="drawer-skills">${c.skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}</div>
+                <div class="drawer-ai">
+                    <div class="drawer-ai-label">✦ GLM AI Summary</div>
+                    <div class="drawer-ai-text">${c.ai}</div>
+                </div>
+                <div class="drawer-actions">
+                    ${c.status === 'rejected' ? 
+                        `<button class="drawer-btn primary" onclick="event.stopPropagation(); updateStatus('${c.id}', 'new')">Restore Profile</button>` :
+                        `<button class="drawer-btn primary" onclick="event.stopPropagation()">Schedule Interview</button>
+                         <button class="drawer-btn" onclick="event.stopPropagation(); handleMoveStage('${c.id}')">Move Stage</button>
+                         <button class="drawer-btn danger" onclick="event.stopPropagation(); handleReject('${c.id}', '${c.name.replace(/'/g, "\\'")}')">Reject</button>`
+                    }
+                </div>
+            </div>
+        </div>`;
+}
+
+/**
+ * UI ACTION HANDLERS
+ */
 function toggleGroup(id) {
-  document.getElementById(id).classList.toggle('collapsed');
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('collapsed');
 }
 
 function toggleDrawer(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const opening = !el.classList.contains('open');
-  document.querySelectorAll('.candidate-drawer.open').forEach(d => {
-    d.classList.remove('open');
-    const b = document.getElementById('btn-' + d.id);
-    if (b) b.textContent = '+';
-  });
-  if (opening) {
-    el.classList.add('open');
-    const b = document.getElementById('btn-' + id);
-    if (b) b.textContent = '×';
-  }
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isOpening = !el.classList.contains('open');
+    
+    document.querySelectorAll('.candidate-drawer.open').forEach(d => {
+        if (d.id !== id) {
+            d.classList.remove('open');
+            const b = document.getElementById('btn-' + d.id);
+            if (b) b.textContent = '+';
+        }
+    });
+
+    el.classList.toggle('open', isOpening);
+    const btn = document.getElementById('btn-' + id);
+    if (btn) btn.textContent = isOpening ? '×' : '+';
 }
 
+/**
+ * UPDATED: Status handler with start_date support
+ */
+async function updateStatus(applicationId, newStatus, startDate = null) {
+    const overlay = document.getElementById('ai-loading-overlay');
+    const subtext = document.getElementById('loading-subtext');
+
+    if (overlay) {
+        overlay.style.display = 'flex';
+        if (newStatus === 'onboarding') subtext.innerText = "Finalizing onboarding and scheduling start date...";
+        else subtext.innerText = "Updating pipeline and recording activity...";
+    }
+
+    if (isPreviewMode) {
+        await new Promise(r => setTimeout(r, 600));
+        POSITIONS_DATA.forEach(pos => {
+            const cand = pos.candidates.find(c => c.id === applicationId);
+            if (cand) cand.status = newStatus;
+        });
+        renderAll();
+        if (overlay) overlay.style.display = 'none';
+        return;
+    }
+
+    try {
+        const bodyData = { status: newStatus };
+        if (startDate) bodyData.start_date = startDate;
+
+        const response = await fetch(`${API_BASE}/applications/${applicationId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bodyData),
+            credentials: "include"
+        });
+
+        if (response.ok) {
+            await fetchCandidates();
+        } else {
+            const error = await response.json();
+            alert("Update failed: " + (error.detail || "Session expired."));
+        }
+    } catch (error) {
+        console.error("Error updating status:", error);
+        alert("Connection error: Unable to sync with GLM server.");
+    } finally {
+        if (overlay) overlay.style.display = 'none';
+    }
+}
+
+function handleReject(id, name) {
+    if (confirm(`Move ${name} to Rejected Archive?`)) {
+        updateStatus(id, 'rejected');
+    }
+}
+
+/**
+ * UPDATED: Stage mover with date prompt for onboarding
+ */
+function handleMoveStage(id) {
+    const next = prompt("Enter stage (New, Reviewing, Interview, Offer, Onboarding):");
+    if (!next) return;
+
+    const choice = next.toLowerCase().trim();
+    const valid = ['new', 'reviewing', 'interview', 'offer', 'onboarding'];
+
+    if (!valid.includes(choice)) {
+        alert("Invalid stage entered.");
+        return;
+    }
+
+    // New logic for Onboarding
+    if (choice === 'onboarding') {
+        const dateStr = prompt("Set Start Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        if (dateStr) {
+            updateStatus(id, choice, dateStr);
+        }
+    } else {
+        updateStatus(id, choice);
+    }
+}
+
+/**
+ * FILTERING & STYLE HELPERS
+ */
 function filterCandidates() { renderAll(); }
 
 function setScoreFilter(val, el) {
-  activeScoreFilter = val;
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  renderAll();
+    activeScoreFilter = val;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderAll();
 }
 
-document.addEventListener('DOMContentLoaded', renderAll);
+function getDeptColor(dept) {
+    const map = { 'Engineering': '#4a9eff', 'Product': '#a855f7', 'Design': '#2dd4bf', 'Finance': '#22c55e', 'Marketing': '#f97316' };
+    return map[dept] || '#6b7280';
+}
+
+function formatAppliedDate(dateStr) {
+    if (!dateStr) return "—";
+    const diff = Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60));
+    if (diff < 1) return "Just now";
+    if (diff < 24) return `${diff}h ago`;
+    return `${Math.floor(diff / 24)}d ago`;
+}
+
+function scoreColor(s) { return s >= 80 ? '#4ade80' : s >= 60 ? '#4a9eff' : s >= 45 ? '#f59e0b' : '#ef4444'; }
+function scoreBadgeClass(s) { return s >= 80 ? 'strong' : s >= 60 ? 'good' : s >= 45 ? 'moderate' : 'weak'; }
+function scoreBadgeLabel(s) { return s >= 80 ? 'Strong match' : s >= 60 ? 'Good match' : s >= 45 ? 'Moderate' : 'Weak match'; }
+function passesScore(s) {
+    if (activeScoreFilter === 'strong') return s >= 80;
+    if (activeScoreFilter === 'good')   return s >= 60 && s < 80;
+    if (activeScoreFilter === 'weak')   return s < 60;
+    return true;
+}
+
+function toggleTheme() {
+    const target = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', target);
+    localStorage.setItem('theme', target);
+    document.getElementById('themeToggle').textContent = target === 'dark' ? '🌙' : '☀️';
+}
 </script>
 </body>
 </html>

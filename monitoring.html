@@ -200,6 +200,36 @@ h2 {
   color: var(--color-text-tertiary);
   margin-top: 2px;
 }
+
+/* 1. Define the entry animation */
+@keyframes logEntry {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 2. Apply it to the activity items */
+.activity-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--border-radius-sm);
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  transition: background 0.15s ease;
+  
+  /* TRIGGER: Animate every time a new item is rendered */
+  animation: logEntry 0.4s ease forwards;
+}
+
+/* 3. Staggered reveal for that "system scanning" feel */
+.activity-item:nth-child(1) { animation-delay: 0.05s; }
+.activity-item:nth-child(2) { animation-delay: 0.1s; }
+.activity-item:nth-child(3) { animation-delay: 0.15s; }
 </style>
 
 <div class="sidebar">
@@ -298,70 +328,140 @@ h2 {
 </body>
 
 <script>
-const activityData = [
-  { type: "info", text: "User Aisha Tan was onboarded", time: "2 min ago" },
-  { type: "warning", text: "Missing IC document detected", time: "20 min ago" },
-  { type: "success", text: "GitHub access provisioned", time: "1 hr ago" },
-  { type: "error", text: "AWS provisioning failed", time: "2 hr ago" },
-  { type: "info", text: "User John Doe was offboarded", time: "5 hr ago" },
-  { type: "success", text: "Email account created for Aisha Tan", time: "6 hr ago" },
-  { type: "warning", text: "Pending document verification for User B", time: "8 hr ago" },
-  { type: "error", text: "Failed to provision Slack access for User C", time: "10 hr ago" },
-  { type: "info", text: "User D was onboarded", time: "12 hr ago" },
-  { type: "success", text: "GitHub access provisioned for User D", time: "13 hr ago" },
-  { type: "warning", text: "Missing contact number for User E", time: "15 hr ago" },
-  { type: "error", text: "AWS provisioning failed for User F", time: "18 hr ago" },
-  { type: "info", text: "User G was offboarded", time: "20 hr ago" },
-  { type: "success", text: "Email account deactivated for User G", time: "21 hr ago" },
-  { type: "warning", text: "Pending document verification for User H", time: "22 hr ago" },
-  { type: "error", text: "Failed to provision Slack access for User I", time: "23 hr ago" },
-];
+/* ── CONFIG & AUTH ── */
+const API_BASE = "http://127.0.0.1:8000";
 
-const edgeCaseData = [
-  { type: "warning", text: "Ambiguous candidate match detected", time: "3 min ago" },
-  { type: "error", text: "Resume upload failed (file corrupted)", time: "12 min ago" },
-  { type: "warning", text: "Missing IC document for User L", time: "30 min ago" },
-  { type: "error", text: "Duplicate application detected", time: "1 hr ago" },
-  { type: "warning", text: "Ambiguous name record for Tan Wei Ming", time: "2 hr ago" }
-];
+/**
+ * INITIALIZATION
+ */
+document.addEventListener("DOMContentLoaded", async () => {
+  const authenticated = await checkAuth();
+  if (authenticated) {
+    fetchMonitoringData();
+    // Auto-refresh every 60 seconds for real-time feel
+    setInterval(fetchMonitoringData, 60000);
+  }
+});
 
-function renderActivityLog() {
-  const container = document.getElementById("activity-log-list");
-
-  container.innerHTML = activityData
-    .map(item => `
-      <div class="activity-item">
-        <div class="activity-dot dot-${item.type}"></div>
-        <div>
-          <div class="activity-text">${item.text}</div>
-          <div class="activity-time">${item.time}</div>
-        </div>
-      </div>
-    `)
-    .join("");
+/**
+ * AUTH GATEKEEPER
+ */
+async function checkAuth() {
+  try {
+    const resp = await fetch(`${API_BASE}/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (resp.ok) return true;
+    window.location.href = "login.html";
+    return false;
+  } catch (err) {
+    console.error("Auth Connection Error:", err);
+    window.location.href = "login.html";
+    return false;
+  }
 }
 
-function renderEdgeCases() {
-  const container = document.getElementById("edge-case-list");
+/**
+ * DATA FETCHING
+ */
+async function fetchMonitoringData() {
+  try {
+    const response = await fetch(`${API_BASE}/monitoring/logs`, {
+      method: "GET",
+      credentials: "include",
+    });
 
-  container.innerHTML = edgeCaseData
-    .map(item => `
-      <div class="activity-item">
-        <div class="activity-dot dot-${item.type}"></div>
-        <div>
-          <div class="activity-text">${item.text}</div>
-          <div class="activity-time">${item.time}</div>
-        </div>
-      </div>
-    `)
-    .join("");
+    if (!response.ok) throw new Error("Failed to fetch logs");
+
+    const logs = await response.json();
+    renderLogs(logs);
+  } catch (err) {
+    console.error("Monitoring Fetch Error:", err);
+    showErrorState();
+  }
 }
 
-function refreshActivityLog() {renderActivityLog();}
-function refreshEdgeCases() {renderEdgeCases();}
+/**
+ * RENDER ENGINE
+ */
+function renderLogs(logs) {
+  const activityContainer = document.getElementById("activity-log-list");
+  const edgeCaseContainer = document.getElementById("edge-case-list");
 
-renderActivityLog();
-renderEdgeCases();
+  if (!activityContainer || !edgeCaseContainer) return;
+
+  // 1. Separate Logs by Category
+  // 'info' and 'success' go to Activity Log
+  // 'warning' and 'error' go to Edge Cases
+  const activityLogs = logs.filter(l => l.category === 'info' || l.category === 'success');
+  const edgeCases = logs.filter(l => l.category === 'warning' || l.category === 'error');
+
+  // 2. Render Activity Stream
+  activityContainer.innerHTML = activityLogs.length 
+    ? activityLogs.map(item => renderItem(item)).join("") 
+    : `<div class="activity-time">No recent activity detected.</div>`;
+
+  // 3. Render Edge Case Stream
+  edgeCaseContainer.innerHTML = edgeCases.length 
+    ? edgeCases.map(item => renderItem(item, true)).join("") 
+    : `<div class="activity-time">System health optimal. No edge cases detected.</div>`;
+}
+
+/**
+ * ITEM TEMPLATE
+ */
+function renderItem(item, isEdgeCase = false) {
+  // Map backend categories to your CSS dot classes
+  const typeClass = item.category || 'info'; 
+  
+  return `
+    <div class="activity-item">
+      <div class="activity-dot dot-${typeClass}"></div>
+      <div style="flex: 1;">
+        <div class="activity-text">${item.description}</div>
+        
+        ${item.ai_note ? `
+          <div style="margin-top: 4px; font-size: 11px; color: #a855f7; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+            <span>✦ GLM Insight:</span>
+            <span style="font-weight: 400; color: var(--color-text-tertiary);">${item.ai_note}</span>
+          </div>
+        ` : ''}
+        
+        <div class="activity-time">${formatTimeAgo(item.created_at)}</div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * UI HELPERS
+ */
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return "Just now";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+  if (diffInMinutes < 1) return "Just now";
+  if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+  if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hr ago`;
+  return `${Math.floor(diffInMinutes / 1440)} days ago`;
+}
+
+function showErrorState() {
+  const containers = ["activity-log-list", "edge-case-list"];
+  containers.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<div class="activity-time" style="color: #ef4444;">⚠️ Connection lost to Monitoring Service.</div>`;
+  });
+}
+
+/**
+ * REFRESH TRIGGERS (For manual button calls)
+ */
+function refreshActivityLog() { fetchMonitoringData(); }
+function refreshEdgeCases() { fetchMonitoringData(); }
 
 </script>
 

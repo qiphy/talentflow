@@ -508,13 +508,11 @@
     .modal-content {
       background: var(--color-background-primary);
       width: 90%;
-      max-width: 900px;
-      max-height: 80vh;
+      max-width: 850px;
+      max-height: 95vh; /* Increase height but keep it within view */
       border-radius: 12px;
-      border: 1px solid var(--color-border-tertiary);
       display: flex;
       flex-direction: column;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
     }
 
     .modal-header {
@@ -526,8 +524,8 @@
     }
 
     .modal-body {
-      padding: 0 20px 20px 20px;
-      overflow-y: auto; /* Scrollable if there are many candidates */
+      padding: 15px; /* Slightly tighter padding */
+      overflow-y: hidden; /* Prevent body scroll if the grid fits */
     }
 
     .close-btn {
@@ -588,12 +586,11 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  /* The gap color acts as the border color if cells have a background */
   background-color: rgba(255, 255, 255, 0.05); 
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  overflow: hidden;
-  gap: 1px; /* This creates the thin "border" between cells */
+  gap: 1px;
+  width: 100%;
 }
 
 .cal-day-head {
@@ -607,12 +604,13 @@
 }
 
 .cal-cell {
-  background: #111; /* Match your dashboard background */
-  min-height: 100px;
-  padding: 10px;
+  background: #111;
+  /* FIX: Use height instead of min-height to prevent vertical expansion */
+  height: 85px; 
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  transition: background 0.2s;
+  overflow: hidden; /* Keeps content contained */
 }
 
 .cal-cell:hover {
@@ -655,21 +653,16 @@
 }
 
 .cal-date-num {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--color-text-secondary);
-    margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 2px;
 }
 
 .cal-event {
-    font-size: 9px;
-    font-weight: 800;
-    padding: 2px 5px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 12px; /* Smaller font for events */
+  padding: 1px 4px;
+  margin-top: 2px;
+  border-radius: 3px;
 }
 
 .cal-nav-btn {
@@ -781,7 +774,7 @@
           </div>
           <div class="stat-card green">
             <div class="stat-label">Offer Acceptance</div>
-            <div class="stat-value" id="statOfferRate">-</div>
+            <div class="stat-value" id="statAcceptanceRate">-</div>
             <div class="stat-delta" id="statOfferDelta">...</div>
           </div>
           <div class="stat-card purple">
@@ -958,7 +951,7 @@
 <script>
 // --- CONFIG & AUTH ---
 const API_BASE_URL = "http://127.0.0.1:8000";
-const IS_PREVIEW_MODE = true; // Set to false to use real data
+const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 let trendChart = null;
 let deptChart = null;
@@ -1037,8 +1030,8 @@ let LATEST_TREND = { labels: [], data: [] }; // Stores real Supabase trend data
 ───────────────────────────────────────────── */
 async function fetchDashboardData() {
   console.log("Fetching dashboard data...");
-  const banner = document.getElementById('dbStatusBanner'); // Ensure this ID exists in your HTML
-  
+  const banner = document.getElementById('dbStatusBanner'); 
+
   try {
     const resp = await fetch(`${API_BASE_URL}/hr/dashboard`, {
       method: 'GET',
@@ -1048,24 +1041,15 @@ async function fetchDashboardData() {
     if (!resp.ok) throw new Error("Backend returned " + resp.status);
 
     const data = await resp.json();
-    console.log("Data received:", data);
 
-    // --- NEW: SUPABASE DOWN CHECK ---
-    // If we get a valid response but RECENT_APPS is 0, it's a major red flag.
-    if (!data.recent_apps || data.recent_apps.length === 0) {
-      if (banner) {
-        banner.style.display = 'flex';
-        banner.innerHTML = `<strong>⚠️ Database Alert:</strong> Successfully reached backend, but Supabase returned 0 records. Check connection or RLS policies.`;
-      }
-    } else {
-      if (banner) banner.style.display = 'none';
+    if (data.glm_summary) {
+        document.getElementById('glmSummaryText').innerHTML = `<strong>GLM Summary:</strong> ${data.glm_summary}`;
     }
 
-    // 1. Primary Stat Cards Injection
+    // 1. Update Top Stats Cards
     const updateEl = (id, val) => {
       const el = document.getElementById(id);
-      if (el) el.innerText = val;
-      else console.warn(`Element ID not found: ${id}`);
+      if (el) el.innerText = val !== undefined ? val : "—";
     };
 
     if (data.stats) {
@@ -1075,42 +1059,65 @@ async function fetchDashboardData() {
       updateEl('statPending', data.stats.pending);
       updateEl('statOnboarding', data.stats.onboarding);
       updateEl('statExtractions', data.stats.extractions);
+      updateEl('statAvgTime', data.stats.avg_time_to_hire);
+      updateEl('statAcceptanceRate', data.stats.offer_acceptance);
     }
 
-    // 2. Sync AI Summary Strip
-    const summaryEl = document.getElementById('glmSummaryText');
-    if (summaryEl && data.insights && data.insights.length > 0) {
-      summaryEl.innerHTML = `<strong>GLM Summary:</strong> ${data.insights[0].text}`;
-    }
+    // 2. Process Upcoming Starts (Transform DB dates for UI)
+    // We map the raw ISO date into { day, month, daysAway } for the UI components
+    UPCOMING_STARTS = (data.upcoming_starts || []).map(start => {
+        // 1. Split the "2026-04-29" string manually to avoid timezone shifts
+        const [y, m, d] = start.start_date.split('-').map(Number);
+        const startDate = new Date(y, m - 1, d); 
+        
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        
+        const diffDays = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
 
-    // 3. Update global variables
+        return {
+            ...start, // <--- THIS IS THE FIX. It keeps full_name, name, role_title, etc.
+            
+            // Ensure 'name' and 'role' are mapped for components using those specific keys
+            name: start.full_name || start.name,
+            role: start.role_title || start.role || "Position TBD",
+            
+            // Date helpers for the Calendar and Stats
+            day: d,
+            monthNum: m - 1,
+            year: y,
+            month: startDate.toLocaleString('default', { month: 'short' }).toUpperCase(),
+            daysAway: diffDays,
+            urgent: diffDays <= 7 && diffDays >= 0
+        };
+    });
+
+    // 3. Update Global State
     RECENT_APPS = data.recent_apps || [];
     DEPT_DATA = data.dept_stats || [];
     PIPELINE_STAGES = data.pipeline || [];
     GLM_INSIGHTS = data.insights || [];
-    
-    // Calendar Data Sync
-    UPCOMING_STARTS = data.upcoming_starts || [];
-    window.UPCOMING_STARTS_DATA = UPCOMING_STARTS; 
+    window.UPCOMING_STARTS_DATA = UPCOMING_STARTS; // Sync with Calendar logic
     
     if (data.trend) {
       LATEST_TREND = data.trend;
     }
 
-    refreshUI();
+    console.log("📦 RAW BACKEND DATA:", data);
 
-    // Re-render calendar if open
-    const calModal = document.getElementById('calendarModal');
-    if (calModal && calModal.style.display === 'flex') {
-        renderCalendar();
+    if (data.recent_apps && data.recent_apps.length > 0) {
+        console.log("👤 FIRST CANDIDATE RECORD:", data.recent_apps[0]);
+        // This will tell you if the key is 'full_name', 'name', or missing entirely.
     }
+
+    // 4. Refresh all UI components
+    refreshUI();
 
   } catch (err) {
     console.error("Dashboard Fetch Error:", err);
-    // CRITICAL: Tell the user the backend/Supabase is unreachable
     if (banner) {
       banner.style.display = 'flex';
-      banner.innerHTML = `<strong>❌ Connection Error:</strong> Unable to reach the HR server. Backend might be down.`;
+      banner.innerHTML = `<strong>❌ Connection Error:</strong> Unable to reach the HR server.`;
     }
   }
 }
@@ -1374,27 +1381,37 @@ function renderRecentApps() {
   let html = "";
   for (let i = 0; i < RECENT_APPS.length; i++) {
     const a = RECENT_APPS[i];
-    const initials = a.full_name ? a.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : "??";
-    const appliedDate = new Date(a.created_at).toLocaleDateString();
+    
+    // Use the keys confirmed by your Python print statement
+    // We try 'full_name' first, then 'name', then fallback to "Unknown"
+    const displayName = a.full_name || a.name || "Unknown Candidate";
+    
+    // Get the first letter for the avatar
+    const initial = displayName.charAt(0).toUpperCase();
+    
+    // Format the date for the "Applied" column
+    const appliedDate = a.created_at ? new Date(a.created_at).toLocaleDateString() : "—";
+    
     const glmColor = a.recommendation_rate > 70 ? '#4ade80' : '#f59e0b';
 
     html += `
     <tr>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="${avatarStyle(i)}">${initials}</div>
-          <div class="candidate-name">${a.full_name}</div>
+          <div class="avatar" style="${avatarStyle(i)}">${initial}</div>
+          <div class="candidate-name">${displayName}</div>
         </div>
       </td>
-      <td><span style="font-size:12px">${a.role_title}</span></td>
-      <td><span style="font-size:12px">${a.department}</span></td>
+      <td><span style="font-size:12px">${a.role_title || '—'}</span></td>
+      <td><span style="font-size:12px">${a.department || '—'}</span></td>
       <td><span style="font-size:11px">${appliedDate}</span></td>
       <td><span class="pill ${a.status.toLowerCase()}"><span class="pill-dot"></span>${a.status}</span></td>
-      <td><span style="font-size:11px;font-weight:700;color:${glmColor}">✓ ${a.recommendation_rate}%</span></td>
+      <td><span style="font-size:11px;font-weight:700;color:${glmColor}">✓ ${a.recommendation_rate || 0}%</span></td>
     </tr>`;
   }
   tb.innerHTML = html;
 }
+
 
 /* ─────────────────────────────────────────────
    RENDER DEPT BREAKDOWN
@@ -1449,27 +1466,26 @@ function renderGLMInsights() {
 ───────────────────────────────────────────── */
 function renderUpcomingStarts() {
   const el = document.getElementById('startDatesList');
-  if (!el) return;
-  
-  if (!UPCOMING_STARTS.length) {
-      el.innerHTML = '<div style="font-size:12px; color:var(--color-text-tertiary); text-align:center; padding:20px;">No starts scheduled</div>';
-      return;
-  }
-
+  if (!el || !UPCOMING_STARTS.length) return;
+  console.log("🔍 UPCOMING_STARTS Object Content:", UPCOMING_STARTS);
   let html = "";
   for (const s of UPCOMING_STARTS) {
-    const urgentStyle = s.urgent ? 'border:1px solid #f59e0b; color:#f59e0b;' : 'border:1px solid #4ade80; color:#4ade80;';
+    // Ensure this uses 's.name' which matches your backend 'upcoming_starts' dictionary
+    const displayName = s.name || "New Hire"; 
+    
     html += `
-    <div class="start-item" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-      <div class="start-date-box" style="width:40px; height:40px; border-radius:8px; background:var(--color-background-secondary); display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid var(--color-border-tertiary);">
-        <div style="font-size:9px; font-weight:800;">${s.month}</div>
-        <div style="font-size:14px; font-weight:800;">${s.day}</div>
+    <div class="start-item">
+      <div class="start-date-box">
+        <div class="month">${s.month}</div>
+        <div class="day">${s.day}</div>
       </div>
-      <div style="flex:1;">
-        <div style="font-size:13px; font-weight:700;">${s.name}</div>
-        <div style="font-size:11px; color:var(--color-text-tertiary);">${s.role}</div>
+      <div class="start-info">
+        <div class="start-name">${displayName}</div>
+        <div class="start-role">${s.role}</div>
       </div>
-      <div style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; ${urgentStyle}">in ${s.daysAway}d</div>
+      <div class="days-away ${s.urgent ? 'warn' : ''}">
+        ${s.daysAway === 0 ? 'Today' : `in ${s.daysAway}d`}
+      </div>
     </div>`;
   }
   el.innerHTML = html;
@@ -1589,6 +1605,8 @@ function jumpToToday() {
 }
 
 function renderCalendar() {
+    console.log("Current Calendar View:", { month: calViewDate.getMonth(), year: calViewDate.getFullYear() });
+    console.log("Available Events:", window.UPCOMING_STARTS_DATA);
     const grid = document.getElementById('calendarGrid');
     const title = document.getElementById('calMonthTitle');
     if (!grid || !title) return;
@@ -1620,22 +1638,25 @@ function renderCalendar() {
             let eventHtml = "";
             
             // Check the global data synced from the backend
-            if (window.UPCOMING_STARTS_DATA && window.UPCOMING_STARTS_DATA.length > 0) {
-                window.UPCOMING_STARTS_DATA.forEach(s => {
-                    const isSameDay = parseInt(s.day) === dayNum;
-                    // Check if data month "APR" matches view month "APR"
-                    const isSameMonth = s.month.toUpperCase().includes(monthNameShort) || 
-                                       monthNameShort.includes(s.month.toUpperCase());
+          // Inside renderCalendar() loop
+          if (window.UPCOMING_STARTS_DATA && window.UPCOMING_STARTS_DATA.length > 0) {
+              window.UPCOMING_STARTS_DATA.forEach(s => {
+                  // 1. Strict numeric comparison
+                  const isSameDay = s.day === dayNum;
+                  const isSameMonth = s.monthNum === month; // 'month' is the variable from the calendar state
+                  const isSameYear = s.year === year;
 
-                    if (isSameDay && isSameMonth) {
-                        const color = s.urgent ? '#f59e0b' : '#4a9eff';
-                        eventHtml += `
-                            <div class="cal-event" style="background:${color}22; color:${color}; border:1px solid ${color}44; margin-top:4px;">
-                                ${s.name.split(' ')[0]}
-                            </div>`;
-                    }
-                });
-            }
+                  if (isSameDay && isSameMonth && isSameYear) {
+                      const color = s.urgent ? '#f59e0b' : '#4a9eff';
+                      eventHtml += `
+                          <div class="cal-event" 
+                              style="background:${color}22; color:${color}; border:1px solid ${color}44; margin-top:4px;"
+                              title="${s.name} - ${s.role}">
+                              ${s.name.split(' ')[0]}
+                          </div>`;
+                  }
+              });
+          }
 
             const isToday = (dayNum === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) ? 'today' : '';
 

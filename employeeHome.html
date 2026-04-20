@@ -762,72 +762,55 @@
     </div>
   </div>
 </div>
-
 <script>
-  // --- CONFIG & AUTH ---
+// --- CONFIG & AUTH ---
   const API_BASE_URL = "http://127.0.0.1:8000";
-  const IS_PREVIEW_MODE = true;
+  const IS_PREVIEW_MODE = false;
 
   async function checkAuth() {
-    // 1. PREVIEW MODE BYPASS
     if (IS_PREVIEW_MODE) {
-      console.warn("TalentFlow: Preview Mode Active. Auth Bypassed.");
-      
-      // Set dummy UI state so the page doesn't look empty
-      const title = document.getElementById("pageTitle");
-      if (title) title.innerText = "Welcome, Guest (Preview Mode)";
-      
-      // Ensure the body is visible (since it might be hidden by CSS initially)
+      console.warn("TalentFlow: Preview Mode Active.");
       document.body.style.display = "block";
-      
-      // Load any local drafts if they exist
-      if (typeof loadDraft === "function") loadDraft(); 
-      return;
+      document.body.style.opacity = "1";
+      return true;
     }
     
-    // 2. REAL AUTHENTICATION LOGIC
     try {
-      const resp = await fetch(`${API_BASE_URL}/candidate`, {
+      // Use /account-info to get the current profile data
+      const resp = await fetch(`${API_BASE_URL}/account-info`, {
         method: 'GET',
         credentials: 'include' 
       });
 
       if (resp.ok) {
-          const data = await resp.json();
-          const hasDraft = localStorage.getItem("talentflow_draft");
+          const profile = await resp.json();
           
-          // Auto-fill profile data if no draft exists
-          if (data.profile && !hasDraft) {
-              if (document.getElementById("name")) document.getElementById("name").value = data.profile.full_name || "";
-              if (document.getElementById("email")) document.getElementById("email").value = data.profile.email || "";
-          } else if (hasDraft && typeof loadDraft === "function") {
-              loadDraft(); 
-          }
-
           // Update greeting
           const title = document.getElementById("pageTitle");
-          if (title && data.profile) {
-              const firstName = data.profile.full_name.split(' ')[0];
+          if (title && profile.full_name) {
+              const firstName = profile.full_name.split(' ')[0];
               title.innerText = `Welcome, ${firstName}`;
           }
           
-          document.body.style.display = "block"; 
+          // Pre-fill name and email if empty
+          if (!localStorage.getItem("talentflow_draft")) {
+              if (document.getElementById("name")) document.getElementById("name").value = profile.full_name || "";
+              if (document.getElementById("email")) document.getElementById("email").value = profile.email || "";
+          }
+
+          document.body.style.display = "block";
+          setTimeout(() => document.body.style.opacity = "1", 50);
+          return true;
       } else {
-          // Not OK response (e.g., 401 Unauthorized)
-          console.error("Auth failed: Redirecting to login.");
-          alert("Session expired. Redirecting to login...");
           window.location.href = 'login.html';
+          return false;
       }
     } catch (err) {
-      // Network or Server Error
       console.error("Connection error:", err);
-      alert("Session expired. Redirecting to login...");
       window.location.href = 'login.html';
+      return false;
     }
   }
-
-  // Call it as soon as the DOM is ready
-  document.addEventListener("DOMContentLoaded", checkAuth);
 
   // --- UI LOGIC ---
   var skills = [];
@@ -839,49 +822,6 @@
     
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     el.classList.add("active");
-    
-    const pageTitle = document.getElementById("pageTitle");
-    if (pageTitle) {
-      pageTitle.innerText = (viewId === "intake") ? "New Intake" : "Monitor Applications";
-    }
-  }
-
-  // GLM Simulation Refinement
-  function simulateGLM() {
-    const data = {
-      name: "Aisha Tan",
-      role: "Software Engineer",
-      dept: "Engineering",
-      manager: "Priya Mehta",
-      email: "aisha.tan@email.com",
-      seniority: "Senior",
-      emptype: "Full-time",
-      experience: "5–8 years"
-    };
-
-    // Mapping keys to IDs
-    Object.keys(data).forEach(key => {
-      const el = document.getElementById(key);
-      if (el) el.value = data[key];
-    });
-
-    skills = ["Python", "React", "PostgreSQL"];
-    renderSkills();
-
-    // Show Inference Box
-    const box = document.getElementById("glmBox");
-    const tags = document.getElementById("glmTags");
-    if (box && tags) {
-      tags.innerHTML = "";
-      Object.entries(data).forEach(([k, v]) => {
-        tags.innerHTML += `<div class="infer-tag">${k}: ${v}</div>`;
-      });
-      skills.forEach(s => {
-        tags.innerHTML += `<div class="infer-tag">skill: ${s}</div>`;
-      });
-      box.style.display = "block";
-    }
-    updateProgress();
   }
 
   function renderSkills() {
@@ -897,6 +837,7 @@
   function removeSkill(s) {
     skills = skills.filter(x => x !== s);
     renderSkills();
+    saveDraft();
   }
 
   function updateProgress() {
@@ -918,6 +859,7 @@
     if (pct === 100) {
       label.innerText = "Ready to submit";
       meta.innerText = "All required fields complete";
+      meta.style.color = "var(--color-text-tertiary)";
     } else {
       label.innerText = `Step ${Math.ceil(pct/25) || 1} of 4`;
       meta.innerText = `${filled} of ${required.length} fields filled`;
@@ -926,40 +868,39 @@
 
   // --- SUBMIT FUNCTION ---
   async function submitForm() {
-      // A. Reset Styles
+      const btn = document.querySelector('.btn-primary');
+      const meta = document.getElementById("submitMeta");
+
+      // Reset Styles
       document.querySelectorAll('.form-input, .form-select').forEach(el => {
           el.style.borderColor = "var(--color-border-secondary)";
           el.style.backgroundColor = "var(--color-background-secondary)";
       });
 
-      // B. Validation Check
+      // Validation
       const missing = required.filter(id => !document.getElementById(id)?.value.trim());
 
       if (missing.length) {
           missing.forEach(id => {
               const el = document.getElementById(id);
               if (el) {
-                  el.style.borderColor = "#f87171"; // Red border
-                  el.style.backgroundColor = "#fff1f1"; // Light red tint
+                  el.style.borderColor = "#f87171";
+                  el.style.backgroundColor = "rgba(248, 113, 113, 0.05)";
               }
           });
-          
-          const meta = document.getElementById("submitMeta");
           meta.innerText = "⚠️ Missing required fields (highlighted in red)";
           meta.style.color = "#f87171";
-          
           document.getElementById(missing[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
       }
 
-      // C. Data Collection
-      const btn = document.querySelector('.btn-primary');
       btn.innerText = "Submitting...";
       btn.disabled = true;
 
+      // Collect additional form details (Experience, Manager, etc.)
       const details = {};
       document.querySelectorAll('input, select, textarea').forEach(el => {
-          if (el.id && !required.includes(el.id)) {
+          if (el.id && !["name", "email", "role", "dept"].includes(el.id)) {
               details[el.id] = el.value;
           }
       });
@@ -973,7 +914,6 @@
           form_details: details
       };
 
-      // D. Final POST
       try {
           const response = await fetch(`${API_BASE_URL}/applications`, {
               method: 'POST',
@@ -983,49 +923,36 @@
           });
 
           if (response.ok) {
-              alert("Application Submitted! HR will review it shortly.");
+              alert("Application Submitted Successfully!");
               localStorage.removeItem("talentflow_draft");
               window.location.reload(); 
-          } 
-          // --- ADDED: Handle Unauthorized (401) ---
-          else if (response.status === 401) {
-              alert("Your session has expired. Redirecting to login...");
+          } else if (response.status === 401) {
               window.location.href = 'login.html';
-          } 
-          // ----------------------------------------
-          else {
-              const errData = await response.json();
-              alert("Error: " + (errData.detail || "Submission failed"));
+          } else {
+              const err = await response.json();
+              alert("Error: " + (err.detail || "Submission failed"));
           }
       } catch (err) {
           console.error("Submission error:", err);
-          alert("Submission failed. Check your internet connection.");
+          alert("Submission failed. Please check your connection.");
       } finally {
           btn.innerText = "Submit Application →";
           btn.disabled = false;
       }
   }
 
-  // Function to save all form fields to LocalStorage
+  // --- DRAFT LOGIC ---
   function saveDraft() {
-    const formFields = document.querySelectorAll('input, select, textarea');
     const draft = {
       skills: skills,
       timestamp: new Date().getTime()
     };
-    
-    formFields.forEach(field => {
+    document.querySelectorAll('input, select, textarea').forEach(field => {
       if (field.id) draft[field.id] = field.value;
     });
-    
-    // Save status radio button
-    const selectedStatus = document.querySelector('input[name="status"]:checked');
-    if (selectedStatus) draft.status = selectedStatus.value;
-
     localStorage.setItem("talentflow_draft", JSON.stringify(draft));
   }
 
-  // Function to load the draft back into the form
   function loadDraft() {
     const saved = localStorage.getItem("talentflow_draft");
     if (!saved) return;
@@ -1033,56 +960,49 @@
     const data = JSON.parse(saved);
     Object.keys(data).forEach(key => {
       const el = document.getElementById(key);
-      if (el) el.value = data[key];
+      if (el && key !== "skills") el.value = data[key];
     });
 
     if (data.skills) {
       skills = data.skills;
       renderSkills();
     }
-    
-    if (data.status) {
-      const radio = document.querySelector(`input[name="status"][value="${data.status}"]`);
-      if (radio) radio.checked = true;
-    }
-    
     updateProgress();
   }
 
-  /*
-  // Update the INITIALIZE section to include listeners
-  document.addEventListener('DOMContentLoaded', () => {
-    const themeBtn = document.getElementById('themeToggle');
+  // --- INITIALIZATION ---
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Hide initially to prevent flicker
+    document.body.style.opacity = "0";
     
-    // Set initial icon based on current theme
-    const updateIcon = (theme) => {
-        themeBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
-    };
-    updateIcon(document.documentElement.getAttribute('data-theme'));
+    const isAuth = await checkAuth();
+    if (!isAuth) return;
 
-    themeBtn.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        // 1. Update HTML attribute
-        document.documentElement.setAttribute('data-theme', newTheme);
-        // 2. Save to LocalStorage
-        localStorage.setItem('theme', newTheme);
-        // 3. Update Button Icon
-        updateIcon(newTheme);
-    });
-    
-    document.body.style.display = "none"; 
-    checkAuth();
-    
-    // Load existing draft
     loadDraft();
 
-    // Add auto-save listeners to all inputs
+    // Auto-save & Progress listeners
     document.querySelectorAll('input, select, textarea').forEach(el => {
-      el.addEventListener('input', saveDraft);
+      el.addEventListener('input', () => {
+        saveDraft();
+        updateProgress();
+      });
     });
-  });*/
+
+    // Theme Toggle Setup
+    const themeBtn = document.getElementById('themeToggle');
+    if (themeBtn) {
+        const updateIcon = (theme) => themeBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
+        updateIcon(document.documentElement.getAttribute('data-theme'));
+
+        themeBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const target = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', target);
+            localStorage.setItem('theme', target);
+            updateIcon(target);
+        });
+    }
+  });
 </script>
 </body>
 </html>
