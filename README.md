@@ -221,7 +221,7 @@ The API will be available at `http://127.0.0.1:8000`.
 
 **2. Serve the frontend:**
 
-Open the project folder with VS Code Live Server (or any local server on port `5500`). Navigate to `login.html` to begin.
+Open the project folder with VS Code Live Server (or any local server on port `5500`). Type `127.0.0.1:5500/login.html` in a web browser to begin.
 
 ```bash
 python3 -m http.server 5500
