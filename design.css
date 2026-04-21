@@ -25,6 +25,14 @@
   --color-chip-active-bg: #e8f0ff;
   --color-chip-active-text: #1558d6;
   --color-chip-active-border: #c7ddff;
+  --status-submitted-bg: #e0e7ff;
+  --status-submitted-text: #1e40af;
+  --status-review-bg: #dcfce7;
+  --status-review-text: #166534;
+  --status-accepted-bg: #d1fae5;
+  --status-accepted-text: #065f46;
+  --status-rejected-bg: #fee2e2;
+  --status-rejected-text: #7f1d1d;
   --font-sans: 'Inter', -apple-system, sans-serif;
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
@@ -54,6 +62,14 @@
   --color-chip-active-bg: #1a2a3a;
   --color-chip-active-text: #4a9eff;
   --color-chip-active-border: #2a4a6a;
+  --status-submitted-bg: #1e293b;
+  --status-submitted-text: #93c5fd;
+  --status-review-bg: #1e3a2f;
+  --status-review-text: #4ade80;
+  --status-accepted-bg: #16322b;
+  --status-accepted-text: #34d399;
+  --status-rejected-bg: #3b1e1e;
+  --status-rejected-text: #f87171;
 }
 
 /* ============================================================
