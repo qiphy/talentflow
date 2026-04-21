@@ -29,6 +29,9 @@
       border-radius: var(--border-radius-lg);
       padding: 32px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      width: 850px;
+      max-width: 100%;
+      margin: 0 auto;
     }
 
     .card-header {
@@ -111,7 +114,7 @@
 
     .upload-zone:hover {
       border-color: #4a9eff;
-      background: #0d1a2a;
+      background: var(--color-upload-hover-bg);
     }
 
     .uz-label {
@@ -358,6 +361,7 @@
       .sidebar { display: none; }
       .main { margin-left: 0; }
       .form-row-3 { grid-template-columns: 1fr 1fr; }
+      .card { max-width: 100%; margin: 0; }
     }
 
     @media (max-width: 600px) {
@@ -383,16 +387,23 @@
 
     <div class="sidebar-nav">
       <div class="nav-label active">Candidate Workspace</div>
-      <div class="nav-item active" onclick="switchView('intake', this)">
+      <div class="nav-item active" onclick="window.location.href='employeeHome.html'">
         <div class="nav-dot dot-purple"></div> New Intake
       </div>
-      <div class="nav-item" onclick="switchView('monitor', this)">
+      <div class="nav-item" onclick="window.location.href='employeeMonitor.html'">
         <div class="nav-dot dot-blue"></div> Monitor Applications
       </div>
 
       <div class="nav-label">Settings</div>
       <div class="nav-item" onclick="window.location.href='employeeAcc.html'">
         <div class="nav-dot dot-teal"></div> Account
+      </div>
+    </div>
+    
+    <div class="sidebar-footer">
+      <div class="nav-item logout-btn" onclick="logout()">
+        <div class="nav-dot dot-red"></div>
+        <span>Logout</span>
       </div>
     </div>
   </div>
@@ -413,21 +424,8 @@
     <!-- CONTENT -->
     <div class="content">
 
-      <!-- MONITOR APPLICATIONS PAGE - EMPTY PLACEHOLDER -->
-      <div class="view" id="monitor">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Monitor Applications</div>
-          </div>
-          <div class="card-placeholder">
-            <p>Content coming soon...</p>
-            <p style="margin-top: 12px; font-size: 12px;">This page is under development</p>
-          </div>
-        </div>
-      </div>
-
       <!-- NEW INTAKE -->
-      <div class="view active" id="intake">
+      <div id="intake">
         <div class="card">
 
           <div class="card-header">
@@ -480,14 +478,14 @@
                 <input id="email" class="form-input" type="email" placeholder="aisha@example.com" oninput="updateProgress()">
               </div>
               <div class="form-group">
-                <label class="form-label">Phone number</label>
+                <label class="form-label">Phone number *</label>
                 <input id="phone" class="form-input" type="tel" placeholder="+60 12-345 6789">
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Nationality</label>
+                <label class="form-label">Nationality *</label>
                 <input id="nationality" class="form-input" placeholder="e.g. Malaysian">
               </div>
               <div class="form-group">
@@ -501,7 +499,17 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Role title *</label>
-                <input id="role" class="form-input" placeholder="e.g. Senior Engineer" oninput="updateProgress()">
+                <select id="role" class="form-select" onchange="updateProgress()">
+                  <option value="">Select role</option>
+                  <option>Software Engineer</option>
+                  <option>Data Analyst</option>
+                  <option>Product Manager</option>
+                  <option>UI/UX Designer</option>
+                  <option>HR Executive</option>
+                  <option>Marketing Specialist</option>
+                  <option>Operations Manager</option>
+                  <option>Sales Executive</option>
+                </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Employment type *</label>
@@ -512,37 +520,6 @@
                   <option>Contract</option>
                   <option>Internship</option>
                   <option>Freelance</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Department *</label>
-                <select id="dept" class="form-select" onchange="updateProgress()">
-                  <option value="">Select department</option>
-                  <option>Engineering</option>
-                  <option>Product</option>
-                  <option>Design</option>
-                  <option>HR</option>
-                  <option>Finance</option>
-                  <option>Marketing</option>
-                  <option>Operations</option>
-                  <option>Legal</option>
-                  <option>Sales</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Seniority level</label>
-                <select id="seniority" class="form-select">
-                  <option value="">Select level</option>
-                  <option>Junior</option>
-                  <option>Mid-level</option>
-                  <option>Senior</option>
-                  <option>Lead</option>
-                  <option>Manager</option>
-                  <option>Director</option>
-                  <option>VP / C-level</option>
                 </select>
               </div>
             </div>
@@ -563,12 +540,13 @@
 
             <div class="form-row-3">
               <div class="form-group">
-                <label class="form-label">Salary / rate</label>
+                <label class="form-label">Salary / rate *</label>
                 <input id="salary" class="form-input" placeholder="e.g. 8000">
               </div>
               <div class="form-group">
-                <label class="form-label">Currency</label>
+                <label class="form-label">Currency *</label>
                 <select id="currency" class="form-select">
+                  <option value="">Select currency</option>
                   <option>MYR</option>
                   <option>USD</option>
                   <option>SGD</option>
@@ -577,29 +555,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Pay period</label>
-                <select id="payperiod" class="form-select">
-                  <option>Monthly</option>
-                  <option>Annually</option>
-                  <option>Hourly</option>
-                  <option>Daily</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Probation period</label>
-                <select id="probation" class="form-select">
-                  <option value="">None / not applicable</option>
-                  <option>1 month</option>
-                  <option>2 months</option>
-                  <option>3 months</option>
-                  <option>6 months</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Notice period</label>
+                <label class="form-label">Notice period *</label>
                 <select id="notice" class="form-select">
                   <option value="">Select</option>
                   <option>Immediate</option>
@@ -625,26 +581,15 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Office / site</label>
+                <label class="form-label">Preferred location *</label>
                 <input id="office" class="form-input" placeholder="e.g. KL HQ, Cyberjaya">
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Hiring manager *</label>
-                <input id="manager" class="form-input" placeholder="e.g. Priya Mehta" oninput="updateProgress()">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Reporting to</label>
-                <input id="reportsto" class="form-input" placeholder="e.g. Head of Engineering">
               </div>
             </div>
 
             <div class="section-title">Skills & background</div>
 
             <div class="form-group">
-              <label class="form-label">Key skills / competencies</label>
+              <label class="form-label">Work Experiences & Key Skills *</label>
               <div class="skill-input-row">
                 <input id="skillInput" class="form-input" placeholder="Type a skill and press Add" onkeydown="if(event.key==='Enter')addSkill()">
                 <button class="btn-add" onclick="addSkill()">Add</button>
@@ -654,7 +599,7 @@
 
             <div class="form-row" style="margin-top:14px">
               <div class="form-group">
-                <label class="form-label">Years of experience</label>
+                <label class="form-label">Years of experience *</label>
                 <select id="experience" class="form-select">
                   <option value="">Select</option>
                   <option>0–1 years</option>
@@ -666,7 +611,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Highest qualification</label>
+                <label class="form-label">Highest qualification *</label>
                 <select id="qualification" class="form-select">
                   <option value="">Select</option>
                   <option>SPM / O-Level</option>
@@ -688,7 +633,7 @@
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Visa / work pass required?</label>
+                <label class="form-label">Visa / work pass required? *</label>
                 <select id="visa" class="form-select">
                   <option value="">Select</option>
                   <option>No — local / PR</option>
@@ -697,57 +642,11 @@
                   <option>Pending</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label class="form-label">Equipment to provision</label>
-                <select id="equipment" class="form-select">
-                  <option value="">Select</option>
-                  <option>Laptop only</option>
-                  <option>Laptop + peripherals</option>
-                  <option>Full workstation</option>
-                  <option>BYOD — no provisioning</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Access level</label>
-                <select id="access" class="form-select">
-                  <option value="">Select</option>
-                  <option>Standard employee</option>
-                  <option>Elevated — team lead</option>
-                  <option>Admin access</option>
-                  <option>Read-only / contractor</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Background check required?</label>
-                <select id="bgcheck" class="form-select">
-                  <option value="">Select</option>
-                  <option>Yes — standard</option>
-                  <option>Yes — enhanced</option>
-                  <option>No</option>
-                </select>
-              </div>
             </div>
 
             <div class="form-group" style="margin-top:14px">
               <label class="form-label">Onboarding notes</label>
               <textarea id="notes" class="form-textarea" placeholder="Any special arrangements, accommodations, or instructions for the onboarding team..."></textarea>
-            </div>
-
-            <div class="form-group" style="margin-top:20px">
-              <label class="form-label">Application status</label>
-              <div class="status-row">
-                <input type="radio" name="status" id="s1" class="status-opt" value="offer_accepted" checked>
-                <label for="s1" class="status-label">Offer accepted</label>
-                <input type="radio" name="status" id="s2" class="status-opt" value="pending_docs">
-                <label for="s2" class="status-label">Pending docs</label>
-                <input type="radio" name="status" id="s3" class="status-opt" value="pre_boarding">
-                <label for="s3" class="status-label">Pre-boarding</label>
-                <input type="radio" name="status" id="s4" class="status-opt" value="ready">
-                <label for="s4" class="status-label">Ready to start</label>
-              </div>
             </div>
 
             <div class="submit-row">
@@ -891,14 +790,7 @@ function autoFillForm(data) {
 
 // --- UI LOGIC ---
 var skills = [];
-const required = ["name","email","role","emptype","dept","date","location","manager"];
-
-function switchView(viewId, el) {
-  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-  document.getElementById(viewId).classList.add("active");
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  el.classList.add("active");
-}
+const required = ["name","email","phone","nationality","role","emptype","date","salary","currency","notice","location","office","skillInput","experience","qualification","visa"];
 
 function addSkill() {
   const input = document.getElementById("skillInput");
@@ -1069,20 +961,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateProgress();
     });
   });
-
-  const themeBtn = document.getElementById('themeToggle');
-  if (themeBtn) {
-      const updateIcon = (theme) => themeBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
-      updateIcon(document.documentElement.getAttribute('data-theme'));
-
-      themeBtn.addEventListener('click', () => {
-          const current = document.documentElement.getAttribute('data-theme');
-          const target = current === 'dark' ? 'light' : 'dark';
-          document.documentElement.setAttribute('data-theme', target);
-          localStorage.setItem('theme', target);
-          updateIcon(target);
-      });
-  }
 });
 </script>
 </body>

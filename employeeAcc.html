@@ -99,6 +99,38 @@ html, body {
     display: flex; align-items: center; justify-content: center;
     z-index: 10; border-radius: var(--border-radius-lg);
   }
+
+  /* ============================================================
+     RESPONSIVE STYLES
+     ============================================================ */
+  @media (max-width: 1100px) {
+    .acc-card {
+      min-width: auto;
+      width: 95%;
+      max-width: 900px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .acc-card {
+      width: 100%;
+      margin-top: 20px;
+      margin-bottom: 20px;
+      padding: 24px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .acc-card {
+      padding: 16px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .content {
+      padding: 8px;
+    }
+  }
 </style>
 
 <!-- SIDEBAR -->
@@ -113,13 +145,20 @@ html, body {
       <div class="nav-item" onclick="window.location.href='employeeHome.html'">
         <div class="nav-dot dot-purple"></div> New Intake
       </div>
-      <div class="nav-item" onclick="window.location.href='employeeHome.html'">
+      <div class="nav-item" onclick="window.location.href='employeeMonitor.html'">
         <div class="nav-dot dot-blue"></div> Monitor Applications
       </div>
 
       <div class="nav-label">Settings</div>
       <div class="nav-item active" onclick="window.location.href='employeeAcc.html'">
         <div class="nav-dot dot-teal"></div> Account
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="nav-item logout-btn" onclick="logout()">
+        <div class="nav-dot dot-red"></div>
+        <span>Logout</span>
       </div>
     </div>
   </div>

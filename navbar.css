@@ -23,7 +23,7 @@ body {
     border-right: 1px solid var(--color-border-tertiary);
     display: flex;
     flex-direction: column;
-    padding: 24px 0;
+    padding: 24px 0 0 0; 
     position: fixed;
     height: 100vh;
     overflow-y: auto;
@@ -51,6 +51,20 @@ body {
 .sidebar-nav {
     padding: 0 12px;
     flex: 1;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid var(--color-border-tertiary);
+}
+
+.logout-btn {
+  color: #80103e;
+}
+
+.logout-btn:hover {
+  background: rgba(229, 72, 77, 0.08);
 }
 
 .nav-label {

@@ -262,6 +262,12 @@ h2 {
       </div>
     </div>
 
+    <div class="sidebar-footer">
+      <div class="nav-item logout-btn" onclick="logout()">
+        <div class="nav-dot dot-red"></div>
+        <span>Logout</span>
+      </div>
+    </div>
 </div>
 
 
@@ -328,6 +334,15 @@ h2 {
 </body>
 
 <script>
+function logout() {
+// clear stored login info
+localStorage.removeItem("token");
+localStorage.removeItem("user");
+
+// redirect to login page
+window.location.href = "login.html";
+}
+
 /* ── CONFIG & AUTH ── */
 const API_BASE = "http://127.0.0.1:8000";
 

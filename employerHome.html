@@ -377,8 +377,8 @@
 
     /* ── AI SUMMARY STRIP ── */
     .ai-strip {
-      background: linear-gradient(135deg, #0d1a2a 0%, #0a180a 100%);
-      border: 1px solid #1f3a2f;
+      background: var(--color-ai-strip-bg);
+      border: 1px solid var(--color-ai-strip-border);
       border-radius: var(--border-radius-lg);
       padding: 18px 24px;
       margin-bottom: 20px;
@@ -391,8 +391,8 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: #0f2a0f;
-      border: 1px solid #2d5a2d;
+      background: var(--color-ai-strip-icon-bg);
+      border: 1px solid var(--color-ai-strip-icon-border);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -403,19 +403,19 @@
     .ai-strip-text {
       flex: 1;
       font-size: 13px;
-      color: #86efac;
+      color: var(--color-ai-strip-text);
       line-height: 1.6;
     }
 
     .ai-strip-text strong {
-      color: #4ade80;
+      color: var(--color-ai-strip-text-strong);
       font-weight: 700;
     }
 
     .ai-strip-badge {
-      background: #0f2a0f;
-      border: 1px solid #2d5a2d;
-      color: #4ade80;
+      background: var(--color-ai-strip-badge-bg);
+      border: 1px solid var(--color-ai-strip-badge-border);
+      color: var(--color-ai-strip-badge-text);
       font-size: 10px;
       font-weight: 700;
       padding: 4px 10px;
@@ -447,9 +447,9 @@
     }
 
     .time-chip.active {
-      background: #1a2a3a;
-      color: #4a9eff;
-      border-color: #2a4a6a;
+      background: var(--color-chip-active-bg);
+      color: var(--color-chip-active-text);
+      border-color: var(--color-chip-active-border);
     }
 
     .chip-row { display: flex; gap: 6px; }
@@ -723,6 +723,13 @@
       <span>Account</span>
     </div>
   </div>
+  
+    <div class="sidebar-footer">
+      <div class="nav-item logout-btn" onclick="logout()">
+        <div class="nav-dot dot-red"></div>
+        <span>Logout</span>
+      </div>
+    </div>
 </div>
 
   <!-- MAIN -->

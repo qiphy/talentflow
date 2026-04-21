@@ -12,6 +12,19 @@
   --color-border-secondary: #d1d1cc;
   --color-nav-active-bg: #e8f0ff;
   --color-nav-active-text: #1558d6;
+  --color-upload-hover-bg: rgba(74, 158, 255, 0.05);
+  --color-ai-strip-bg: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 100%);
+  --color-ai-strip-border: #d1fae5;
+  --color-ai-strip-icon-bg: #f0fdf4;
+  --color-ai-strip-icon-border: #bbf7d0;
+  --color-ai-strip-text: #166534;
+  --color-ai-strip-text-strong: #15803d;
+  --color-ai-strip-badge-bg: #f0fdf4;
+  --color-ai-strip-badge-border: #bbf7d0;
+  --color-ai-strip-badge-text: #15803d;
+  --color-chip-active-bg: #e8f0ff;
+  --color-chip-active-text: #1558d6;
+  --color-chip-active-border: #c7ddff;
   --font-sans: 'Inter', -apple-system, sans-serif;
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
@@ -28,6 +41,19 @@
   --color-border-secondary: #444444;
   --color-nav-active-bg: #1a2a3a;
   --color-nav-active-text: #4a9eff;
+  --color-upload-hover-bg: #0d1a2a;
+  --color-ai-strip-bg: linear-gradient(135deg, #0d1a2a 0%, #0a180a 100%);
+  --color-ai-strip-border: #1f3a2f;
+  --color-ai-strip-icon-bg: #0f2a0f;
+  --color-ai-strip-icon-border: #2d5a2d;
+  --color-ai-strip-text: #86efac;
+  --color-ai-strip-text-strong: #4ade80;
+  --color-ai-strip-badge-bg: #0f2a0f;
+  --color-ai-strip-badge-border: #2d5a2d;
+  --color-ai-strip-badge-text: #4ade80;
+  --color-chip-active-bg: #1a2a3a;
+  --color-chip-active-text: #4a9eff;
+  --color-chip-active-border: #2a4a6a;
 }
 
 /* ============================================================
@@ -259,7 +285,7 @@ p, .subtitle-text {
     .dot-teal   { background: #2dd4bf; }
     .dot-amber  { background: #f59e0b; }
     .dot-green  { background: #22c55e; }
-    .dot-red    { background: #ef4444; }
+    .dot-red    { background: #e51f1f; }
     .dot-gray   { background: #6b7280; }
 
 /* Responsive fix for small screens */
