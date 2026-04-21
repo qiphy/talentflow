@@ -33,11 +33,9 @@
     <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
       <div id="employerField" class="form-group">
         <label class="form-label">Company Name</label>
-        <select id="company" class="form-select">
-          <option value="">-- Select your company --</option>
-          <option>Acme Corporation</option>
-          <option>Global Tech Ltd.</option>
-        </select>
+          <select id="company" class="form-select">
+            <option value="">-- Select your company --</option>
+            </select>
       </div>
 
       <div class="form-group">
@@ -94,40 +92,48 @@ function setRole(role) {
     }
 }
 
-    async function handleLogin(e) {
-        e.preventDefault();
-        
-        // The role the user claims to be based on the UI toggle
-        const selectedRole = currentRole; 
+async function handleLogin(e) {
+    e.preventDefault();
+    
+    const selectedRole = currentRole; 
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const company = document.getElementById('company').value;
 
-        const payload = {
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
-            role: selectedRole // The server uses this to cross-reference the profile table
-        };
-
-        try {
-            const response = await fetch('http://127.0.0.1:8000/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                // Success: Profile table confirms the role
-                showNotif("Login successful!", "success");
-                window.location.href = `http://127.0.0.1:5500/${result.redirect}.html`;
-            } else {
-                // Failure: Either wrong password OR the profile table role didn't match
-                showNotif(result.detail || "Unauthorized access.", "error");
-            }
-        } catch (err) {
-            showNotif("Backend unreachable.", "error");
-        }
+    // --- NEW VALIDATION LOGIC ---
+    if (selectedRole === 'employer' && !company) {
+        showNotif("Please select your company.", "error");
+        return; // Stop the function here
     }
+    // ----------------------------
+
+    const payload = {
+        email: email,
+        password: password,
+        role: selectedRole,
+        company: company // Include company in the payload for the backend
+    };
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showNotif("Login successful!", "success");
+            window.location.href = `http://127.0.0.1:5500/${result.redirect}.html`;
+        } else {
+            showNotif(result.detail || "Unauthorized access.", "error");
+        }
+    } catch (err) {
+        showNotif("Backend unreachable.", "error");
+    }
+}
 
     function showNotif(msg, type) {
         const notif = document.getElementById('notif');
@@ -154,6 +160,35 @@ function setRole(role) {
         input.type = input.type === 'password' ? 'text' : 'password';
         btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
     }
+
+    // --- NEW: Dynamic Company Loader ---
+async function loadCompanies() {
+    const companySelect = document.getElementById('company');
+    try {
+        const response = await fetch('http://127.0.0.1:8000/companies');
+        const companies = await response.json();
+
+        console.log("Companies received from backend:", companies);
+
+        if (response.ok) {
+            // Keep the first placeholder option, clear others
+            companySelect.innerHTML = '<option value="">-- Select your company --</option>';
+            
+            companies.forEach(company => {
+                const opt = document.createElement('option');
+                opt.value = company;
+                opt.textContent = company;
+                companySelect.appendChild(opt);
+            });
+        }
+    } catch (err) {
+        console.error("Failed to load companies:", err);
+        // Fallback or error message if needed
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', loadCompanies);
   </script>
 </body>
 </html>

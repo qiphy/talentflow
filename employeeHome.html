@@ -739,8 +739,8 @@ async function checkAuth() {
         const profile = await resp.json();
         const title = document.getElementById("pageTitle");
         if (title && profile.full_name) {
-            const firstName = profile.full_name.split(' ')[0];
-            title.innerText = `Welcome, ${firstName}`;
+            const Name = profile.full_name;
+            title.innerText = `Welcome, ${Name}`;
         }
         
         if (!localStorage.getItem("talentflow_draft")) {

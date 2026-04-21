@@ -18,6 +18,7 @@ app = FastAPI()
 
 # --- CLIENTS ---
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+supabase_admin: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SERVICE_ROLE"))
 zai_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("Z_AI_API_KEY"),
@@ -46,11 +47,15 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
     role: str
+    company: Optional[str] = None  # Add this field
     remember: Optional[bool] = False
 
 class ProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    email: Optional[str] = None
+    company: Optional[str] = None
+    password: Optional[str] = None
 
 class ApplicationData(BaseModel):
     full_name: str
@@ -66,16 +71,22 @@ class StatusUpdate(BaseModel):
 
 # --- HELPERS ---
 def get_current_user(access_token: Optional[str] = Cookie(None)):
+    # If the cookie is missing, this triggers the 401
     if not access_token:
-        raise HTTPException(status_code=401, detail="No access token cookie found.")
+        print("DEBUG: access_token cookie is missing from the request!")
+        raise HTTPException(status_code=401, detail="Auth session missing!")
+    
     try:
+        # Validate the token with Supabase
         user_resp = supabase.auth.get_user(access_token)
         user = getattr(user_resp, "user", None) or user_resp.get("user")
+        
         if not user:
-            raise HTTPException(status_code=401, detail="Invalid token.")
+            raise HTTPException(status_code=401, detail="Invalid session.")
         return user
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token.")
+    except Exception as e:
+        print(f"DEBUG: Token validation failed: {e}")
+        raise HTTPException(status_code=401, detail="Invalid session.")
 
 def get_profile(user_id: str):
     try:
@@ -191,25 +202,79 @@ async def signup(payload: SignupRequest):
 @app.post("/login")
 async def login(req: LoginRequest):
     try:
-        auth_response = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
+        # 1. First, attempt to sign in with Supabase Auth (Email/Password check)
+        auth_response = supabase.auth.sign_in_with_password({
+            "email": req.email, 
+            "password": req.password
+        })
+        
         session = getattr(auth_response, 'session', None)
         if not session:
-             raise HTTPException(status_code=401, detail="Invalid credentials.")
+             raise HTTPException(status_code=401, detail="Invalid email or password.")
 
+        # 2. Get the user profile to check Role and Company
         user_id = session.user.id
         profile = get_profile(user_id)
-        if not profile or profile.get("role") != req.role:
-            supabase.auth.sign_out()
-            raise HTTPException(status_code=403, detail=f"Account is not registered as {req.role}.")
-
-        redirect = "/employerHome" if profile.get("role") == "employer" else "/employeeHome"
-        res = JSONResponse(content={"status": "success", "redirect": redirect})
-        cookie_age = 7 * 24 * 3600 if req.remember else 3600
         
-        res.set_cookie(key="access_token", value=session.access_token, httponly=True, secure=False, samesite="lax", max_age=cookie_age, path="/")
+        if not profile:
+            supabase.auth.sign_out()
+            raise HTTPException(status_code=404, detail="User profile not found.")
+
+        # 3. Verify Role
+        if profile.get("role") != req.role:
+            supabase.auth.sign_out()
+            raise HTTPException(status_code=403, detail=f"This account is registered as an {profile.get('role')}.")
+
+        # 4. Verify Company (Crucial Step for Employers)
+        if req.role == "employer":
+            # Strip whitespace and compare case-insensitively to be safe
+            db_company = str(profile.get("company", "")).strip()
+            provided_company = str(req.company).strip()
+            
+            if db_company != provided_company:
+                supabase.auth.sign_out()
+                # Printing this to terminal helps you debug the exact string mismatch
+                print(f"DEBUG: DB Company '{db_company}' != Provided '{provided_company}'")
+                raise HTTPException(status_code=401, detail="Company selection does not match your account.")
+
+        # 5. Set Cookie and Redirect
+        redirect = "employerHome" if req.role == "employer" else "employeeHome"
+        res = JSONResponse(content={"status": "success", "redirect": redirect})
+        
+        # Cookie logic...
+        res.set_cookie(key="access_token", value=session.access_token, httponly=True, samesite="lax")
         return res
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # If Supabase Auth fails, it usually returns a JSON with 'msg'
+        error_msg = str(e)
+        if "Invalid login credentials" in error_msg:
+            error_msg = "Invalid email or password."
+        raise HTTPException(status_code=401, detail=error_msg)
+    
+@app.get("/companies")
+async def get_companies():
+    try:
+        # 1. Fetch the company column from the profiles table
+        resp = supabase.table("profiles") \
+            .select("company") \
+            .eq("role", "employer") \
+            .execute()
+        
+        # 2. Extract the data
+        data = resp.data or []
+        
+        # 3. Use a set to get UNIQUE names, and filter out None/empty strings
+        unique_companies = sorted(list(set(
+            item['company'] for item in data if item.get('company') and item['company'].strip()
+        )))
+        
+        print(f"DEBUG: Found companies: {unique_companies}") # Check your terminal!
+        return unique_companies
+        
+    except Exception as e:
+        print(f"Error fetching companies: {e}")
+        return []
 
 @app.post("/logout")
 async def logout():
@@ -256,15 +321,51 @@ async def update_app_status(app_id: str, payload: StatusUpdate, bg_tasks: Backgr
     except Exception as e:
         print(f"Update Error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/applications/{app_id}")
+async def get_application_detail(app_id: str, current_user = Depends(get_current_user)):
+    # Verify the application belongs to the requester
+    user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
+    res = supabase.table("applications").select("*").eq("id", app_id).eq("candidate_id", user_id).single().execute()
+    return res.data
 
 @app.patch("/update-account")
-async def update_account(payload: ProfileUpdate, current_user = Depends(get_current_user)):
-    user_id = getattr(current_user, "id", None) or current_user.get("id")
-    update_data = payload.dict(exclude_unset=True)
+async def update_account(
+    payload: ProfileUpdate, 
+    current_user = Depends(get_current_user),
+    access_token: str = Cookie(None)  # <--- 1. We need the token here
+):
+    # Ensure user_id is a clean string
+    user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
+    
     try:
-        supabase.table("profiles").update(update_data).eq("id", user_id).execute()
-        return {"status": "success", "message": "Profile updated."}
+        # --- FIX 1: AUTHORIZE THE CLIENT ---
+        # Without this, Supabase sees you as an "Anonymous" user.
+        # If you have RLS enabled, it will silently fail to find the row.
+        supabase.postgrest.auth(access_token) 
+
+        # 1. Identity Changes (Password only)
+        if payload.password and len(payload.password) >= 6:
+            # Note: Identity updates use the Auth Admin logic
+            supabase_admin.auth.admin.update_user_by_id(user_id, {"password": payload.password})
+
+        # 2. Profile Changes (Name/Phone/Company)
+        # We use exclude_unset so we don't overwrite fields with None
+        profile_data = payload.dict(exclude_unset=True, exclude={"password"})
+        
+        if profile_data:
+            # --- FIX 2: CHECK THE EXECUTION ---
+            response = supabase.table("profiles").update(profile_data).eq("id", user_id).execute()
+            
+            # If response.data is empty, the 'id' didn't match any row
+            if not response.data:
+                print(f"DEBUG: No row found for ID {user_id}")
+                raise Exception("Profile row not found in database.")
+
+        return {"status": "success", "message": "Account fully updated"}
+
     except Exception as e:
+        print(f"--- BACKEND ERROR ---\n{e}\n---------------------")
         raise HTTPException(status_code=400, detail=str(e))
 
 # --- APPLICATIONS & DASHBOARD ---
@@ -299,6 +400,23 @@ async def submit_application(payload: ApplicationData, current_user = Depends(ge
     supabase.table("applications").insert(data).execute()
     await log_ai_event(user_id, "application_submission", f"New application from {payload.full_name}", {"dept": payload.department})
     return {"status": "success"}
+
+@app.get("/employee/applications")
+async def get_employee_apps(current_user = Depends(get_current_user)):
+    user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
+    
+    try:
+        # Fetch applications belonging to this candidate
+        # Also join with status to see what employers have set
+        resp = supabase.table("applications")\
+            .select("*, application_status(status, updated_at)")\
+            .eq("candidate_id", user_id)\
+            .order("created_at", desc=True)\
+            .execute()
+            
+        return resp.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/hr/dashboard")
 async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_current_user)):

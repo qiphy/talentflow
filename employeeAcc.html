@@ -201,13 +201,14 @@ html, body {
 
                 <div class="form-group">
                     <label class="form-label" for="email">Work Email</label>
-                    <input class="form-input" type="email" id="email" name="email" value="john.doe@gmail.com" placeholder="Update Email" required>
+                    <input class="form-input" type="email" id="email" readonly 
+                        style="background: var(--color-background-secondary); cursor: not-allowed; opacity: 0.7;">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
                     <div class="pass-container">
-                        <input class="form-input" type="password" id="password" name="password" value="Secure123" placeholder="Change Password" required>
+                        <input class="form-input" type="password" id="password" name="password" value="Secure123" placeholder="Change Password">
                         <button type="button" id="togglePass" class="back-btn" onclick="togglePassword()" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
                     </div>
                 </div>
@@ -273,26 +274,35 @@ html, body {
             }
         }
 
+        // --- UPDATED fillFields logic ---
         function fillFields(data) {
             inputs.name.value = data.full_name || "";
             inputs.contact.value = data.phone || "";
             inputs.email.value = data.email || "";
-            inputs.password.value = "********";
+            inputs.password.value = ""; // Don't show the actual password for security
+            inputs.password.placeholder = "Leave blank to keep current password";
             
-            inputs.email.disabled = true;
-            inputs.password.disabled = true;
-
-            initialValues = { name: inputs.name.value, contact: inputs.contact.value };
+            // We keep them enabled but you could add a 'readonly' class until an 'Edit' button is clicked
+            initialValues = { 
+                name: inputs.name.value, 
+                contact: inputs.contact.value,
+                email: inputs.email.value,
+                password: "" 
+            };
         }
 
         // 2. CHANGE TRACKER
         function checkChanges() {
             const changed = inputs.name.value !== initialValues.name || 
-                            inputs.contact.value !== initialValues.contact;
+                            inputs.contact.value !== initialValues.contact ||
+                            inputs.email.value !== initialValues.email ||
+                            inputs.password.value.length > 0; // If they typed anything in password
+            
             updateButton.disabled = !changed;
         }
 
-        [inputs.name, inputs.contact].forEach(input => {
+        // Add listeners to all 4 inputs
+        [inputs.name, inputs.contact, inputs.email, inputs.password].forEach(input => {
             input.addEventListener('input', checkChanges);
         });
 
@@ -302,15 +312,17 @@ html, body {
             updateButton.disabled = true;
             updateButton.textContent = "Saving...";
 
-            if (IS_PREVIEW_MODE) {
-                setTimeout(() => {
-                    alert("Preview Mode: Update successful!");
-                    initialValues.name = inputs.name.value;
-                    initialValues.contact = inputs.contact.value;
-                    updateButton.textContent = "Update Account";
-                    updateButton.disabled = true;
-                }, 500);
-                return;
+            const payload = {
+                full_name: inputs.name.value,
+                phone: inputs.contact.value
+            };
+
+            // Only send email/password if they were actually changed
+            if (inputs.email.value !== initialValues.email) {
+                payload.email = inputs.email.value;
+            }
+            if (inputs.password.value.length > 0) {
+                payload.password = inputs.password.value;
             }
 
             try {
@@ -318,16 +330,19 @@ html, body {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({
-                        full_name: inputs.name.value,
-                        phone: inputs.contact.value
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (response.ok) {
-                    alert('Account updated successfully!');
-                    initialValues.name = inputs.name.value;
-                    initialValues.contact = inputs.contact.value;
+                    alert('Account updated!');
+                    // Sync initial values to current
+                    initialValues = { 
+                        name: inputs.name.value, 
+                        contact: inputs.contact.value, 
+                        email: inputs.email.value, 
+                        password: "" 
+                    };
+                    inputs.password.value = ""; 
                 } else {
                     const err = await response.json();
                     alert(`Error: ${err.detail}`);

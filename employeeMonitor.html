@@ -301,22 +301,16 @@
 </div>
 
 <script>
-function logout() {
-// clear stored login info
-localStorage.removeItem("token");
-localStorage.removeItem("user");
-
-// redirect to login page
-window.location.href = "login.html";
-}
-
-// --- CONFIG & AUTH ---
+// --- CONFIG & STATE ---
 const API_BASE_URL = "http://127.0.0.1:8000";
-const IS_PREVIEW_MODE = true; // Set to false for production
+const IS_PREVIEW_MODE = true;
+let allApplications = []; // Global store for local filtering
 
+/**
+ * Validates session and sets the greeting
+ */
 async function checkAuth() {
   if (IS_PREVIEW_MODE) {
-    console.warn("TalentFlow: Preview Mode Active.");
     document.body.style.display = "block";
     document.body.style.opacity = "1";
     return true;
@@ -335,7 +329,6 @@ async function checkAuth() {
             const firstName = profile.full_name.split(' ')[0];
             title.innerText = `Welcome, ${firstName}`;
         }
-
         document.body.style.display = "block";
         setTimeout(() => document.body.style.opacity = "1", 50);
         return true;
@@ -350,17 +343,132 @@ async function checkAuth() {
   }
 }
 
-function logout() {
-  localStorage.removeItem("talentflow_token");
-  window.location.href = 'login.html';
+/**
+ * Fetches data and initializes the master list
+ */
+async function loadApplications() {
+  try {
+    const resp = await fetch(`${API_BASE_URL}/employee/applications`, {
+        method: 'GET',
+        credentials: 'include'
+    });
+    
+    if (!resp.ok) throw new Error("Failed to fetch applications");
+    allApplications = await resp.json();
+    
+    renderTable(allApplications);
+  } catch (err) {
+    console.error("Load Error:", err);
+    const tableContainer = document.querySelector('.applications-table');
+    tableContainer.innerHTML = `<div class="card-placeholder" style="color: var(--color-status-error);">Error loading applications.</div>`;
+  }
+}
+
+/**
+ * Renders the table based on provided data
+ */
+function renderTable(data) {
+    const tableContainer = document.querySelector('.applications-table');
+    const header = `<div class="table-header">
+                <div>Role Applied</div>
+                <div>Status</div>
+                <div>Submitted</div>
+                <div>Last Updated</div>
+                <div>Action</div>
+            </div>`;
+    
+    if (data.length === 0) {
+        tableContainer.innerHTML = header + `<div class="card-placeholder">No matching applications found.</div>`;
+        return;
+    }
+
+    let rowsHtml = header;
+    data.forEach(app => {
+        const statusData = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
+        const status = statusData?.status || "submitted";
+        
+        const submittedDate = new Date(app.created_at).toLocaleDateString('en-GB', {
+            day: '2-digit', month: 'short', year: 'numeric'
+        });
+        
+        const lastUpdated = statusData?.updated_at 
+            ? new Date(statusData.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
+            : submittedDate;
+
+        rowsHtml += `
+            <div class="table-row">
+                <div>${app.role_title}</div>
+                <div><span class="status status-${status.toLowerCase().replace(/\s+/g, '-')}">${status.toUpperCase()}</span></div>
+                <div>${submittedDate}</div>
+                <div>${lastUpdated}</div>
+                <div><button class="btn-view" onclick="viewDetails('${app.id}')">View</button></div>
+            </div>
+        `;
+    });
+    
+    tableContainer.innerHTML = rowsHtml;
+}
+
+/**
+ * Filters the current applications list based on search and dropdown
+ */
+function handleFilters() {
+    const searchTerm = document.querySelector('.search-input').value.toLowerCase();
+    const filterStatus = document.querySelector('.filter-select').value.toLowerCase();
+
+    const filtered = allApplications.filter(app => {
+        const statusData = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
+        const status = (statusData?.status || "submitted").toLowerCase();
+        
+        const matchesSearch = app.role_title.toLowerCase().includes(searchTerm);
+        const matchesFilter = filterStatus === "all status" || status === filterStatus;
+
+        return matchesSearch && matchesFilter;
+    });
+
+    renderTable(filtered);
+}
+
+/**
+ * Displays details for a specific application
+ */
+function viewDetails(appId) {
+    const app = allApplications.find(a => String(a.id) === String(appId));
+    if (!app) return;
+
+    const score = app.recommendation_rate ? `${app.recommendation_rate}%` : "Assessment Pending";
+    const feedback = app.ai_analysis || "Our team is currently reviewing your application.";
+
+    alert(`Application Detail: ${app.role_title}
+
+Match Score: ${score}
+    `);
+}
+
+/**
+ * Clear session and logout
+ */
+async function logout() {
+  try {
+    await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
+  } finally {
+    localStorage.removeItem("talentflow_token");
+    window.location.href = "login.html";
+  }
 }
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
   document.body.style.opacity = "0";
-
+  
   const isAuth = await checkAuth();
-  if (!isAuth) return;
+  if (isAuth) {
+    await loadApplications();
+
+    // Attach listeners for dynamic filtering
+    document.querySelector('.search-input').addEventListener('input', handleFilters);
+    document.querySelector('.filter-select').addEventListener('change', handleFilters);
+  }
 });
 </script>
 </body>

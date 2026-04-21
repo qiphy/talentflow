@@ -172,19 +172,25 @@ html, body {
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Company Name</label>
+                    <input type="text" id="company" class="form-input">
+                </div>
+
+                <div class="form-group">
                     <label class="form-label" for="contact">Contact Number</label>
                     <input class="form-input" type="tel" id="contact" name="contact" value="012-345-6789" placeholder="Update Contact Number" required>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="email">Work Email</label>
-                    <input class="form-input" type="email" id="email" name="email" value="john.doe@gmail.com" placeholder="Update Email" required>
+                    <input class="form-input" type="email" id="email" readonly 
+                        style="background: var(--color-background-secondary); cursor: not-allowed; opacity: 0.7;">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
                     <div class="pass-container">
-                        <input class="form-input" type="password" id="password" name="password" value="Secure123" placeholder="Change Password" required>
+                        <input class="form-input" type="password" id="password" name="password" value="Secure123" placeholder="Change Password">
                         <button type="button" id="togglePass" class="back-btn" onclick="togglePassword()" style="padding: 0 10px; font-size: 11px; white-space: nowrap;">Show</button>
                     </div>
                 </div>
@@ -197,128 +203,122 @@ html, body {
     </div>
 
     <script>
-    function logout() {
-    // clear stored login info
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    // redirect to login page
-    window.location.href = "login.html";
-    }
-
     const IS_PREVIEW_MODE = true;
+const API_BASE = "http://127.0.0.1:8000";
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        const updateButton = document.getElementById('updateButton');
-        const form = document.querySelector('.account-form');
-        const inputs = {
-            name: document.getElementById('name'),
-            contact: document.getElementById('contact'),
-            email: document.getElementById('email'),
-            password: document.getElementById('password')
-        };
-        
-        let initialValues = {};
-        const API_BASE = "http://127.0.0.1:8000";
+document.addEventListener('DOMContentLoaded', async function() {
+    const updateButton = document.getElementById('updateButton');
+    const form = document.querySelector('.account-form');
+    
+    const inputs = {
+        name: document.getElementById('name'),
+        contact: document.getElementById('contact'),
+        company: document.getElementById('company'), // Employer specific
+        email: document.getElementById('email'),
+        password: document.getElementById('password')
+    };
+    
+    let initialValues = {};
 
-        // 1. DATA LOADER
-        async function loadProfile() {
-            if (IS_PREVIEW_MODE) {
-                console.log("Running in Preview Mode: Using Mock Data");
-                fillFields({
-                    full_name: "John Doe (Preview)",
-                    phone: "012-345-6789",
-                    email: "john.doe@example.com"
-                });
-                return;
-            }
+    // 1. DATA LOADER
+    async function loadProfile() {
+        try {
+            const response = await fetch(`${API_BASE}/account-info`, {
+                method: 'GET',
+                credentials: 'include' 
+            });
 
-            try {
-                const response = await fetch(`${API_BASE}/account-info`, {
-                    method: 'GET',
-                    credentials: 'include' 
-                });
-
-                if (!response.ok) throw new Error("Not authenticated");
-                const data = await response.json();
-                fillFields(data);
-            } catch (err) {
-                console.error("Auth failed:", err);
-                // In real mode, we redirect. In preview mode, we stay.
-                alert("Session expired. Redirecting to login...");
-                window.location.href = "login.html";
-            }
-        }
-
-        function fillFields(data) {
+            if (!response.ok) throw new Error("Not authenticated");
+            const data = await response.json();
+            
+            // Fill UI
             inputs.name.value = data.full_name || "";
             inputs.contact.value = data.phone || "";
+            inputs.company.value = data.company || "";
             inputs.email.value = data.email || "";
-            inputs.password.value = "********";
+            inputs.password.value = ""; 
             
-            inputs.email.disabled = true;
-            inputs.password.disabled = true;
+            // Email is strictly read-only
+            inputs.email.readOnly = true;
 
-            initialValues = { name: inputs.name.value, contact: inputs.contact.value };
+            // Store initial state for change tracking
+            initialValues = { 
+                name: inputs.name.value, 
+                contact: inputs.contact.value,
+                company: inputs.company.value
+            };
+        } catch (err) {
+            console.error("Auth failed:", err);
+            window.location.href = "login.html";
         }
+    }
 
-        // 2. CHANGE TRACKER
-        function checkChanges() {
-            const changed = inputs.name.value !== initialValues.name || 
-                            inputs.contact.value !== initialValues.contact;
-            updateButton.disabled = !changed;
-        }
+    // 2. CHANGE TRACKER
+    function checkChanges() {
+        const changed = inputs.name.value !== initialValues.name || 
+                        inputs.contact.value !== initialValues.contact ||
+                        inputs.company.value !== initialValues.company ||
+                        inputs.password.value.trim() !== "";
+        
+        updateButton.disabled = !changed;
+    }
 
-        [inputs.name, inputs.contact].forEach(input => {
-            input.addEventListener('input', checkChanges);
-        });
-
-        // 3. SUBMIT HANDLER
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            updateButton.disabled = true;
-            updateButton.textContent = "Saving...";
-
-            if (IS_PREVIEW_MODE) {
-                setTimeout(() => {
-                    alert("Preview Mode: Update successful!");
-                    initialValues.name = inputs.name.value;
-                    initialValues.contact = inputs.contact.value;
-                    updateButton.textContent = "Update Account";
-                    updateButton.disabled = true;
-                }, 500);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/update-account`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        full_name: inputs.name.value,
-                        phone: inputs.contact.value
-                    })
-                });
-
-                if (response.ok) {
-                    alert('Account updated successfully!');
-                    initialValues.name = inputs.name.value;
-                    initialValues.contact = inputs.contact.value;
-                } else {
-                    const err = await response.json();
-                    alert(`Error: ${err.detail}`);
-                }
-            } catch (err) {
-                alert("Server connection failed.");
-            } finally {
-                updateButton.textContent = "Update Account";
-                updateButton.disabled = true;
-            }
-        });
-
-        loadProfile();
+    [inputs.name, inputs.contact, inputs.company, inputs.password].forEach(input => {
+        if(input) input.addEventListener('input', checkChanges);
     });
+
+    // 3. SUBMIT HANDLER
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        updateButton.disabled = true;
+        updateButton.textContent = "Saving...";
+
+        const payload = {
+            full_name: inputs.name.value,
+            phone: inputs.contact.value,
+            company: inputs.company.value
+        };
+
+        // Only send password if changed
+        if (inputs.password.value.trim() !== "") {
+            payload.password = inputs.password.value;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/update-account`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert('Employer profile updated successfully!');
+                // Update local master values
+                initialValues = { ...payload };
+                inputs.password.value = "";
+                updateButton.disabled = true;
+            } else {
+                const err = await response.json();
+                alert(`Error: ${err.detail}`);
+            }
+        } catch (err) {
+            alert("Server connection failed.");
+        } finally {
+            updateButton.textContent = "Update Account";
+        }
+    });
+
+    loadProfile();
+});
+
+function logout() {
+    fetch(`${API_BASE}/logout`, { method: 'POST', credentials: 'include' })
+        .finally(() => {
+            localStorage.removeItem("token");
+            window.location.href = "login.html";
+        });
+}
     </script>
 </body>
 </html>
