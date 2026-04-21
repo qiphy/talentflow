@@ -140,7 +140,8 @@ talentflow-main/
 ├── employerHome.html     # Employer main dashboard
 ├── employerAcc.html      # Employer account settings
 │
-├── employeeHome.html     # Employee/candidate main dashboard
+├── employeeHome.html     # Employee new application intake
+├── employeeMonitor.html  # Employee monitor applications
 ├── employeeAcc.html      # Employee account settings
 ├── candidate.html        # Candidate profile and application view
 │
