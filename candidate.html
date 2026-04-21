@@ -39,18 +39,18 @@
       white-space: nowrap;
     }
     .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
-    .pill.new        { background: #1a2a3a; color: #4a9eff; }
-    .pill.new .pill-dot        { background: #4a9eff; }
-    .pill.reviewing  { background: #1f1a2e; color: #a855f7; }
-    .pill.reviewing .pill-dot  { background: #a855f7; }
-    .pill.interview  { background: #1a2e20; color: #22c55e; }
-    .pill.interview .pill-dot  { background: #22c55e; }
-    .pill.offer      { background: #2e1f0a; color: #f59e0b; }
-    .pill.offer .pill-dot      { background: #f59e0b; }
-    .pill.onboarding { background: #0f1f0f; color: #4ade80; }
-    .pill.onboarding .pill-dot { background: #4ade80; }
-    .pill.rejected   { background: #2e0f0f; color: #ef4444; }
-    .pill.rejected .pill-dot   { background: #ef4444; }
+    .pill.new        { background: var(--pill-new-bg); color: var(--pill-new-text); }
+    .pill.new .pill-dot        { background: var(--pill-new-text); }
+    .pill.reviewing  { background: var(--pill-reviewing-bg); color: var(--pill-reviewing-text); }
+    .pill.reviewing .pill-dot  { background: var(--pill-reviewing-text); }
+    .pill.interview  { background: var(--pill-interview-bg); color: var(--pill-interview-text); }
+    .pill.interview .pill-dot  { background: var(--pill-interview-text); }
+    .pill.offer      { background: var(--pill-offer-bg); color: var(--pill-offer-text); }
+    .pill.offer .pill-dot      { background: var(--pill-offer-text); }
+    .pill.onboarding { background: var(--pill-onboarding-bg); color: var(--pill-onboarding-text); }
+    .pill.onboarding .pill-dot { background: var(--pill-onboarding-text); }
+    .pill.rejected   { background: var(--status-rejected-bg); color: var(--status-rejected-text); }
+    .pill.rejected .pill-dot   { background: var(--status-rejected-text); }
 
     /* ── SUMMARY BAR ── */
     .summary-bar {
@@ -348,10 +348,10 @@
       white-space: nowrap;
     }
 
-    .ai-badge.strong   { background: #0a1f0a; color: #4ade80; border: 1px solid #1f4a1f; }
-    .ai-badge.good     { background: #0a1a2e; color: #4a9eff; border: 1px solid #1a3a5a; }
-    .ai-badge.moderate { background: #2e1f0a; color: #f59e0b; border: 1px solid #5a3a1a; }
-    .ai-badge.weak     { background: #2e0f0f; color: #ef4444; border: 1px solid #5a1a1a; }
+    .ai-badge.strong   { background: var(--ai-badge-strong-bg); color: var(--ai-badge-strong-text); border: 1px solid var(--ai-badge-strong-border); }
+    .ai-badge.good     { background: var(--ai-badge-good-bg); color: var(--ai-badge-good-text); border: 1px solid var(--ai-badge-good-border); }
+    .ai-badge.moderate { background: var(--ai-badge-moderate-bg); color: var(--ai-badge-moderate-text); border: 1px solid var(--ai-badge-moderate-border); }
+    .ai-badge.weak     { background: var(--ai-badge-weak-bg); color: var(--ai-badge-weak-text); border: 1px solid var(--ai-badge-weak-border); }
 
     /* ── EXPAND BTN ── */
     .expand-btn {
@@ -433,8 +433,8 @@
     }
 
     .drawer-ai {
-      background: #0a180a;
-      border: 1px solid #1f4a1f;
+      background: var(--drawer-ai-bg);
+      border: 1px solid var(--drawer-ai-border);
       border-radius: var(--border-radius-md);
       padding: 12px 14px;
       margin-bottom: 14px;
@@ -445,13 +445,13 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #4ade80;
+      color: var(--drawer-ai-label);
       margin-bottom: 5px;
     }
 
     .drawer-ai-text {
       font-size: 12px;
-      color: #86efac;
+      color: var(--drawer-ai-text);
       line-height: 1.6;
     }
 

@@ -586,7 +586,7 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background-color: rgba(255, 255, 255, 0.05); 
+  background-color: rgba(255, 255, 255, 0); 
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   gap: 1px;
@@ -604,7 +604,7 @@
 }
 
 .cal-cell {
-  background: #111;
+  background: var(--color-background-tertiary);
   /* FIX: Use height instead of min-height to prevent vertical expansion */
   height: 85px; 
   padding: 6px;
