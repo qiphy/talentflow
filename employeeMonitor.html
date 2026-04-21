@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TalentFlow — Monitor Applications</title>
+  <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="navbar.css" />
+  <script src="theme.js"></script>
+
+  <script>
+    (function () {
+        const saved = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+    })();
+    </script>
+
+  <style>
+    /* ============================================================
+       CARD — follows design.css .auth-card pattern
+       ============================================================ */
+    .card {
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 32px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    /* Uses design.css h2 sizing */
+    .card-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-text-primary);
+    }
+
+    .card-placeholder {
+      text-align: center;
+      padding: 60px;
+      color: var(--color-text-tertiary);
+      font-size: 14px;
+    }
+
+    /* ============================================================
+       MONITOR CONTROLS
+       ============================================================ */
+
+    .monitor-controls{
+    display:flex;
+    gap:12px;
+    margin:20px 0;
+    }
+
+    .search-input{
+    flex:1;
+    padding:10px 12px;
+    border-radius:var(--border-radius-md);
+    border:1px solid var(--color-border-secondary);
+    background:var(--color-background-secondary);
+    color:var(--color-text-primary);
+    font-size:13px;
+    }
+
+    .filter-select{
+    padding:10px 12px;
+    border-radius:var(--border-radius-md);
+    border:1px solid var(--color-border-secondary);
+    background:var(--color-background-secondary);
+    color:var(--color-text-primary);
+    font-size:13px;
+    }
+
+
+    /* ============================================================
+    APPLICATION TABLE
+    ============================================================ */
+
+    .applications-table{
+    margin-top:12px;
+    }
+
+    .table-header,
+    .table-row{
+    display:grid;
+    grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1fr;
+    align-items:center;
+    padding:14px 10px;
+    }
+
+    .table-header{
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--color-text-tertiary);
+    border-bottom:1px solid var(--color-border-tertiary);
+    }
+
+    .table-row{
+    font-size:14px;
+    border-bottom:1px solid var(--color-border-tertiary);
+    transition:background 0.2s;
+    }
+
+    .table-row:hover{
+    background:var(--color-background-secondary);
+    }
+
+
+    /* ============================================================
+    STATUS BADGES
+    ============================================================ */
+
+    .status{
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:600;
+    }
+
+    .status-submitted{
+    background:#1e293b;
+    color:#93c5fd;
+    }
+
+    .status-review{
+    background:#1e3a2f;
+    color:#4ade80;
+    }
+
+    .status-accepted{
+    background:#16322b;
+    color:#34d399;
+    }
+
+    .status-rejected{
+    background:#3b1e1e;
+    color:#f87171;
+    }
+
+
+    /* ============================================================
+    VIEW BUTTON
+    ============================================================ */
+
+    .btn-view{
+    background:var(--color-background-secondary);
+    border:1px solid var(--color-border-secondary);
+    padding:6px 12px;
+    border-radius:var(--border-radius-md);
+    font-size:12px;
+    cursor:pointer;
+    color:var(--color-text-secondary);
+    }
+
+    .btn-view:hover{
+    border-color:#4a9eff;
+    color:#4a9eff;
+    }
+
+    .table-header,.table-row{
+    display:grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr;
+    align-items:center;
+    padding:14px 10px;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .card { max-width: 100%; margin: 0; }
+    }
+
+    @media (max-width: 600px) {
+      .content { padding: 16px; }
+      .card { padding: 20px; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">TalentFlow</div>
+      <div class="logo-sub">Candidate Homepage</div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-label active">Candidate Workspace</div>
+      <div class="nav-item" onclick="window.location.href='employeeHome.html'">
+        <div class="nav-dot dot-purple"></div> New Intake
+      </div>
+      <div class="nav-item active" onclick="window.location.href='employeeMonitor.html'">
+        <div class="nav-dot dot-blue"></div> Monitor Applications
+      </div>
+
+      <div class="nav-label">Settings</div>
+      <div class="nav-item" onclick="window.location.href='employeeAcc.html'">
+        <div class="nav-dot dot-teal"></div> Account
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="nav-item logout-btn" onclick="logout()">
+        <div class="nav-dot dot-red"></div>
+        <span>Logout</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Monitor Applications</div>
+      <div class="topbar-right">
+        <button id="themeToggle" onclick="toggleTheme()" style="background: none; border: 1.5px solid var(--color-border-tertiary); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+          🌙
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- MONITOR APPLICATIONS PAGE -->
+      <div class="view active" id="monitor">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Monitor Applications</div>
+          </div>
+
+            <div class="monitor-controls">
+            <input class="search-input" placeholder="Search your submissions...">
+
+            <select class="filter-select">
+                <option>All Status</option>
+                <option>Submitted</option>
+                <option>Under Review</option>
+                <option>Accepted</option>
+                <option>Rejected</option>
+            </select>
+            </div>
+
+            <div class="applications-table">
+            <div class="table-header">
+                <div>Role Applied</div>
+                <div>Status</div>
+                <div>Submitted</div>
+                <div>Last Updated</div>
+                <div>Action</div>
+            </div>
+
+            <div class="table-row">
+                <div>Software Engineer</div>
+                <div><span class="status status-review">Under Review</span></div>
+                <div>12 Apr 2026</div>
+                <div>15 Apr 2026</div>
+                <div><button class="btn-view">View</button></div>
+            </div>
+
+            <div class="table-row">
+                <div>Product Manager</div>
+                <div><span class="status status-accepted">Accepted</span></div>
+                <div>10 Apr 2026</div>
+                <div>13 Apr 2026</div>
+                <div><button class="btn-view">View</button></div>
+            </div>
+
+            <div class="table-row">
+                <div>UI/UX Designer</div>
+                <div><span class="status status-submitted">Submitted</span></div>
+                <div>8 Apr 2026</div>
+                <div>8 Apr 2026</div>
+                <div><button class="btn-view">View</button></div>
+            </div>
+            </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// --- CONFIG & AUTH ---
+const API_BASE_URL = "http://127.0.0.1:8000";
+const IS_PREVIEW_MODE = true; // Set to false for production
+
+async function checkAuth() {
+  if (IS_PREVIEW_MODE) {
+    console.warn("TalentFlow: Preview Mode Active.");
+    document.body.style.display = "block";
+    document.body.style.opacity = "1";
+    return true;
+  }
+
+  try {
+    const resp = await fetch(`${API_BASE_URL}/account-info`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (resp.ok) {
+        const profile = await resp.json();
+        const title = document.getElementById("pageTitle");
+        if (title && profile.full_name) {
+            const firstName = profile.full_name.split(' ')[0];
+            title.innerText = `Welcome, ${firstName}`;
+        }
+
+        document.body.style.display = "block";
+        setTimeout(() => document.body.style.opacity = "1", 50);
+        return true;
+    } else {
+        window.location.href = 'login.html';
+        return false;
+    }
+  } catch (err) {
+    console.error("Connection error:", err);
+    window.location.href = 'login.html';
+    return false;
+  }
+}
+
+function logout() {
+  localStorage.removeItem("talentflow_token");
+  window.location.href = 'login.html';
+}
+
+// --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', async () => {
+  document.body.style.opacity = "0";
+
+  const isAuth = await checkAuth();
+  if (!isAuth) return;
+});
+</script>
+</body>
+</html>
