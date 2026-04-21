@@ -220,6 +220,15 @@ html, body {
     </div>
 
     <script>
+    function logout() {
+    // clear stored login info
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // redirect to login page
+    window.location.href = "login.html";
+    }
+
     const IS_PREVIEW_MODE = true;
 
     document.addEventListener('DOMContentLoaded', async function() {

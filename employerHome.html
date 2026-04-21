@@ -956,6 +956,15 @@
 </div>
 
 <script>
+function logout() {
+// clear stored login info
+localStorage.removeItem("token");
+localStorage.removeItem("user");
+
+// redirect to login page
+window.location.href = "login.html";
+}
+
 // --- CONFIG & AUTH ---
 const API_BASE_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = true; // Set to false to use real data

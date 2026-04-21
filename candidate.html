@@ -645,6 +645,15 @@
 </div>
 
 <script>
+  function logout() {
+// clear stored login info
+localStorage.removeItem("token");
+localStorage.removeItem("user");
+
+// redirect to login page
+window.location.href = "login.html";
+}
+
 /* ── CONFIG & STATE ── */
 const API_BASE = "http://127.0.0.1:8000";
 let POSITIONS_DATA = [];
