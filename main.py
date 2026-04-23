@@ -16,19 +16,6 @@ load_dotenv()
 
 app = FastAPI()
 
-@app.get("/")
-async def read_index():
-    # Looks for index.html in the same directory as main.py
-    return FileResponse('login.html')
-
-@app.get("/theme.js")
-async def get_js():
-    return FileResponse("theme.js", media_type="application/javascript")
-
-@app.get("/design.css")
-async def get_css():
-    return FileResponse("design.css", media_type="text/css")
-
 # --- CLIENTS ---
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 supabase_admin: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SERVICE_ROLE"))
