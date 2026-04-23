@@ -966,10 +966,15 @@ window.location.href = "login.html";
 }
 
 // --- CONFIG & AUTH ---
+<<<<<<< HEAD
 const API_BASE_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
     ? "http://127.0.0.1:8000" 
     : ""; // Empty string makes fetch use the current domain (Vercel)
 const IS_PREVIEW_MODE = false; // Set to false to use real data
+=======
+const API_BASE_URL = "http://127.0.0.1:8000";
+const IS_PREVIEW_MODE = true; // Set to false to use real data
+>>>>>>> parent of 4cb2d9f (Updates with new API. Must activate backend to work)
 
 let trendChart = null;
 let deptChart = null;
