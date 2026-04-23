@@ -20,7 +20,7 @@ app = FastAPI()
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 supabase_admin: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SERVICE_ROLE"))
 zai_client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
+    base_url="https://api.ilmu.ai/v1",
     api_key=os.getenv("Z_AI_API_KEY"),
 )
 
@@ -127,7 +127,7 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
         )
 
         completion = zai_client.chat.completions.create(
-            model="z-ai/glm-4.5-air:free",
+            model="ilmu-glm-5.1",
             messages=[
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": f"Parse this CV text: {raw_text[:4000]}"}
@@ -376,7 +376,7 @@ async def submit_application(payload: ApplicationData, current_user = Depends(ge
     prompt = f"Analyze candidate for {payload.role_title}. Skills: {payload.skills}"
     try:
         completion = zai_client.chat.completions.create(
-            model="z-ai/glm-4.5-air:free",
+            model="ilmu-glm-5.1",
             messages=[{"role": "user", "content": prompt}],
             response_format={ "type": "json_object" }
         )
@@ -555,7 +555,7 @@ async def log_ai_event(user_id: str, event_type: str, raw_description: str, cont
     
     try:
         completion = zai_client.chat.completions.create(
-            model="z-ai/glm-4.5-air:free",
+            model="ilmu-glm-5.1",
             messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": analysis_prompt}],
             response_format={ "type": "json_object" }
         )

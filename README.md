@@ -172,7 +172,7 @@ cp .env.example .env
 ```env
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_anon_or_service_key
-Z_AI_API_KEY=your_openrouter_api_key
+Z_AI_API_KEY=your_ilmuapi_api_key
 SERVICE_ROLE=your_supabase_service_role_jwt
 ```
 
@@ -207,7 +207,7 @@ SERVICE_ROLE=your_supabase_service_role_jwt
 ### Prerequisites
 - Python 3.10+
 - A [Supabase](https://supabase.com) project
-- An [OpenRouter](https://openrouter.ai) API key
+- An [IlmuAPI](https://api.ilmu.ai/anthropic) API key
 - VS Code with Live Server extension (or any static file server on port 5500)
 
 ---
