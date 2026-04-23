@@ -69,6 +69,9 @@
   <script>
     let currentRole = 'employer';
     const IS_PREVIEW_MODE = false;
+    const API_BASE = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
+    ? "http://127.0.0.1:8000" 
+    : ""; // Empty string for Vercel/Production
 
 function setRole(role) {
     // Now strictly using 'employer' or 'employee'
@@ -115,7 +118,7 @@ async function handleLogin(e) {
     };
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/login', {
+        const response = await fetch(`${API_BASE}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -126,7 +129,8 @@ async function handleLogin(e) {
 
         if (response.ok) {
             showNotif("Login successful!", "success");
-            window.location.href = `http://127.0.0.1:5500/${result.redirect}.html`;
+            // This works on both local (Live Server) and Vercel
+            window.location.href = `/${result.redirect}.html`; 
         } else {
             showNotif(result.detail || "Unauthorized access.", "error");
         }
@@ -165,7 +169,7 @@ async function handleLogin(e) {
 async function loadCompanies() {
     const companySelect = document.getElementById('company');
     try {
-        const response = await fetch('http://127.0.0.1:8000/companies');
+        const response = await fetch(`${API_BASE}/companies`);
         const companies = await response.json();
 
         console.log("Companies received from backend:", companies);
