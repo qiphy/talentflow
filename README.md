@@ -32,7 +32,7 @@
 - Giving candidates a transparent, guided path to submitting strong applications
 - Centralising user management, dashboards, and application tracking in one platform
 
-TalentFlow combines a FastAPI backend, Supabase for authentication and data storage, and an AI model via OpenRouter to turn raw application data into meaningful hiring recommendations.
+TalentFlow combines a FastAPI backend, Supabase for authentication and data storage, and an AI model via Ilmu API to turn raw application data into meaningful hiring recommendations.
 
 ---
 
@@ -107,8 +107,8 @@ TalentFlow follows a clear separation between frontend, backend, and external se
     └── Application routes (/applications, /candidate)
          │                        │
          ▼                        ▼
-[ Supabase ]              [ OpenRouter AI ]
-  - Auth users              - GLM-4.5-air model
+[ Supabase ]              [ ILMU API ]
+  - Auth users              - GLM-5.1 model
   - profiles table          - Candidate scoring
   - applications table      - Analysis justification
 ```
@@ -172,7 +172,7 @@ cp .env.example .env
 ```env
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_anon_or_service_key
-Z_AI_API_KEY=your_openrouter_api_key
+Z_AI_API_KEY=your_ilmuapi_api_key
 SERVICE_ROLE=your_supabase_service_role_jwt
 ```
 
@@ -207,7 +207,7 @@ SERVICE_ROLE=your_supabase_service_role_jwt
 ### Prerequisites
 - Python 3.10+
 - A [Supabase](https://supabase.com) project
-- An [OpenRouter](https://openrouter.ai) API key
+- An [ILMU API](https://ilmu.ai) API key
 - VS Code with Live Server extension (or any static file server on port 5500)
 
 ---
