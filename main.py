@@ -20,7 +20,7 @@ app = FastAPI()
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 supabase_admin: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SERVICE_ROLE"))
 zai_client = OpenAI(
-    base_url="https://api.ilmu.ai/v1",
+    base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("Z_AI_API_KEY"),
 )
 
