@@ -203,19 +203,8 @@ html, body {
     </div>
 
     <script>
-<<<<<<< HEAD
-<<<<<<< HEAD
-    const IS_PREVIEW_MODE = false;
-const API_BASE = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
-    ? "http://127.0.0.1:8000" 
-    : ""; // Empty string makes fetch use the current domain (Vercel)
-=======
-=======
->>>>>>> parent of 4cb2d9f (Updates with new API. Must activate backend to work)
-    const IS_PREVIEW_MODE = true;
-const API_BASE = "http://127.0.0.1:8000";
->>>>>>> parent of 4cb2d9f (Updates with new API. Must activate backend to work)
-
+const API_BASE_URL = "http://127.0.0.1:8000";
+const IS_PREVIEW_MODE = true; // Set to false to use real data
 document.addEventListener('DOMContentLoaded', async function() {
     const updateButton = document.getElementById('updateButton');
     const form = document.querySelector('.account-form');
