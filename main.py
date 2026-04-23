@@ -39,7 +39,11 @@ zai_client = OpenAI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500"],
+    allow_origins=[
+        "http://127.0.0.1:5500",                  # Local development
+        "https://talentflow-dusky.vercel.app",    # Your production URL
+        "https://talentflow-*-qiphys-projects.vercel.app" # Vercel preview branches
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
