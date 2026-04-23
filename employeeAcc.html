@@ -325,7 +325,7 @@ html, body {
             }
 
             try {
-                const response = await fetch(`${base_url="https://api.ilmu.ai/v1",}/update-account`, {
+                const response = await fetch(`${API_BASE_URL}/update-account`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',

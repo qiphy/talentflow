@@ -965,7 +965,7 @@ localStorage.removeItem("user");
 window.location.href = "login.html";
 }
 
-const API_BASE_URL_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 let trendChart = null;
@@ -991,7 +991,7 @@ const DEPT_COLORS = ['#4a9eff', '#a855f7', '#22c55e', '#f59e0b', '#ef4444', '#2d
     
     // 2. REAL AUTHENTICATION LOGIC
     try {
-      const resp = await fetch(`${API_BASE_URL_URL}/hr/dashboard`, {
+      const resp = await fetch(`${API_BASE_URL}/hr/dashboard`, {
         method: 'GET',
         credentials: 'include' 
       });
@@ -1048,7 +1048,7 @@ async function fetchDashboardData() {
   const banner = document.getElementById('dbStatusBanner'); 
 
   try {
-    const resp = await fetch(`${API_BASE_URL_URL}/hr/dashboard`, {
+    const resp = await fetch(`${API_BASE_URL}/hr/dashboard`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -1296,7 +1296,7 @@ async function setChartRange(range, el) {
 
   try {
     // 2. Fetch range-specific data
-    const resp = await fetch(`${API_BASE_URL_URL}/hr/dashboard?range_type=${range}`, {
+    const resp = await fetch(`${API_BASE_URL}/hr/dashboard?range_type=${range}`, {
       method: 'GET',
       credentials: 'include'
     });

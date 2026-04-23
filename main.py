@@ -421,10 +421,17 @@ async def get_employee_apps(current_user = Depends(get_current_user)):
     user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
     
     try:
-        # Fetch applications belonging to this candidate
-        # Also join with status to see what employers have set
+        # profiles:employer_id(company) explicitly links the FK to the profile table
         resp = supabase.table("applications")\
-            .select("*, application_status(status, updated_at)")\
+            .select("""
+                *,
+                application_status(
+                    status, 
+                    updated_at,
+                    employer_id,
+                    profiles:employer_id(company)
+                )
+            """)\
             .eq("candidate_id", user_id)\
             .order("created_at", desc=True)\
             .execute()

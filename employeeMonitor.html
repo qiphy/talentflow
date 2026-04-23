@@ -90,12 +90,13 @@
     margin-top:12px;
     }
 
+    /* Updated grid to include Company (6 columns) */
     .table-header,
-    .table-row{
-    display:grid;
-    grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1fr;
-    align-items:center;
-    padding:14px 10px;
+    .table-row {
+      display: grid;
+      grid-template-columns: 1.5fr 1.5fr 1.2fr 1.2fr 1.2fr 0.8fr;
+      align-items: center;
+      padding: 14px 10px;
     }
 
     .table-header{
@@ -170,7 +171,7 @@
 
     .table-header,.table-row{
     display:grid;
-    grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr 1fr;
     align-items:center;
     padding:14px 10px;
     }
@@ -260,21 +261,22 @@
             </div>
 
             <div class="applications-table">
-            <div class="table-header">
+              <div class="table-header">
                 <div>Role Applied</div>
+                <div>Company</div> 
                 <div>Status</div>
                 <div>Submitted</div>
                 <div>Last Updated</div>
                 <div>Action</div>
-            </div>
+              </div>
 
-            <div class="table-row">
+              <div class="table-row">
                 <div>Software Engineer</div>
-                <div><span class="status status-review">Under Review</span></div>
+                <div>TechNova Solutions</div> <div><span class="status status-review">Under Review</span></div>
                 <div>12 Apr 2026</div>
                 <div>15 Apr 2026</div>
                 <div><button class="btn-view">View</button></div>
-            </div>
+              </div>
 
             <div class="table-row">
                 <div>Product Manager</div>
@@ -301,7 +303,7 @@
 </div>
 
 <script>
-const API_BASE_URL_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 /**
@@ -315,7 +317,7 @@ async function checkAuth() {
   }
 
   try {
-    const resp = await fetch(`${API_BASE_URL_URL}/account-info`, {
+    const resp = await fetch(`${API_BASE_URL}/account-info`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -324,8 +326,8 @@ async function checkAuth() {
         const profile = await resp.json();
         const title = document.getElementById("pageTitle");
         if (title && profile.full_name) {
-            const firstName = profile.full_name.split(' ')[0];
-            title.innerText = `Welcome, ${firstName}`;
+            const Name = profile.full_name;
+            title.innerText = `Welcome, ${Name}`;
         }
         document.body.style.display = "block";
         setTimeout(() => document.body.style.opacity = "1", 50);
@@ -346,7 +348,7 @@ async function checkAuth() {
  */
 async function loadApplications() {
   try {
-    const resp = await fetch(`${API_BASE_URL_URL}/employee/applications`, {
+    const resp = await fetch(`${API_BASE_URL}/employee/applications`, {
         method: 'GET',
         credentials: 'include'
     });
@@ -369,6 +371,7 @@ function renderTable(data) {
     const tableContainer = document.querySelector('.applications-table');
     const header = `<div class="table-header">
                 <div>Role Applied</div>
+                <div>Company</div>
                 <div>Status</div>
                 <div>Submitted</div>
                 <div>Last Updated</div>
@@ -382,20 +385,26 @@ function renderTable(data) {
 
     let rowsHtml = header;
     data.forEach(app => {
-        const statusData = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
-        const status = statusData?.status || "submitted";
+        // Supabase returns an array for joins; grab the first status record
+        const statusObj = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
+        
+        const status = statusObj?.status || "submitted";
+        
+        // Access the 'company' field from the nested profile object
+        const companyName = statusObj?.profiles?.company || "Unknown Company";
         
         const submittedDate = new Date(app.created_at).toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric'
         });
         
-        const lastUpdated = statusData?.updated_at 
-            ? new Date(statusData.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
+        const lastUpdated = statusObj?.updated_at 
+            ? new Date(statusObj.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
             : submittedDate;
 
         rowsHtml += `
             <div class="table-row">
                 <div>${app.role_title}</div>
+                <div>${companyName}</div>
                 <div><span class="status status-${status.toLowerCase().replace(/\s+/g, '-')}">${status.toUpperCase()}</span></div>
                 <div>${submittedDate}</div>
                 <div>${lastUpdated}</div>
@@ -448,7 +457,7 @@ Match Score: ${score}
  */
 async function logout() {
   try {
-    await fetch(`${API_BASE_URL_URL}/logout`, { method: 'POST', credentials: 'include' });
+    await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
   } finally {
     localStorage.removeItem("talentflow_token");
     window.location.href = "login.html";
