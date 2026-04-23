@@ -10,21 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from openai import OpenAI
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
-
+from fastapi.responses import JSONResponse, FileResponse
 
 load_dotenv()
 
 app = FastAPI()
 
-# After your API routes
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 @app.get("/")
 async def read_index():
+    # Looks for index.html in the same directory as main.py
     return FileResponse('login.html')
 
 # --- CLIENTS ---
