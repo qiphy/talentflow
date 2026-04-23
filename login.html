@@ -68,7 +68,7 @@
 
   <script>
     let currentRole = 'employer';
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 function setRole(role) {
@@ -116,7 +116,7 @@ async function handleLogin(e) {
     };
 
     try {
-        const response = await fetch(`${API_BASE}/login`, {
+        const response = await fetch(`${API_BASE_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -167,7 +167,7 @@ async function handleLogin(e) {
 async function loadCompanies() {
     const companySelect = document.getElementById('company');
     try {
-        const response = await fetch(`${API_BASE}/companies`);
+        const response = await fetch(`${API_BASE_URL}/companies`);
         const companies = await response.json();
 
         console.log("Companies received from backend:", companies);

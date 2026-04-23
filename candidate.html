@@ -654,10 +654,7 @@ localStorage.removeItem("user");
 window.location.href = "login.html";
 }
 
-/* ── CONFIG & STATE ── */
-const API_BASE = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
-    ? "http://127.0.0.1:8000" 
-    : ""; // Empty string makes fetch use the current domain (Vercel)
+const API_BASE_URL = "http://127.0.0.1:8000";
 let POSITIONS_DATA = [];
 let activeScoreFilter = 'all';
 let isPreviewMode = false; 
@@ -683,7 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function checkAuth() {
     try {
-      const resp = await fetch(`${API_BASE}/me`, { method: 'GET', credentials: 'include' });
+      const resp = await fetch(`${API_BASE_URL}/me`, { method: 'GET', credentials: 'include' });
       if (resp.ok) return { authenticated: true, profile: await resp.json() };
       return { authenticated: false };
     } catch (err) {
@@ -718,7 +715,7 @@ function enablePreviewMode() {
 
 async function fetchCandidates() {
     try {
-        const response = await fetch(`${API_BASE}/hr/dashboard`, {
+        const response = await fetch(`${API_BASE_URL}/hr/dashboard`, {
             method: "GET",
             headers: { "Content-Type": "application/json" },
             credentials: "include" 
@@ -965,7 +962,7 @@ async function updateStatus(applicationId, newStatus, startDate = null) {
         const bodyData = { status: newStatus };
         if (startDate) bodyData.start_date = startDate;
 
-        const response = await fetch(`${API_BASE}/applications/${applicationId}/status`, {
+        const response = await fetch(`${API_BASE_URL}/applications/${applicationId}/status`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(bodyData),

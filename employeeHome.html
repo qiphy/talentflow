@@ -718,7 +718,7 @@ localStorage.removeItem("user");
 window.location.href = "login.html";
 }
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 async function checkAuth() {
@@ -730,7 +730,7 @@ async function checkAuth() {
   }
   
   try {
-    const resp = await fetch(`${API_BASE_URL}/account-info`, {
+    const resp = await fetch(`${API_BASE_URL_URL}/account-info`, {
       method: 'GET',
       credentials: 'include' 
     });
@@ -779,7 +779,7 @@ function triggerUpload() {
     formData.append('file', file);
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/extract-cv`, {
+      const resp = await fetch(`${API_BASE_URL_URL}/extract-cv`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
@@ -948,7 +948,7 @@ async function submitForm() {
     };
 
     try {
-        const response = await fetch(`${API_BASE_URL}/applications`, {
+        const response = await fetch(`${API_BASE_URL_URL}/applications`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

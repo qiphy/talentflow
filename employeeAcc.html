@@ -243,10 +243,7 @@ html, body {
         };
         
         let initialValues = {};
-        const API_BASE = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
-    ? "http://127.0.0.1:8000" 
-    : ""; // Empty string makes fetch use the current domain (Vercel)
-
+        const API_BASE_URL =  "http://127.0.0.1:8000" 
         // 1. DATA LOADER
         async function loadProfile() {
             if (IS_PREVIEW_MODE) {
@@ -260,7 +257,7 @@ html, body {
             }
 
             try {
-                const response = await fetch(`${API_BASE}/account-info`, {
+                const response = await fetch(`${API_BASE_URL}/account-info`, {
                     method: 'GET',
                     credentials: 'include' 
                 });
@@ -328,7 +325,7 @@ html, body {
             }
 
             try {
-                const response = await fetch(`${API_BASE}/update-account`, {
+                const response = await fetch(`${base_url="https://api.ilmu.ai/v1",}/update-account`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',

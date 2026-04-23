@@ -344,7 +344,7 @@ window.location.href = "login.html";
 }
 
 /* ── CONFIG & AUTH ── */
-const API_BASE = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
+const API_BASE_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
     ? "http://127.0.0.1:8000" 
     : ""; // Empty string makes fetch use the current domain (Vercel)
 
@@ -365,7 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  */
 async function checkAuth() {
   try {
-    const resp = await fetch(`${API_BASE}/me`, {
+    const resp = await fetch(`${API_BASE_URL}/me`, {
       method: "GET",
       credentials: "include",
     });
@@ -384,7 +384,7 @@ async function checkAuth() {
  */
 async function fetchMonitoringData() {
   try {
-    const response = await fetch(`${API_BASE}/monitoring/logs`, {
+    const response = await fetch(`${API_BASE_URL}/monitoring/logs`, {
       method: "GET",
       credentials: "include",
     });

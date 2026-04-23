@@ -301,7 +301,7 @@
 </div>
 
 <script>
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 /**
@@ -315,7 +315,7 @@ async function checkAuth() {
   }
 
   try {
-    const resp = await fetch(`${API_BASE_URL}/account-info`, {
+    const resp = await fetch(`${API_BASE_URL_URL}/account-info`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -346,7 +346,7 @@ async function checkAuth() {
  */
 async function loadApplications() {
   try {
-    const resp = await fetch(`${API_BASE_URL}/employee/applications`, {
+    const resp = await fetch(`${API_BASE_URL_URL}/employee/applications`, {
         method: 'GET',
         credentials: 'include'
     });
@@ -448,7 +448,7 @@ Match Score: ${score}
  */
 async function logout() {
   try {
-    await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
+    await fetch(`${API_BASE_URL_URL}/logout`, { method: 'POST', credentials: 'include' });
   } finally {
     localStorage.removeItem("talentflow_token");
     window.location.href = "login.html";

@@ -90,7 +90,7 @@
   </div>
 
   <script>
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 /* ── STATE ── */
@@ -177,7 +177,7 @@ async function handleSignup(event) {
         btn.disabled = true;
         btn.textContent = "Processing...";
 
-        const response = await fetch(`${API_BASE_URL}/signup`, {
+        const response = await fetch(`${API_BASE_URL_URL}/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

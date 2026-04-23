@@ -203,7 +203,7 @@ html, body {
     </div>
 
     <script>
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 document.addEventListener('DOMContentLoaded', async function() {
     const updateButton = document.getElementById('updateButton');
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 1. DATA LOADER
     async function loadProfile() {
         try {
-            const response = await fetch(`${API_BASE}/account-info`, {
+            const response = await fetch(`${API_BASE_URL}/account-info`, {
                 method: 'GET',
                 credentials: 'include' 
             });
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         try {
-            const response = await fetch(`${API_BASE}/update-account`, {
+            const response = await fetch(`${API_BASE_URL}/update-account`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 function logout() {
-    fetch(`${API_BASE}/logout`, { method: 'POST', credentials: 'include' })
+    fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' })
         .finally(() => {
             localStorage.removeItem("token");
             window.location.href = "login.html";
