@@ -56,29 +56,36 @@
        MONITOR CONTROLS
        ============================================================ */
 
-    .monitor-controls{
-    display:flex;
-    gap:12px;
-    margin:20px 0;
+    .monitor-controls {
+        display: flex;
+        gap: 12px;
+        margin: 20px 0;
+        align-items: center;
     }
 
-    .search-input{
-    flex:1;
-    padding:10px 12px;
-    border-radius:var(--border-radius-md);
-    border:1px solid var(--color-border-secondary);
-    background:var(--color-background-secondary);
-    color:var(--color-text-primary);
-    font-size:13px;
+    .search-input, .filter-select {
+        height: 40px; /* Force consistent height */
+        padding: 0 16px;
+        background: var(--color-background-secondary);
+        border: 1px solid var(--color-border-tertiary);
+        border-radius: var(--border-radius-md);
+        color: var(--color-text-primary);
+        outline: none;
+        transition: border-color 0.2s;
     }
 
-    .filter-select{
-    padding:10px 12px;
-    border-radius:var(--border-radius-md);
-    border:1px solid var(--color-border-secondary);
-    background:var(--color-background-secondary);
-    color:var(--color-text-primary);
-    font-size:13px;
+    .search-input:focus, .filter-select:focus {
+        border-color: #4a9eff;
+    }
+
+    .filter-select {
+        cursor: pointer;
+        min-width: 140px;
+        appearance: none; /* Removes default browser arrow to style customly if desired */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: calc(100% - 12px) center;
+        padding-right: 32px;
     }
 
 
@@ -149,6 +156,11 @@
     background: var(--status-rejected-bg);
     color: var(--status-rejected-text);
     }
+
+    .status-onboarding {
+    background: rgba(16, 185, 129, 0.2); /* Emerald green */
+    color: #10b981;
+}
 
     /* ============================================================
     VIEW BUTTON
@@ -252,11 +264,12 @@
             <input class="search-input" placeholder="Search your submissions...">
 
             <select class="filter-select">
-                <option>All Status</option>
-                <option>Submitted</option>
-                <option>Under Review</option>
-                <option>Accepted</option>
-                <option>Rejected</option>
+                <option value="all status">All Status</option>
+                <option value="submitted">Submitted</option>
+                <option value="under review">Under Review</option>
+                <option value="accepted">Accepted</option>
+                <option value="onboarding">Onboarding</option> 
+                <option value="rejected">Rejected</option>
             </select>
             </div>
 
@@ -425,9 +438,13 @@ function handleFilters() {
 
     const filtered = allApplications.filter(app => {
         const statusData = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
-        const status = (statusData?.status || "submitted").toLowerCase();
+        let status = (statusData?.status || "submitted").toLowerCase();
         
-        const matchesSearch = app.role_title.toLowerCase().includes(searchTerm);
+        // Map "onboarding" to "accepted" if you want them grouped, 
+        // or ensure the filter dropdown has an "Onboarding" option.
+        const matchesSearch = app.role_title.toLowerCase().includes(searchTerm) || 
+                              (statusData?.profiles?.company || "").toLowerCase().includes(searchTerm);
+                              
         const matchesFilter = filterStatus === "all status" || status === filterStatus;
 
         return matchesSearch && matchesFilter;
