@@ -655,7 +655,9 @@ window.location.href = "login.html";
 }
 
 /* ── CONFIG & STATE ── */
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
+    ? "http://127.0.0.1:8000" 
+    : ""; // Empty string makes fetch use the current domain (Vercel)
 let POSITIONS_DATA = [];
 let activeScoreFilter = 'all';
 let isPreviewMode = false; 

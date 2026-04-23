@@ -204,7 +204,9 @@ html, body {
 
     <script>
     const IS_PREVIEW_MODE = false;
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
+    ? "http://127.0.0.1:8000" 
+    : ""; // Empty string makes fetch use the current domain (Vercel)
 
 document.addEventListener('DOMContentLoaded', async function() {
     const updateButton = document.getElementById('updateButton');
