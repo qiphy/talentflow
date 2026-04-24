@@ -460,32 +460,29 @@ function handleFilters() {
  * Displays details for a specific application, including HR feedback
  */
 function viewDetails(appId) {
-    const app = allApplications.find(a => String(a.id) === String(appId));
-    if (!app) return;
+      const app = allApplications.find(a => String(a.id) === String(appId));
+      if (!app) return;
 
-    // Supabase returns an array for joins; grab the first status record
-    const statusObj = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
-    
-    const score = app.recommendation_rate ? `${app.recommendation_rate}%` : "Assessment Pending";
-    
-    // NEW: Priority given to direct HR notes, falling back to AI analysis
-    const hrFeedback = statusObj?.notes || null;
-    const aiAnalysis = app.ai_analysis || "Our team is currently reviewing your application.";
+      const statusObj = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
+      const score = app.recommendation_rate ? `${app.recommendation_rate}%` : "Assessment Pending";
+      
+      // NEW: Accessing the plural 'notes' field from the join
+      const employerNotes = statusObj?.notes || null; 
+      const aiAnalysis = app.ai_analysis || "Our team is currently reviewing your application.";
 
-    // Simple Alert for now, but includes the new 'note' data
-    alert(`
-        APPLICATION DETAIL
-        Role: ${app.role_title}
-        Match Score: ${score}
+      alert(`
+  APPLICATION DETAIL
+  Role: ${app.role_title}
+  Match Score: ${score}
 
-        ---------------------------------------
-        MESSAGE FROM EMPLOYER:
-        ${hrFeedback ? hrFeedback : "No specific notes from the employer yet."}
+  ---------------------------------------
+  MESSAGE FROM EMPLOYER:
+  ${employerNotes ? employerNotes : "No specific notes from the employer yet."}
 
-        ---------------------------------------
-        AI INSIGHTS:
-        ${aiAnalysis}
-    `);
+  ---------------------------------------
+  AI INSIGHTS:
+  ${aiAnalysis}
+      `);
 }
 
 /**

@@ -305,13 +305,15 @@ async def update_app_status(app_id: str, payload: StatusUpdate, bg_tasks: Backgr
 
         # Update the application status record specifically for this employer
         # We use upsert to ensure a status row exists for the application/employer pair
-        supabase.table("application_status").upsert({
+        result = supabase.table("application_status").upsert({
             "application_id": app_id,
             "employer_id": user_id,
             "status": payload.status.lower(),
-            "notes": payload.notes,
+            "notes": payload.notes, 
             "updated_at": datetime.now().isoformat()
         }, on_conflict="application_id,employer_id").execute()
+        
+        print(f"DEBUG [SUPABASE]: Upsert Success. Rows affected: {len(result.data)}")
         
         # 2. Also update the top-level start_date on the application if provided
         if payload.start_date:
@@ -453,7 +455,8 @@ async def get_employee_apps(current_user = Depends(get_current_user)):
                     status, 
                     updated_at,
                     employer_id,
-                    profiles:employer_id(company)
+                    profiles:employer_id(company),
+                    notes
                 )
             """)\
             .eq("candidate_id", user_id)\
