@@ -956,6 +956,7 @@
 </div>
 
 <script>
+let globalEmployerId = null;
 function logout() {
 // clear stored login info
 localStorage.removeItem("token");
@@ -1056,6 +1057,7 @@ async function fetchDashboardData() {
     if (!resp.ok) throw new Error("Backend returned " + resp.status);
 
     const data = await resp.json();
+    globalEmployerId = data.user_id || data.recent_apps[0]?.employer_id;
 
     if (data.glm_summary) {
         document.getElementById('glmSummaryText').innerHTML = `<strong>GLM Summary:</strong> ${data.glm_summary}`;
@@ -1087,6 +1089,7 @@ async function fetchDashboardData() {
         const now = new Date();
         now.setHours(0, 0, 0, 0);
         const diffDays = Math.ceil((startDate - now) / 86400000);
+        const loggedInEmployerId = start.employer_id;
 
         return {
             ...start,
@@ -1098,6 +1101,7 @@ async function fetchDashboardData() {
             year: y,
             month: startDate.toLocaleString('default', { month: 'short' }).toUpperCase(),
             daysAway: diffDays,
+            employer_id: start.employer_id,
             urgent: diffDays <= 7 && diffDays >= 0
         };
     });
@@ -1612,33 +1616,31 @@ let calViewDate = new Date(); // Defaults to "Now"
 
 function openCalendarModal() {
     document.getElementById('calendarModal').style.display = 'flex';
-    renderCalendar();
+    renderCalendar(globalEmployerId);
 }
 
 function changeMonth(step) {
     // Move the state forward or backward by 1 month
     calViewDate.setMonth(calViewDate.getMonth() + step);
-    renderCalendar();
+    renderCalendar(globalEmployerId);
 }
 
 function jumpToToday() {
     calViewDate = new Date();
-    renderCalendar();
+    renderCalendar(globalEmployerId);
 }
 
-function renderCalendar() {
-    console.log("Current Calendar View:", { month: calViewDate.getMonth(), year: calViewDate.getFullYear() });
-    console.log("Available Events:", window.UPCOMING_STARTS_DATA);
+function renderCalendar(globalEmployerId) {
+    // 1. Check if the global data exists
+    const sourceData = window.UPCOMING_STARTS || window.UPCOMING_STARTS_DATA || [];
+    
     const grid = document.getElementById('calendarGrid');
     const title = document.getElementById('calMonthTitle');
     if (!grid || !title) return;
 
     const year = calViewDate.getFullYear();
     const month = calViewDate.getMonth();
-    const monthNameLong = calViewDate.toLocaleString('default', { month: 'long' });
-    const monthNameShort = calViewDate.toLocaleString('default', { month: 'short' }).toUpperCase();
-
-    title.innerText = `${monthNameLong} ${year}`;
+    title.innerText = `${calViewDate.toLocaleString('default', { month: 'long' })} ${year}`;
 
     const firstDay = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1659,35 +1661,34 @@ function renderCalendar() {
         } else {
             let eventHtml = "";
             
-            // Check the global data synced from the backend
-          // Inside renderCalendar() loop
-          if (window.UPCOMING_STARTS_DATA && window.UPCOMING_STARTS_DATA.length > 0) {
-              window.UPCOMING_STARTS_DATA.forEach(s => {
-                  // 1. Strict numeric comparison
-                  const isSameDay = s.day === dayNum;
-                  const isSameMonth = s.monthNum === month; // 'month' is the variable from the calendar state
-                  const isSameYear = s.year === year;
+            // --- UPDATED DATA FILTERING ---
+            sourceData.forEach(s => {
+                // Ensure both are strings and trimmed to avoid "id mismatch" bugs
+                const sEmployerId = String(s.employer_id || '').trim();
+                const currentEmpId = String(loggedInEmployerId || '').trim();
 
-                  if (isSameDay && isSameMonth && isSameYear) {
-                      const color = s.urgent ? '#f59e0b' : '#4a9eff';
-                      eventHtml += `
-                          <div class="cal-event" 
-                              style="background:${color}22; color:${color}; border:1px solid ${color}44; margin-top:4px;"
-                              title="${s.name} - ${s.role}">
-                              ${s.name.split(' ')[0]}
-                          </div>`;
-                  }
-              });
-          }
+                if (sEmployerId !== currentEmpId) return;
+
+                // Match exact date components
+                if (s.day === dayNum && s.monthNum === month && s.year === year) {
+                    const color = s.urgent ? '#f59e0b' : '#4a9eff';
+                    const firstName = s.name ? s.name.split(' ')[0] : 'Hire';
+                    
+                    eventHtml += `
+                        <div class="cal-event" 
+                             style="background:${color}22; color:${color}; border:1px solid ${color}44; border-radius:4px; padding:2px 4px; font-size:10px; margin-top:2px;"
+                             title="${s.name} - ${s.role}">
+                             ${firstName}
+                        </div>`;
+                }
+            });
 
             const isToday = (dayNum === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) ? 'today' : '';
 
             html += `
                 <div class="cal-cell ${isToday}">
                     <div class="cal-date-num">${dayNum}</div>
-                    <div class="cal-event-list" style="display:flex; flex-direction:column; gap:2px;">
-                        ${eventHtml}
-                    </div>
+                    <div class="cal-event-list">${eventHtml}</div>
                 </div>`;
         }
     }

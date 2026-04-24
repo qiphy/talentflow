@@ -229,7 +229,7 @@ p, .subtitle-text {
   letter-spacing: 0.05em;
 }
 
-.form-input, .form-select {
+.form-input, .form-select, .form-control {
   width: 100%;
   padding: 12px;
   border: 1px solid var(--color-border-secondary);
@@ -377,3 +377,4 @@ p, .subtitle-text {
     padding: 1.5rem;
   }
 }
+

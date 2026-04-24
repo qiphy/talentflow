@@ -2,15 +2,15 @@ import os
 import json
 import io
 import fitz  # PyMuPDF: Install with 'pip install pymupdf'
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Response, Depends, Cookie, Request, BackgroundTasks, UploadFile, File
+from fastapi import FastAPI, HTTPException, Depends, Cookie, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from openai import OpenAI
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 
 load_dotenv()
 
@@ -20,7 +20,7 @@ app = FastAPI()
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 supabase_admin: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SERVICE_ROLE"))
 zai_client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
+    base_url="https://api.ilmu.ai/v1",
     api_key=os.getenv("Z_AI_API_KEY"),
 )
 
@@ -485,24 +485,28 @@ async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_curren
 
         upcoming_starts = []
         for a in apps:
-            # Look for the top-level 'start_date' column
-            s_date = a.get("start_date")
+            status_entries = a.get("application_status", [])
             
-            # Defensive check: if it's not at top-level, check if it's in the status join
-            if not s_date:
-                # Sometimes start_date is stored in the application_status table instead
-                status_entries = a.get("application_status", [])
-                if isinstance(status_entries, list) and status_entries:
-                    s_date = status_entries[0].get("start_date")
+            # 1. Find the entry belonging to THIS employer
+            # We use next() to find the first match in the list
+            user_status_entry = next(
+                (s for s in status_entries if str(s.get('employer_id')) == user_id), 
+                None
+            )
 
-            if s_date and a.get("status") != "rejected":
-                print(f"DEBUG: Found start_date {s_date} for {a.get('full_name')}")
-                upcoming_starts.append({
-                    "id": a.get("id"), 
-                    "full_name": a.get("full_name"), 
-                    "role_title": a.get("role_title"), 
-                    "start_date": s_date
-                })
+            if user_status_entry:
+                # 2. Get the date from the status entry OR the top-level app
+                s_date = user_status_entry.get("start_date") or a.get("start_date")
+                
+                # 3. Check status and date safely
+                if s_date and user_status_entry.get("status") != "rejected":
+                    upcoming_starts.append({
+                        "id": a.get("id"), 
+                        "employer_id": user_id,
+                        "full_name": a.get("full_name"), 
+                        "role_title": a.get("role_title"), 
+                        "start_date": s_date
+                    })
 
         # Deterministic sort
         upcoming_starts.sort(key=lambda x: str(x['start_date']))
@@ -535,10 +539,15 @@ async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_curren
                 count = sum(1 for a in apps if start_month <= datetime.fromisoformat(a.get('created_at').replace('Z', '+00:00')).replace(tzinfo=None) < end_month)
                 trend_counts.append(count)
 
-        # --- 5. Return ---
+# --- 5. Return ---
         return {
             "recent_apps": apps[:10],
-            "upcoming_starts": upcoming_starts[:5],
+            # FIX: Send the full list so the Calendar can actually show all dates
+            "upcoming_starts": upcoming_starts, 
+            
+            # If you specifically need a "Top 5" for a sidebar, create a new key:
+            "upcoming_starts_summary": upcoming_starts[:5],
+            
             "dept_stats": formatted_depts,
             "pipeline": formatted_pipeline,
             "glm_summary": f"GLM parsed {len(apps)*12} data points. Active pipeline: {sum(pipeline_counts.values()) - pipeline_counts.get('Rejected', 0)} candidates.",

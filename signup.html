@@ -28,7 +28,7 @@
     <div id="notif"></div>
 
     <h2 id="formTitle">Register as Employer</h2>
-    <p id="formSubtitle">Fill in the details to get started.</p>
+    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;" id="formSubtitle">Fill in the details to get started.</p>
 
     <form id="signupForm" onsubmit="handleSignup(event)" novalidate>
       
@@ -49,13 +49,18 @@
       </div>
 
       <div id="employerOnlyField" class="form-group">
-        <label class="form-label">Company Name</label>
-        <select id="companySelect" class="form-select">
-          <option value="">-- Select company --</option>
-          <option>Acme Corporation</option>
-          <option>Global Tech Ltd.</option>
-          <option>Sunrise Ventures</option>
-        </select>
+        <label class="form-label" for="companyInput">Company Name</label>
+        <input 
+          list="companyOptions" 
+          id="companyInput" 
+          class="form-input" 
+          placeholder="Type or select a company..."
+        >
+        <datalist id="companyOptions">
+          <option value="Acme Corporation">
+          <option value="Global Tech Ltd.">
+          <option value="Sunrise Ventures">
+        </datalist>
       </div>
 
       <div class="form-group">
@@ -74,8 +79,8 @@
         </div>
       </div>
 
-      <div class="terms-container">
-        <label class="checkbox-label">
+      <div style="font-size: 13px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;" class="terms-container">
+        <label style="color: var(--color-text-secondary); display: flex; align-items: center; gap: 5px;" class="checkbox-label">
           <input type="checkbox" id="terms" required/> 
           <span>I agree to the <a href="#">Terms & Conditions</a></span>
         </label>
@@ -84,7 +89,7 @@
       <button type="submit" id="btnSignup" class="btn-primary">Create Account</button>
     </form>
 
-    <p class="login-redirect">
+    <p style="text-align: center; font-size: 13px; margin-top: 20px; color: var(--color-text-secondary);" class="login-redirect">
       Already have an account? <a href="login.html">Login here</a>
     </p>
   </div>
