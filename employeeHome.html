@@ -907,11 +907,13 @@ async function submitForm() {
     const btn = document.querySelector('.btn-primary');
     const meta = document.getElementById("submitMeta");
 
+    // Reset styles
     document.querySelectorAll('.form-input, .form-select').forEach(el => {
         el.style.borderColor = "var(--color-border-secondary)";
         el.style.backgroundColor = "var(--color-background-secondary)";
     });
 
+    // Validate required fields
     const missing = required.filter(id => !document.getElementById(id)?.value.trim());
 
     if (missing.length) {
@@ -924,26 +926,29 @@ async function submitForm() {
         });
         meta.innerText = "⚠️ Missing required fields (highlighted in red)";
         meta.style.color = "#f87171";
-        document.getElementById(missing[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const firstMissing = document.getElementById(missing[0]);
+        if (firstMissing) firstMissing.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
     }
 
     btn.innerText = "Submitting...";
     btn.disabled = true;
 
+    // Collect all dynamic form fields into 'details'
     const details = {};
     document.querySelectorAll('input, select, textarea').forEach(el => {
-        if (el.id && !["name", "email", "role", "dept"].includes(el.id)) {
+        // We only exclude the hardcoded payload fields
+        if (el.id && !["name", "email", "role"].includes(el.id)) {
             details[el.id] = el.value;
         }
     });
 
+    // Final Payload (No Department)
     const payload = {
         full_name: document.getElementById("name").value,
         email: document.getElementById("email").value,
         role_title: document.getElementById("role").value,
-        department: document.getElementById("dept").value,
-        skills: skills,
+        skills: skills, // Ensure 'skills' array is defined globally
         form_details: details
     };
 
@@ -967,7 +972,7 @@ async function submitForm() {
         }
     } catch (err) {
         console.error("Submission error:", err);
-        alert("Submission failed. Please check your connection.");
+        alert("Submission failed. Check your connection.");
     } finally {
         btn.innerText = "Submit Application →";
         btn.disabled = false;

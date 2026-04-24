@@ -63,7 +63,6 @@ class ApplicationData(BaseModel):
     full_name: str
     email: str
     role_title: str
-    department: str
     skills: list
     form_details: dict
 
@@ -371,28 +370,61 @@ async def update_account(
         raise HTTPException(status_code=400, detail=str(e))
 
 # --- APPLICATIONS & DASHBOARD ---
+# Assuming your ApplicationData model looks like this now:
 @app.post("/applications")
 async def submit_application(payload: ApplicationData, current_user = Depends(get_current_user)):
     user_id = getattr(current_user, "id", None) or current_user.get("id")
     
-    prompt = f"Analyze candidate for {payload.role_title}. Skills: {payload.skills}"
+    # --- Updated Prompt: AI now determines the Department ---
+    prompt = f"""
+    You are a senior technical recruiter. Evaluate the candidate for the '{payload.role_title}' position.
+    Candidate Skills: {payload.skills}
+
+    Based on the role title '{payload.role_title}', categorize this into one of the following departments: 
+    Engineering, Design, Marketing, Sales, HR, Finance, or Operations.
+
+    Return a JSON object with:
+    - "department": (string)
+    - "score": (int 0-100)
+    - "technical_fit": (int 0-50)
+    - "soft_skills_fit": (int 0-50)
+    - "justification": (short string explaining the score)
+    - "concerns": (list of missing critical skills)
+    """
+
+    generated_dept = "General" # Default fallback
+    
     try:
         completion = zai_client.chat.completions.create(
             model="ilmu-glm-5.1",
             messages=[{"role": "user", "content": prompt}],
             response_format={ "type": "json_object" }
         )
+        
         ai_data = json.loads(completion.choices[0].message.content)
-        rec_rate, analysis_text = ai_data.get("score"), ai_data.get("justification")
-    except:
-        rec_rate, analysis_text = None, "AI Analysis unavailable."
+        
+        # Capture AI-generated data
+        generated_dept = ai_data.get("department", "General")
+        rec_rate = ai_data.get("score")
+        
+        analysis_text = (
+            f"Score: {rec_rate}% | "
+            f"Justification: {ai_data.get('justification')} "
+            f"Concerns: {', '.join(ai_data.get('concerns', []))}"
+        )
 
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"CRITICAL [AI_ANALYSIS]: {str(e)}")
+        rec_rate = 0
+        analysis_text = "AI Analysis failed or timed out."
+
+    # Final data object for Supabase
     data = {
         "candidate_id": user_id,
         "full_name": payload.full_name,
         "email": payload.email,
         "role_title": payload.role_title,
-        "department": payload.department,
+        "department": generated_dept, # Use the AI's decision
         "skills": payload.skills,
         "form_details": payload.form_details,
         "recommendation_rate": rec_rate,
@@ -400,7 +432,10 @@ async def submit_application(payload: ApplicationData, current_user = Depends(ge
     }
 
     supabase.table("applications").insert(data).execute()
-    await log_ai_event(user_id, "application_submission", f"New application from {payload.full_name}", {"dept": payload.department})
+    
+    # Updated log event using AI-generated dept
+    await log_ai_event(user_id, "application_submission", f"New application from {payload.full_name}", {"dept": generated_dept})
+    
     return {"status": "success"}
 
 @app.get("/employee/applications")
