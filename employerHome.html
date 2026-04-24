@@ -956,7 +956,7 @@
 </div>
 
 <script>
-let globalEmployerId = null;
+let loggedInEmployerId = null;
 function logout() {
 // clear stored login info
 localStorage.removeItem("token");
@@ -1057,7 +1057,12 @@ async function fetchDashboardData() {
     if (!resp.ok) throw new Error("Backend returned " + resp.status);
 
     const data = await resp.json();
-    globalEmployerId = data.user_id || data.recent_apps[0]?.employer_id;
+
+    // --- CRITICAL ID SYNC ---
+    // This matches the "user_id" key you added to your Python return statement.
+    loggedInEmployerId = data.user_id || (data.recent_apps && data.recent_apps[0]?.employer_id);
+    console.log("✅ LoggedIn ID set to:", loggedInEmployerId);
+    // -----------------------
 
     if (data.glm_summary) {
         document.getElementById('glmSummaryText').innerHTML = `<strong>GLM Summary:</strong> ${data.glm_summary}`;
@@ -1076,24 +1081,18 @@ async function fetchDashboardData() {
       updateEl('statPending', data.stats.pending);
       updateEl('statOnboarding', data.stats.onboarding);
       updateEl('statExtractions', data.stats.extractions);
-      updateEl('statAvgTime', data.stats.avg_time_to_hire);
-      updateEl('statAcceptanceRate', data.stats.offer_acceptance);
     }
 
-    // 2. Process Upcoming Starts (Transform DB dates for UI)
-    // We map the raw ISO date into { day, month, daysAway } for the UI components
-    // Inside fetchDashboardData in employerHome.js
+    // 2. Process Upcoming Starts
     UPCOMING_STARTS = (data.upcoming_starts || []).map(start => {
         const [y, m, d] = start.start_date.split('-').map(Number);
         const startDate = new Date(y, m - 1, d); 
         const now = new Date();
         now.setHours(0, 0, 0, 0);
         const diffDays = Math.ceil((startDate - now) / 86400000);
-        const loggedInEmployerId = start.employer_id;
 
         return {
             ...start,
-            // UI MAPPING: Bridge backend keys to frontend renderer keys
             name: start.full_name, 
             role: start.role_title,
             day: d,
@@ -1101,44 +1100,24 @@ async function fetchDashboardData() {
             year: y,
             month: startDate.toLocaleString('default', { month: 'short' }).toUpperCase(),
             daysAway: diffDays,
-            employer_id: start.employer_id,
+            employer_id: start.employer_id, // This matches the ID in your Python loop
             urgent: diffDays <= 7 && diffDays >= 0
         };
     });
 
-    // Update the global calendar source too
+    // Update Global Calendar Source
     window.UPCOMING_STARTS_DATA = UPCOMING_STARTS;
-
-    // Trigger the visual update
-    renderUpcomingStarts();
-
-    // 3. Update Global State
+    
+    // Refresh all UI components
     RECENT_APPS = data.recent_apps || [];
     DEPT_DATA = data.dept_stats || [];
     PIPELINE_STAGES = data.pipeline || [];
-    GLM_INSIGHTS = data.insights || [];
-    window.UPCOMING_STARTS_DATA = UPCOMING_STARTS; // Sync with Calendar logic
-    
-    if (data.trend) {
-      LATEST_TREND = data.trend;
-    }
+    if (data.trend) LATEST_TREND = data.trend;
 
-    console.log("📦 RAW BACKEND DATA:", data);
-
-    if (data.recent_apps && data.recent_apps.length > 0) {
-        console.log("👤 FIRST CANDIDATE RECORD:", data.recent_apps[0]);
-        // This will tell you if the key is 'full_name', 'name', or missing entirely.
-    }
-
-    // 4. Refresh all UI components
     refreshUI();
 
   } catch (err) {
     console.error("Dashboard Fetch Error:", err);
-    if (banner) {
-      banner.style.display = 'flex';
-      banner.innerHTML = `<strong>❌ Connection Error:</strong> Unable to reach the HR server.`;
-    }
   }
 }
 
@@ -1615,22 +1594,32 @@ if (!String.prototype.title) {
 let calViewDate = new Date(); // Defaults to "Now"
 
 function openCalendarModal() {
+    // If the ID is still undefined, try to grab it from the data source
+    if (!loggedInEmployerId && window.UPCOMING_STARTS_DATA?.length > 0) {
+        loggedInEmployerId = window.UPCOMING_STARTS_DATA[0].employer_id;
+    }
+
+    if (!loggedInEmployerId) {
+        console.error("Calendar Failure: No verified Employer ID.");
+        return;
+    }
+
     document.getElementById('calendarModal').style.display = 'flex';
-    renderCalendar(globalEmployerId);
+    renderCalendar(loggedInEmployerId);
 }
 
 function changeMonth(step) {
     // Move the state forward or backward by 1 month
     calViewDate.setMonth(calViewDate.getMonth() + step);
-    renderCalendar(globalEmployerId);
+    renderCalendar(loggedInEmployerId);
 }
 
 function jumpToToday() {
     calViewDate = new Date();
-    renderCalendar(globalEmployerId);
+    renderCalendar(loggedInEmployerId);
 }
 
-function renderCalendar(globalEmployerId) {
+function renderCalendar(loggedInEmployerId) {
     // 1. Check if the global data exists
     const sourceData = window.UPCOMING_STARTS || window.UPCOMING_STARTS_DATA || [];
     

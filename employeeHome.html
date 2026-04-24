@@ -906,6 +906,8 @@ function updateProgress() {
 async function submitForm() {
     const btn = document.querySelector('.btn-primary');
     const meta = document.getElementById("submitMeta");
+    const loader = document.getElementById('loadingOverlay');
+    const loaderText = loader ? loader.querySelector('.loading-text') : null;
 
     // Reset styles
     document.querySelectorAll('.form-input, .form-select').forEach(el => {
@@ -931,6 +933,12 @@ async function submitForm() {
         return;
     }
 
+    // Show Loading Overlay
+    if (loader) {
+        if (loaderText) loaderText.innerText = "Submitting Your Application...";
+        loader.style.display = 'flex';
+    }
+
     btn.innerText = "Submitting...";
     btn.disabled = true;
 
@@ -943,7 +951,7 @@ async function submitForm() {
         }
     });
 
-    // Final Payload (No Department)
+    // Final Payload (No Department - AI will handle this on backend)
     const payload = {
         full_name: document.getElementById("name").value,
         email: document.getElementById("email").value,
@@ -961,6 +969,7 @@ async function submitForm() {
         });
 
         if (response.ok) {
+            if (loaderText) loaderText.innerText = "Success! Reloading...";
             alert("Application Submitted Successfully!");
             localStorage.removeItem("talentflow_draft");
             window.location.reload(); 
@@ -974,6 +983,8 @@ async function submitForm() {
         console.error("Submission error:", err);
         alert("Submission failed. Check your connection.");
     } finally {
+        // Hide Loading Overlay
+        if (loader) loader.style.display = 'none';
         btn.innerText = "Submit Application →";
         btn.disabled = false;
     }

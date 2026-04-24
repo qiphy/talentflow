@@ -27,7 +27,7 @@ zai_client = OpenAI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://127.0.0.1:5500"                 # Local development
+        "http://127.0.0.1:5500" # Local development
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -579,10 +579,9 @@ async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_curren
             "recent_apps": apps[:10],
             # FIX: Send the full list so the Calendar can actually show all dates
             "upcoming_starts": upcoming_starts, 
-            
             # If you specifically need a "Top 5" for a sidebar, create a new key:
             "upcoming_starts_summary": upcoming_starts[:5],
-            
+            "user_id": user_id,
             "dept_stats": formatted_depts,
             "pipeline": formatted_pipeline,
             "glm_summary": f"GLM parsed {len(apps)*12} data points. Active pipeline: {sum(pipeline_counts.values()) - pipeline_counts.get('Rejected', 0)} candidates.",
