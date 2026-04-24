@@ -943,7 +943,7 @@ function toggleDrawer(id) {
     if (btn) btn.textContent = isOpening ? '×' : '+';
 }
 
-async function updateStatus(applicationId, newStatus, startDate = null) {
+async function updateStatus(applicationId, newStatus, startDate = null, notes = null) {
     const overlay = document.getElementById('ai-loading-overlay');
     if (overlay) overlay.style.display = 'flex';
 
@@ -959,7 +959,7 @@ async function updateStatus(applicationId, newStatus, startDate = null) {
     }
 
     try {
-        const bodyData = { status: newStatus };
+        const bodyData = { status: newStatus, notes: notes };
         if (startDate) bodyData.start_date = startDate;
 
         const response = await fetch(`${API_BASE_URL}/applications/${applicationId}/status`, {
@@ -985,12 +985,17 @@ function handleReject(id, name) {
 function handleMoveStage(id) {
     const next = prompt("Enter stage (New, Reviewing, Interview, Offer, Onboarding):");
     if (!next) return;
+    
     const choice = next.toLowerCase().trim();
+    
+    // NEW: Prompt for a note to the candidate
+    const notes = prompt("Add a note/feedback for the candidate to see (optional):");
+
     if (choice === 'onboarding') {
         const dateStr = prompt("Set Start Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (dateStr) updateStatus(id, choice, dateStr);
+        if (dateStr) updateStatus(id, choice, dateStr, notes);
     } else {
-        updateStatus(id, choice);
+        updateStatus(id, choice, null, notes);
     }
 }
 

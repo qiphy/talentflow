@@ -69,6 +69,7 @@ class ApplicationData(BaseModel):
 class StatusUpdate(BaseModel):
     status: str
     start_date: Optional[str] = None
+    notes: Optional[str] = None
 
 # --- HELPERS ---
 def get_current_user(access_token: Optional[str] = Cookie(None)):
@@ -308,6 +309,7 @@ async def update_app_status(app_id: str, payload: StatusUpdate, bg_tasks: Backgr
             "application_id": app_id,
             "employer_id": user_id,
             "status": payload.status.lower(),
+            "notes": payload.notes,
             "updated_at": datetime.now().isoformat()
         }, on_conflict="application_id,employer_id").execute()
         

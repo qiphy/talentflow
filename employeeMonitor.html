@@ -456,16 +456,35 @@ function handleFilters() {
 /**
  * Displays details for a specific application
  */
+/**
+ * Displays details for a specific application, including HR feedback
+ */
 function viewDetails(appId) {
     const app = allApplications.find(a => String(a.id) === String(appId));
     if (!app) return;
 
+    // Supabase returns an array for joins; grab the first status record
+    const statusObj = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
+    
     const score = app.recommendation_rate ? `${app.recommendation_rate}%` : "Assessment Pending";
-    const feedback = app.ai_analysis || "Our team is currently reviewing your application.";
+    
+    // NEW: Priority given to direct HR notes, falling back to AI analysis
+    const hrFeedback = statusObj?.notes || null;
+    const aiAnalysis = app.ai_analysis || "Our team is currently reviewing your application.";
 
-    alert(`Application Detail: ${app.role_title}
+    // Simple Alert for now, but includes the new 'note' data
+    alert(`
+        APPLICATION DETAIL
+        Role: ${app.role_title}
+        Match Score: ${score}
 
-Match Score: ${score}
+        ---------------------------------------
+        MESSAGE FROM EMPLOYER:
+        ${hrFeedback ? hrFeedback : "No specific notes from the employer yet."}
+
+        ---------------------------------------
+        AI INSIGHTS:
+        ${aiAnalysis}
     `);
 }
 
