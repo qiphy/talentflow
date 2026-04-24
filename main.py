@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import base64
 import fitz  # PyMuPDF: Install with 'pip install pymupdf'
 from typing import Optional
 from datetime import datetime, timedelta
@@ -107,16 +108,14 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
         file_content = await file.read()
         pdf_stream = io.BytesIO(file_content)
         doc = fitz.open(stream=pdf_stream, filetype="pdf")
+        
+        # Attempt standard text extraction
         raw_text = "".join([page.get_text() for page in doc])
-        doc.close()
-
-        if not raw_text.strip():
-            print(f"DEBUG [CV]: File {file.filename} contained no readable text.")
-            raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
-
-        print(f"DEBUG [CV]: Extracting text from {file.filename} ({len(raw_text)} chars)...")
-
-        # 2. AI Parsing Prompt
+        
+        is_scanned = False
+        messages = []
+        
+        # 2. AI Parsing Prompt & Logic
         system_instruction = (
             "You are a deterministic HR Data Parser. Extract info from the CV into a VALID JSON object.\n"
             "STRICT CATEGORY RULES:\n"
@@ -128,41 +127,66 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
             "Use empty strings for unknowns. Return ONLY the JSON object."
         )
 
-        completion = zai_client.chat.completions.create(
-            model="ilmu-glm-5.1",
-            messages=[
+        # Fallback for Scanned/Non-text PDFs
+        if not raw_text.strip():
+            print(f"DEBUG [CV]: No text found. Switching to Multimodal OCR for {file.filename}")
+            is_scanned = True
+            
+            # Convert first page to image (rendering at 200 DPI for clarity)
+            page = doc[0]
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) 
+            img_data = pix.tobytes("png")
+            base64_image = base64.b64encode(img_data).decode('utf-8')
+            
+            messages = [
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "This is a scanned CV image. Parse the visible information strictly into JSON."},
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
+                ]}
+            ]
+        else:
+            # Standard Text Path
+            messages = [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": f"Parse this CV text: {raw_text[:4000]}"}
-            ],
+            ]
+
+        doc.close()
+
+        # 3. Call GLM API
+        completion = zai_client.chat.completions.create(
+            model="ilmu-glm-5.1",
+            messages=messages,
             response_format={ "type": "json_object" }
         )
         
-        # 3. Robust JSON Parsing & Logging
+        # 4. Robust JSON Parsing & Logging
         raw_ai_content = completion.choices[0].message.content
-        print(f"\n[GLM RAW RESPONSE]\n{raw_ai_content}\n")
-
-        # Clean AI response if it includes Markdown code blocks
+        
+        # Clean Markdown if present
         if "```json" in raw_ai_content:
             raw_ai_content = raw_ai_content.split("```json")[1].split("```")[0].strip()
         elif "```" in raw_ai_content:
             raw_ai_content = raw_ai_content.split("```")[1].split("```")[0].strip()
 
         extracted_data = json.loads(raw_ai_content)
-        print(f"DEBUG [CV]: Parsed successfully. Candidate: {extracted_data.get('full_name')}")
-
-        # 4. Log the Extraction Event to Activity Logs
+        
+        # 5. Log Event with Extraction Method
+        log_msg = f"AI parsed {'scanned ' if is_scanned else ''}CV for {extracted_data.get('full_name', 'Unknown')}"
         await log_ai_event(
             user_id, 
             "cv_extraction", 
-            f"AI parsed CV for {extracted_data.get('full_name', 'Unknown Candidate')}",
-            {"filename": file.filename, "extracted_keys": list(extracted_data.keys())}
+            log_msg,
+            {
+                "filename": file.filename, 
+                "method": "multimodal_ocr" if is_scanned else "text_parsing",
+                "extracted_keys": list(extracted_data.keys())
+            }
         )
 
-        return {"status": "success", "extracted_data": extracted_data}
+        return {"status": "success", "extracted_data": extracted_data, "method": "ocr" if is_scanned else "text"}
 
-    except json.JSONDecodeError as je:
-        print(f"CRITICAL [CV]: JSON Decode Error: {je}")
-        raise HTTPException(status_code=500, detail="AI returned invalid JSON format.")
     except Exception as e:
         print(f"CRITICAL [CV]: Extraction Failure: {e}")
         raise HTTPException(status_code=500, detail=f"CV Parsing failed: {str(e)}")
