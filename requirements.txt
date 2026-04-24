@@ -27,3 +27,4 @@ zai-sdk
 pymupdf
 python-multipart
 openai
+base64
