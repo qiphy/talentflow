@@ -312,7 +312,6 @@ We would like to express our gratitude to the following organizations and indivi
 🏛️ The Organizers & Ecosystem
 UMHackathon 2026 Committee: For organizing a high-caliber competition that challenges the boundaries of student innovation in Malaysia.
 
-
 🛠️ Technical Infrastructure
 ILMU.AI Team: A special acknowledgment for the GLM-5.1 model. Leveraging a local LLM was central to our mission of building a Sovereign AI solution that keeps Malaysian talent data secure and contextually relevant.
 
