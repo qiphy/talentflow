@@ -21,7 +21,7 @@ app = FastAPI()
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 supabase_admin: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SERVICE_ROLE"))
 zai_client = OpenAI(
-    base_url="https://api.ilmu.ai/v1",
+    base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("Z_AI_API_KEY"),
 )
 
@@ -104,35 +104,49 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
     user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
     
     try:
-        # 1. Extract Text from PDF
+        # 1. Extract Text from PDF with better structural awareness
         file_content = await file.read()
         pdf_stream = io.BytesIO(file_content)
         doc = fitz.open(stream=pdf_stream, filetype="pdf")
         
-        # Attempt standard text extraction
-        raw_text = "".join([page.get_text() for page in doc])
+        # Use blocks to preserve logical grouping of text
+        text_parts = []
+        for page in doc:
+            blocks = page.get_text("blocks")
+            for b in blocks:
+                text_parts.append(b[4])
+        
+        raw_text = "\n".join(text_parts)
+        # Normalize whitespace to fix potential PDF encoding artifacts
+        raw_text = " ".join(raw_text.split()) 
         
         is_scanned = False
         messages = []
         
-        # 2. AI Parsing Prompt & Logic
+        # 2. Enhanced AI Parsing Prompt
+        # Added explicit instructions for Nationality, Role, and Experience calculation
         system_instruction = (
-            "You are a deterministic HR Data Parser. Extract info from the CV into a VALID JSON object.\n"
-            "STRICT CATEGORY RULES:\n"
-            "- department: [Engineering, Product, Design, HR, Finance, Marketing, Operations, Legal, Sales]\n"
-            "- employment_type: [Full-time, Part-time, Contract, Internship, Freelance]\n"
-            "- location_type: [Remote, Hybrid, On-site]\n"
-            "Keys: full_name, email, role_title, department, employment_type, location_type, "
-            "hiring_manager, years_experience, highest_qualification, previous_employer, skills (array).\n"
-            "Use empty strings for unknowns. Return ONLY the JSON object."
+            "CONTEXT: Current date is April 2026. You are a deterministic HR Data Parser.\n"
+            "TASK: Convert CV text/image into a VALID JSON object.\n"
+            "\nSTRICT FIELD RULES:\n"
+            "1. full_name: Most prominent name at the top.\n"
+            "2. phone_number: Extract digits/symbols (e.g., +6012-345-6789). Look near the email.\n"
+            "3. nationality: Infer from address if not explicit (e.g., 'United States' address -> 'American'). Default to 'Malaysian' if address is in Malaysia.\n"
+            "4. role_title: Use the current professional title. Match one of these if possible: [Software Engineer, Data Analyst, Product Manager, UI/UX Designer, HR Executive, Marketing Specialist, Operations Manager, Sales Executive].\n"
+            "5. years_experience: CALCULATE sum of work history. If '2021-Present', 'Present' = 2026. Return an integer.\n"
+            "6. preferred_location: Extract the City/State from the contact header.\n"
+            "7. employment_type: MUST BE one of [Full-time, Part-time, Contract, Internship, Freelance].\n"
+            "8. location_type: MUST BE one of [Remote, Hybrid, On-site].\n"
+            "9. highest_qualification: Extract highest degree (e.g., 'Bachelor of Computer Science').\n"
+            "\nJSON KEYS:\n"
+            "full_name, email, phone_number, role_title, nationality, department, employment_type, "
+            "location_type, preferred_location, years_experience, highest_qualification, previous_employer, skills\n"
+            "\nReturn ONLY raw JSON. Use null for unknowns."
         )
 
-        # Fallback for Scanned/Non-text PDFs
         if not raw_text.strip():
             print(f"DEBUG [CV]: No text found. Switching to Multimodal OCR for {file.filename}")
             is_scanned = True
-            
-            # Convert first page to image (rendering at 200 DPI for clarity)
             page = doc[0]
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) 
             img_data = pix.tobytes("png")
@@ -141,30 +155,28 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
             messages = [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": [
-                    {"type": "text", "text": "This is a scanned CV image. Parse the visible information strictly into JSON."},
+                    {"type": "text", "text": "Scanned CV image. Parse visible info into JSON."},
                     {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
                 ]}
             ]
         else:
-            # Standard Text Path
+            # Increased limit to 8000 to ensure background sections are included
             messages = [
                 {"role": "system", "content": system_instruction},
-                {"role": "user", "content": f"Parse this CV text: {raw_text[:4000]}"}
+                {"role": "user", "content": f"Parse this CV text: {raw_text[:8000]}"}
             ]
 
         doc.close()
 
         # 3. Call GLM API
         completion = zai_client.chat.completions.create(
-            model="ilmu-glm-5.1",
+            model="z-ai/glm-4.5-air:free",
             messages=messages,
             response_format={ "type": "json_object" }
         )
         
-        # 4. Robust JSON Parsing & Logging
+        # 4. JSON Cleaning & Parsing
         raw_ai_content = completion.choices[0].message.content
-        
-        # Clean Markdown if present
         if "```json" in raw_ai_content:
             raw_ai_content = raw_ai_content.split("```json")[1].split("```")[0].strip()
         elif "```" in raw_ai_content:
@@ -172,8 +184,8 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
 
         extracted_data = json.loads(raw_ai_content)
         
-        # 5. Log Event with Extraction Method
-        log_msg = f"AI parsed {'scanned ' if is_scanned else ''}CV for {extracted_data.get('full_name', 'Unknown')}"
+        # 5. Log Event
+        log_msg = f"AI parsed CV for {extracted_data.get('full_name', 'Unknown')}"
         await log_ai_event(
             user_id, 
             "cv_extraction", 
@@ -185,7 +197,11 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
             }
         )
 
-        return {"status": "success", "extracted_data": extracted_data, "method": "ocr" if is_scanned else "text"}
+        return {
+            "status": "success", 
+            "extracted_data": extracted_data, 
+            "method": "ocr" if is_scanned else "text"
+        }
 
     except Exception as e:
         print(f"CRITICAL [CV]: Extraction Failure: {e}")
@@ -424,7 +440,7 @@ async def submit_application(payload: ApplicationData, current_user = Depends(ge
     
     try:
         completion = zai_client.chat.completions.create(
-            model="ilmu-glm-5.1",
+            model="z-ai/glm-4.5-air:free",
             messages=[{"role": "user", "content": prompt}],
             response_format={ "type": "json_object" }
         )
@@ -636,7 +652,7 @@ async def log_ai_event(user_id: str, event_type: str, raw_description: str, cont
     
     try:
         completion = zai_client.chat.completions.create(
-            model="ilmu-glm-5.1",
+            model="z-ai/glm-4.5-air:free",
             messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": analysis_prompt}],
             response_format={ "type": "json_object" }
         )

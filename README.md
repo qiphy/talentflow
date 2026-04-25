@@ -20,6 +20,7 @@
 - [API Endpoints](#-api-endpoints)
 - [Future Enhancements](#-future-enhancements)
 - [Team Members](#-team-members)
+- [Acknowledgments](#-acknowledgments)
 ---
  
 ## 🌟 Overview
@@ -304,3 +305,20 @@ Planned improvements for future versions:
 3. Abhishek Prakash
 4. Oh Kuan Qi
 
+## 🙏 Acknowledgments
+
+We would like to express our gratitude to the following organizations and individuals who made TalentFlow possible:
+
+🏛️ The Organizers & Ecosystem
+UMHackathon 2026 Committee: For organizing a high-caliber competition that challenges the boundaries of student innovation in Malaysia.
+
+
+🛠️ Technical Infrastructure
+ILMU.AI Team: A special acknowledgment for the GLM-5.1 model. Leveraging a local LLM was central to our mission of building a Sovereign AI solution that keeps Malaysian talent data secure and contextually relevant.
+
+Supabase & FastAPI: For the robust open-source tooling that allowed us to implement production-grade features like Row-Level Security (RLS) and asynchronous processing under extreme time constraints.
+
+🎓 Mentorship & Academic Support
+The UMHackathon Mentors: Specifically for the insights regarding the National AI Governance and Ethics (AIGE) framework, which helped us pivot toward a more transparent, human-in-the-loop feedback system.
+
+Sunway University: For fostering a technical environment that encourages multidisciplinary collaboration between Computer Science and Economics.

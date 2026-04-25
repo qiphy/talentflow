@@ -656,6 +656,7 @@
                   <option>12+ years</option>
                 </select>
               </div>
+
               <div class="form-group">
                 <label class="form-label">Highest qualification *</label>
                 <select id="qualification" class="form-select">
@@ -805,42 +806,35 @@ function triggerUpload() {
 }
 
 function autoFillForm(data) {
-  // Ensure these keys match your Python system_instruction EXACTLY
   const fieldMap = {
     "full_name": "name",
     "email": "email",
+    "phone_number": "phone",        // ADD THIS LINE
     "role_title": "role",
-    "department": "dept",
-    "employment_type": "emptype",
-    "location_type": "location",
-    "hiring_manager": "manager",
+    "nationality": "nationality",
     "years_experience": "experience",
     "highest_qualification": "qualification",
-    "previous_employer": "prevemployer"
+    "preferred_location": "office",
+    "previous_employer": "prevemployer",
+    "employment_type": "emptype",
+    "location_type": "location"
   };
 
   Object.keys(fieldMap).forEach(apiKey => {
-    const elementId = fieldMap[apiKey];
-    const element = document.getElementById(elementId);
-    const value = data[apiKey];
+    const el = document.getElementById(fieldMap[apiKey]);
+    const val = data[apiKey];
 
-    if (element && value) {
-      element.value = value;
-      // Visual feedback: brief green glow to prove it worked
-      element.style.borderColor = "#4ade80";
-      setTimeout(() => {
-        element.style.borderColor = "var(--color-border-secondary)";
-      }, 2000);
-    } else {
-      console.warn(`Could not fill field: ${elementId}. Value from AI:`, value);
+    if (el && val) {
+      el.value = val;
+      el.style.borderColor = "#4ade80";
+      setTimeout(() => el.style.borderColor = "", 2000);
     }
   });
 
-  if (Array.isArray(data.skills)) {
-    skills = [...new Set([...skills, ...data.skills])]; 
+  if (data.skills) {
+    skills = [...new Set([...skills, ...data.skills])];
     renderSkills();
   }
-
   updateProgress();
   saveDraft();
 }
