@@ -58,21 +58,28 @@ TalentFlow combines a FastAPI backend, Supabase for authentication and data stor
 ---
  
 ## 📸 Screenshots
- 
-> *(Add your screenshots here)*
+
  
 **Employer Dashboard**
 Dashboard showing incoming applications, AI scores, and role breakdowns
+
+![Employer Dashboard](./images/dashboard.png)
  
 **Candidate Application Form**
 Step-by-step application interface with skills input and form details
- 
+
+![Candidate Application Form](./images/form.png)
+
 **AI Monitoring Dashboard**
 Real-time view of the AI analysis pipeline and recommendation outputs
- 
+
+![AI Monitoring Dashboard](./images/monitoring.png)
+
 **Login Page**
 Role-switcher login page supporting both employer and employee sign-in
  
+![Login Page](./images/login.png)
+
 ---
  
 ## 🛠️ Technologies Used
