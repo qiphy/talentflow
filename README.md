@@ -9,8 +9,7 @@
 ---
 ## Pitch Deck Video
 
-Watch the [**TalentFlow**] pitch
-(https://drive.google.com/file/d/1mfj-6BnDn207HPGwTecjGpS3OhOwKRPV/view?usp=drivesdk)
+**[Watch the TalentFlow] (https://drive.google.com/file/d/1mfj-6BnDn207HPGwTecjGpS3OhOwKRPV/view?usp=drivesdk)**
  
 ## Table of Contents
 - [Overview](#-overview)
