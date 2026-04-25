@@ -232,7 +232,7 @@ SERVICE_ROLE=your_supabase_service_role_jwt
 ### Prerequisites
 - Python 3.10+
 - A [Supabase](https://supabase.com) project
-- An [ILMU API](https://ilmu.ai) API key
+- An [OpenAI-compatible] API key (For testing, OpenRouter and ILMU API were used)
 - VS Code with Live Server extension (or any static file server on port 5500)
 ---
  
