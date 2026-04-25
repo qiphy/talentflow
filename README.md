@@ -92,7 +92,7 @@ Role-switcher login page supporting both employer and employee sign-in
 | Frontend | HTML5, CSS3, JavaScript (Vanilla) |
 | Backend | Python, FastAPI, Uvicorn |
 | Database & Auth | Supabase (PostgreSQL + Supabase Auth) |
-| AI Analysis | Ilmu API (GLM-5.1 model via zai-sdk / OpenAI-compatible) |
+| AI Analysis | OpenAI-compatible API (GLM-4.5-air/GLM-5.1 model via zai-sdk / OpenAI-compatible) |
 | CV Parsing | PyMuPDF (text extraction from uploaded PDF CVs) |
 | File Uploads | python-multipart |
 | Environment Config | python-dotenv |
