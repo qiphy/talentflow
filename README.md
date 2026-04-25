@@ -9,7 +9,7 @@
 ---
 ## Pitch Deck Video
 
-**[Watch the TalentFlow Pitch](https://drive.google.com/file/d/1mfj-6BnDn207HPGwTecjGpS3OhOwKRPV/view?usp=drivesdk)**
+**[Watch the TalentFlow Pitch Deck Video](https://drive.google.com/file/d/1mfj-6BnDn207HPGwTecjGpS3OhOwKRPV/view?usp=drivesdk)**
  
 ## Table of Contents
 - [Overview](#-overview)
@@ -119,7 +119,7 @@ TalentFlow follows a clear separation between frontend, backend, and external se
     └── Monitoring routes (/monitoring/logs)
          │                        │
          ▼                        ▼
-[ Supabase ]              [ ILMU API — GLM-5.1 ]
+[ Supabase ]              [ OpenAI-compatible API — GLM-5.1 ]
   - Auth users              - Candidate scoring & analysis
   - profiles table          - CV data extraction from PDF
   - applications table      - Activity log summarisation

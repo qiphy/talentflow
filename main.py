@@ -8,12 +8,15 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, Cookie, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from openai import OpenAI
 from fastapi.responses import JSONResponse
 import re
 import pytesseract
+import time
+import asyncio
 from PIL import Image
 
 load_dotenv()
@@ -102,121 +105,72 @@ def get_profile(user_id: str):
         print(f"Database lookup failed for UUID {user_id}: {e}")
         return None
     
+import time
+
 @app.post("/extract-cv")
 async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_current_user)):
-    user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
-    
-    try:
-        # 1. Extract Text Locally [cite: 358]
-        print(f"DEBUG [CV]: Starting extraction for {file.filename}")
-        file_content = await file.read()
-        pdf_stream = io.BytesIO(file_content)
-        
+    async def stream_progress():
+        start_total = time.time()
         try:
-            doc = fitz.open(stream=pdf_stream, filetype="pdf")
-            text_parts = [b[4] for page in doc for b in page.get_text("blocks")]
-            raw_text = " ".join("\n".join(text_parts).split())
-        except Exception as pdf_err:
-            print(f"ERROR [PDF]: Failed to read PDF structure: {pdf_err}") 
-            raise HTTPException(status_code=400, detail="Invalid PDF file format.")
-
-        is_scanned = False
-        messages = []
-        
-        # RESTORED: Comprehensive System Instruction [cite: 367, 396]
-        system_instruction = (
-            "CONTEXT: Current date is April 2026. You are a deterministic HR Data Parser.\n"
-            "TASK: Convert CV text/image into a VALID JSON object.\n"
-            "\nSTRICT FIELD RULES:\n"
-            "1. full_name: Most prominent name at the top.\n"
-            "2. phone_number: Extract digits/symbols (e.g., +6012-345-6789).\n"
-            "3. nationality: Infer from address. Default to 'Malaysian' if address is in Malaysia.\n"
-            "4. role_title: Use professional title. Match: [Software Engineer, Data Analyst, Product Manager, UI/UX Designer, HR Executive, Marketing Specialist, Operations Manager, Sales Executive].\n"
-            "5. years_experience: CALCULATE sum of work history. If 'Present', use 2026. Return integer.\n"
-            "6. preferred_location: Extract City/State.\n"
-            "7. employment_type: MUST BE: [Full-time, Part-time, Contract, Internship, Freelance].\n"
-            "8. location_type: MUST BE: [Remote, Hybrid, On-site].\n"
-            "9. skills: Return an ARRAY of specific technical/professional skills. "
-            "FILTER OUT subjective fluff like 'fast learner', 'hard working', or 'being really good'. "
-            "STANDARDIZE names (e.g., 'ReactJS' -> 'React').\n"
-            "\nJSON KEYS:\n"
-            "full_name, email, phone_number, role_title, nationality, department, employment_type, "
-            "location_type, preferred_location, years_experience, highest_qualification, previous_employer, skills\n"
-            "\nReturn ONLY raw JSON. Use null for unknowns."
-        )
-
-        # 2. OCR Restoration [cite: 259, 272]
-        if not raw_text.strip():
-            print("DEBUG [CV]: No text found. Triggering OCR Multimodal logic.") 
-            is_scanned = True
-            page = doc[0]
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) 
-            img_data = pix.tobytes("png")
-            base64_image = base64.b64encode(img_data).decode('utf-8')
+            yield json.dumps({"status": "progress", "message": "Reading file..."}) + "\n"
+            file_content = await file.read()
+            pdf_stream = io.BytesIO(file_content)
             
-            messages = [
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": [
-                    {"type": "text", "text": "Scanned CV image. Parse visible info into JSON."},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
-                ]}
-            ]
-        else:
-            print(f"DEBUG [CV]: Text extracted ({len(raw_text)} chars). Sending to GLM.") 
-            messages = [
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": f"Parse this CV text: {raw_text[:8000]}"}
-            ]
+            yield json.dumps({"status": "progress", "message": "Extracting text locally..."}) + "\n"
+            doc = fitz.open(stream=pdf_stream, filetype="pdf")
+            text_parts = [page.get_text() for page in doc[:2]]
+            raw_text = " ".join(" ".join(text_parts).split())
+            
+            if not raw_text.strip():
+                yield json.dumps({"status": "progress", "message": "Scanned document detected. Running OCR..."}) + "\n"
+                page = doc[0]
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), colorspace=fitz.csGRAY)
+                img = Image.frombytes("L", [pix.width, pix.height], pix.samples)
+                raw_text = " ".join(pytesseract.image_to_string(img).split())
+            doc.close()
 
-        doc.close()
+            yield json.dumps({"status": "progress", "message": "GLM is parsing CV data..."}) + "\n"
+            
+            # --- CRITICAL FIX: SPECIFY THE KEYS ---
+            system_prompt = (
+                "CONTEXT: April 2026. HR Data Parser.\n"
+                "TASK: Convert CV text into VALID JSON with these EXACT keys:\n"
+                "full_name, email, phone_number, role_title, nationality, "
+                "employment_type, location_type, preferred_location, "
+                "years_experience, highest_qualification, previous_employer, skills\n"
+                "Return ONLY raw JSON."
+            )
 
-        # 3. Call GLM API [cite: 346, 494]
-        try:
+            start_ai = time.time()
             completion = zai_client.chat.completions.create(
-                model="z-ai/glm-4.5-air:free", # Air model for low-latency response [cite: 494]
-                messages=messages,
+                model="z-ai/glm-4.5-air:free",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Parse: {raw_text[:3500]}"}
+                ],
                 response_format={ "type": "json_object" }
             )
-            raw_ai_content = completion.choices[0].message.content
-        except Exception as api_err:
-            print(f"ERROR [API]: GLM API call failed: {api_err}") [cite: 144]
-            raise HTTPException(status_code=503, detail="AI Service temporarily unavailable.")
+            
+            extracted_data = json.loads(completion.choices[0].message.content)
+            
+            # Sanitization (Match your frontend logic)
+            BANNED_FLUFF = {"hardworking", "team player", "quick learner"}
+            if "skills" in extracted_data and isinstance(extracted_data["skills"], list):
+                extracted_data["skills"] = [s for s in extracted_data["skills"] if str(s).lower() not in BANNED_FLUFF]
 
-        # 4. JSON Sanitization [cite: 388, 389]
-        try:
-            extracted_data = json.loads(raw_ai_content)
-        except json.JSONDecodeError as json_err:
-            print(f"ERROR [JSON]: Malformed content: {raw_ai_content}") 
-            raise HTTPException(status_code=500, detail="AI response could not be parsed.")
+            total_duration = time.time() - start_total
+            
+            yield json.dumps({
+                "status": "success", 
+                "extracted_data": extracted_data, 
+                "elapsed_time": f"{total_duration:.2f}s"
+            }) + "\n"
 
-        # 5. Layer 2: Python-level Sanity Check [cite: 217]
-        BANNED_FLUFF = {"being really good", "hardworking", "team player", "quick learner", "fast learner"}
-        if "skills" in extracted_data and isinstance(extracted_data["skills"], list):
-            original_count = len(extracted_data["skills"])
-            extracted_data["skills"] = [
-                s for s in extracted_data["skills"] 
-                if isinstance(s, str) and s.lower().strip() not in BANNED_FLUFF
-            ]
-            print(f"DEBUG [SANITY]: Removed {original_count - len(extracted_data['skills'])} rubbish skills.")
+        except Exception as e:
+            print(f"ERROR: {str(e)}")
+            yield json.dumps({"status": "error", "message": str(e)}) + "\n"
 
-        # 6. Log Event [cite: 41, 131]
-        try:
-            await log_ai_event(
-                user_id, 
-                "cv_extraction", 
-                f"AI parsed CV for {extracted_data.get('full_name', 'Unknown')}",
-                {"filename": file.filename, "method": "ocr" if is_scanned else "text"}
-            )
-        except Exception as log_err:
-            print(f"WARNING [LOG]: Activity log failed: {log_err}") 
-
-        return {"status": "success", "extracted_data": extracted_data}
-
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        print(f"CRITICAL [SYSTEM]: {e}") 
-        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+    return StreamingResponse(stream_progress(), media_type="application/x-ndjson")
     
 # --- AUTH ENDPOINTS ---
 @app.post("/signup")
@@ -457,7 +411,7 @@ async def submit_application(
 
 async def analyze_application_background(app_id: str, user_id: str, payload: ApplicationData):
     prompt = f"""
-    CONTEXT: April 2026. You are a senior technical recruiter[cite: 44].
+    CONTEXT: April 2026. You are a senior technical recruiter.
     TASK: Evaluate '{payload.role_title}' based on skills: {payload.skills}.
     
     DEPARTMENTS: Engineering, Design, Marketing, Sales, HR, Finance, Operations.

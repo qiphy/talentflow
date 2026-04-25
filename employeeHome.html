@@ -24,14 +24,13 @@
        CARD — follows design.css .auth-card pattern
        ============================================================ */
     .card {
-      background: var(--color-background-primary);
-      border: 1px solid var(--color-border-tertiary);
-      border-radius: var(--border-radius-lg);
-      padding: 32px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-      width: 850px;
-      max-width: 100%;
-      margin: 0 auto;
+        position: relative; /* CRITICAL: This anchors the loader to the card */
+        background: var(--color-background-primary);
+        border: 1px solid var(--color-border-tertiary);
+        border-radius: var(--border-radius-lg);
+        padding: 32px;
+        width: 850px;
+        margin: 0 auto;
     }
 
     .card-header {
@@ -376,20 +375,19 @@
        LOADING OVERLAY
        ============================================================ */
     #loadingOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(10, 20, 32, 0.85);
-      backdrop-filter: blur(4px);
-      z-index: 9999;
-      display: none; /* Hidden by default */
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-family: var(--font-sans);
+        position: absolute; /* Keeps it inside the .card */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 100;
+        display: none; 
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(10, 20, 32, 0.7); 
+        backdrop-filter: blur(4px);
+        border-radius: var(--border-radius-lg); 
     }
 
     .spinner {
@@ -414,14 +412,73 @@
       text-transform: uppercase;
     }
 
+    .glm-infer {
+      background: var(--color-background-secondary); /* Match form theme */
+      border: 1px solid #4a9eff; /* Blue border to show AI activity */
+      border-radius: var(--border-radius-md);
+      padding: 16px;
+      margin-bottom: 20px;
+      display: none; /* Controlled by JS */
+    }
+
+    .gi-header {
+      font-size: 10px;
+      font-weight: 700;
+      color: #4a9eff; /* AI Blue */
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    #aiProgressMessage {
+      font-size: 13px;
+      color: var(--color-text-primary);
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .ai-loader {
+      display: flex;         /* Forces children onto the same line */
+      align-items: center;   /* Perfectly centers spinner and text vertically */
+      gap: 12px;             /* Space between the icon and the words */
+      margin-top: 4px;       /* Adds a bit of breathing room from the header */
+    }
+
+  #glmHeader {
+  font-size: 10px;
+  font-weight: 800;
+  color: #4a9eff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+  .ai-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(74, 158, 255, 0.1);
+    border-top: 2px solid #4a9eff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;        /* Prevents the circle from becoming an oval */
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  #aiProgressMessage {
+    font-size: 14px;
+    color: var(--color-text-secondary); /* Or #a1a1aa for that sleek gray */
+    line-height: 1;        /* Prevents extra height from pushing the line down */
+    margin: 0;             /* Removes any default paragraph margins */
+  }
+
   </style>
 </head>
 
 <body>
-  <div id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text">AI is parsing your PDF...</div>
-</div>
 <div class="app">
 
   <!-- SIDEBAR -->
@@ -473,6 +530,18 @@
       <!-- NEW INTAKE -->
       <div id="intake">
         <div class="card">
+          <div class="glm-infer" id="glmBox">
+            <div class="gi-header" id="glmHeader">AI Analysis</div>
+            
+            <div id="aiLoadingState" style="display: none;">
+              <div class="ai-loader">
+                <div class="ai-spinner"></div>
+                <span id="aiProgressMessage">Initializing...</span>
+              </div>
+            </div>
+
+            <div class="gi-tags" id="glmTags"></div>
+          </div>
 
           <div class="card-header">
             <div class="card-title">New Application Submission</div>
@@ -766,56 +835,105 @@ async function checkAuth() {
 }
 
 // --- NEW: AI EXTRACTION LOGIC ---
+// --- UPDATED: AI EXTRACTION LOGIC WITH STREAMING ---
 function triggerUpload() {
   const fileInput = document.getElementById('fileInput');
-  const loader = document.getElementById('loadingOverlay');
-  const loaderText = loader ? loader.querySelector('.loading-text') : null; // Added
+  const glmBox = document.getElementById('glmBox');
+  const aiLoadingState = document.getElementById('aiLoadingState');
+  const progressMsg = document.getElementById('aiProgressMessage');
+  const glmTags = document.getElementById('glmTags');
+  const glmHeader = document.getElementById('glmHeader');
   
-  fileInput.click();
-
   fileInput.onchange = async () => {
     const file = fileInput.files[0];
     if (!file) return;
 
-    // UI Feedback: Inform user AI is working
-    if (loaderText) loaderText.innerText = "Sovereign AI is parsing your CV..."; 
-    loader.style.display = 'flex';
+    // --- PDF VALIDATION ADDED HERE ---
+    if (file.type !== "application/pdf") {
+      alert("Error: Only PDF files are allowed.");
+      fileInput.value = ""; // Clear the input
+      return;
+    }
+
+    // UI: Activate the Scoped Loader
+    // Use flex to ensure the spinner and text stay on the same line
+    if (glmBox) glmBox.style.display = 'block';
+    if (aiLoadingState) aiLoadingState.style.display = 'flex'; 
+    if (glmTags) glmTags.innerHTML = ''; 
+    if (glmHeader) glmHeader.innerText = "AI PROCESSING...";
+    if (progressMsg) progressMsg.innerText = "Reading CV structure...";
 
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/extract-cv`, {
+      const response = await fetch(`${API_BASE_URL}/extract-cv`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
       });
 
-      if (!resp.ok) throw new Error("Extraction failed");
+      if (!response.ok) throw new Error("Server connection failed");
 
-      const data = await resp.json();
-      
-      // Map sanitized data back to the form
-      autoFillForm(data.extracted_data);
-      
-      const glmBox = document.getElementById('glmBox');
-      const glmTags = document.getElementById('glmTags');
-      if (glmBox) glmBox.style.display = 'block';
-      if (glmTags) glmTags.innerHTML = '<span class="infer-tag" style="background:#1d9e75; border-color:#1D9E75; color:white;">Success: AI Analysis Complete</span>';
-      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode chunk and split by newline to handle multiple JSON objects
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue; 
+
+          try {
+            const data = JSON.parse(trimmedLine);
+
+            if (data.status === "progress") {
+              if (progressMsg) progressMsg.innerText = data.message;
+            } 
+            
+            if (data.status === "success" && data.extracted_data) {
+              console.log("DEBUG [AI]: Success! Filling form with:", data.extracted_data);
+              
+              // Trigger the autofill logic
+              autoFillForm(data.extracted_data);
+              
+              // UI: Success Transition
+              if (aiLoadingState) aiLoadingState.style.display = 'none';
+              if (glmHeader) glmHeader.innerText = "EXTRACTION SUCCESSFUL";
+              if (glmBox) glmBox.style.borderColor = "#1d9e75";
+              
+              if (glmTags) {
+                glmTags.innerHTML = `
+                  <span class="infer-tag" style="background:#1d9e75; border:none; color:white;">
+                    Analyzed in ${data.elapsed_time}
+                  </span>`;
+              }
+            }
+          } catch (jsonErr) {
+            // Log but don't crash if a partial chunk arrives
+            console.warn("DEBUG [JSON]: Partial chunk or malformed line skipped.");
+          }
+        }
+      }
     } catch (err) {
       console.error("DEBUG [UI]:", err);
-      alert("AI extraction timed out or failed. Please fill manually.");
-    } finally {
-      loader.style.display = 'none';
-      // Reset text for submission phase
-      if (loaderText) loaderText.innerText = "Submitting Your Application...";
+      if (aiLoadingState) aiLoadingState.style.display = 'none';
+      if (glmHeader) glmHeader.innerText = "EXTRACTION FAILED";
+      if (glmBox) glmBox.style.borderColor = "#f87171";
+      alert("AI was unable to parse this file. Connection may have timed out.");
     }
   };
+  
+  fileInput.click();
 }
 
 function autoFillForm(data) {
-  // Enhanced Field Map based on the Restored Comprehensive Prompt
   const fieldMap = {
     "full_name": "name",
     "email": "email",
@@ -830,13 +948,37 @@ function autoFillForm(data) {
     "location_type": "location"
   };
 
+  // Helper: Basic validation to catch AI "guesses"
+  const isValidEmail = (str) => /^\S+@\S+\.\S+$/.test(str);
+  const isValidPhone = (str) => /^[\d\+\-\s\(\)]{7,20}$/.test(str);
+  const BANNED_FILLER = ["unknown", "n/a", "not specified", "null", "none", "not available"];
+
   Object.keys(fieldMap).forEach(apiKey => {
     const el = document.getElementById(fieldMap[apiKey]);
-    const val = data[apiKey];
+    let val = data[apiKey];
+
+    // 1. HALLUCINATION FILTER: Wipe out common AI filler words
+    if (typeof val === 'string' && BANNED_FILLER.includes(val.toLowerCase().trim())) {
+      val = null;
+    }
+
+    // 2. DATA INTEGRITY: Validate specific formats
+    if (apiKey === "email" && val && !isValidEmail(val)) val = null;
+    if (apiKey === "phone_number" && val && !isValidPhone(val)) val = null;
 
     if (el && val !== null && val !== undefined) {
-      el.value = val;
-      // Visual feedback: Highlight updated fields briefly
+      if (el.tagName === "SELECT") {
+        const normalizedVal = String(val).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const optionToSelect = Array.from(el.options).find(opt => {
+          const normalizedOpt = opt.text.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return normalizedOpt === normalizedVal || opt.value === val;
+        });
+        if (optionToSelect) el.value = optionToSelect.value;
+      } else {
+        el.value = val;
+      }
+
+      // Visual feedback: Only show if value was actually filled
       el.style.borderColor = "#4ade80";
       el.style.backgroundColor = "rgba(74, 222, 128, 0.05)";
       setTimeout(() => {
@@ -846,10 +988,23 @@ function autoFillForm(data) {
     }
   });
 
-  // Handle the sanitized skills array (No "Being Really Good" here!)
-  if (data.skills && Array.isArray(data.skills)) {
-    skills = [...new Set([...skills, ...data.skills])];
-    renderSkills();
+  // --- REFINED SKILLS LOGIC (With Hallucination Filter) ---
+  const extractedSkills = data.skills || data.key_skills || data.Skills;
+
+  if (extractedSkills && Array.isArray(extractedSkills)) {
+      const existingSkillsLower = skills.map(s => s.toLowerCase());
+
+      const filtered = extractedSkills.filter(s => {
+          const trimmed = s.trim();
+          // Filter duplicates + common AI fluff like "Team Player"
+          const isFluff = ["team player", "hardworking", "motivated"].includes(trimmed.toLowerCase());
+          return trimmed !== "" && !isFluff && !existingSkillsLower.includes(trimmed.toLowerCase());
+      });
+
+      if (filtered.length > 0) {
+          skills = [...skills, ...filtered];
+          renderSkills();
+      }
   }
   
   updateProgress();
