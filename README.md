@@ -203,6 +203,8 @@ SERVICE_ROLE=your_supabase_service_role_jwt
 | phone | text |
 | role | text (`employer` or `employee`) |
 | company | text (nullable) |
+| created_at | timestamptz |
+| updated_at | timestamptz |
  
 `applications`
 | Column | Type |
@@ -226,6 +228,7 @@ SERVICE_ROLE=your_supabase_service_role_jwt
 | employer_id | uuid (FK → profiles.id) |
 | status | text |
 | updated_at | timestamptz |
+| notes | text |
  
 `activity_logs`
 | Column | Type |
@@ -233,8 +236,8 @@ SERVICE_ROLE=your_supabase_service_role_jwt
 | id | uuid (auto-generated) |
 | user_id | uuid |
 | event_type | text |
-| description | text |
 | category | text (`info`, `warning`, `error`) |
+| description | text |
 | ai_note | text |
 | metadata | jsonb |
 | created_at | timestamptz |
