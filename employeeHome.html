@@ -723,10 +723,13 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
 
 async function checkAuth() {
+  // 1. FORCE VISIBILITY FIRST
+  // Don't wait for the server to respond before showing the UI frame
+  document.body.style.display = "block";
+  document.body.style.opacity = "1";
+  document.body.style.visibility = "visible";
+
   if (IS_PREVIEW_MODE) {
-    console.warn("TalentFlow: Preview Mode Active.");
-    document.body.style.display = "block";
-    document.body.style.opacity = "1";
     return true;
   }
   
@@ -740,25 +743,24 @@ async function checkAuth() {
         const profile = await resp.json();
         const title = document.getElementById("pageTitle");
         if (title && profile.full_name) {
-            const Name = profile.full_name;
-            title.innerText = `Welcome, ${Name}`;
+            title.innerText = `Welcome, ${profile.full_name}`;
         }
         
         if (!localStorage.getItem("talentflow_draft")) {
             if (document.getElementById("name")) document.getElementById("name").value = profile.full_name || "";
             if (document.getElementById("email")) document.getElementById("email").value = profile.email || "";
         }
-
-        document.body.style.display = "block";
-        setTimeout(() => document.body.style.opacity = "1", 50);
+        
         return true;
     } else {
+        // If the session is invalid, then we hide and redirect
+        document.body.style.opacity = "0";
         window.location.href = 'login.html';
         return false;
     }
   } catch (err) {
-    console.error("Connection error:", err);
-    window.location.href = 'login.html';
+    console.error("DEBUG [AUTH]: Connection failed", err);
+    // Keep it visible so you can actually read the console error on the page
     return false;
   }
 }
@@ -767,13 +769,16 @@ async function checkAuth() {
 function triggerUpload() {
   const fileInput = document.getElementById('fileInput');
   const loader = document.getElementById('loadingOverlay');
+  const loaderText = loader ? loader.querySelector('.loading-text') : null; // Added
+  
   fileInput.click();
 
   fileInput.onchange = async () => {
     const file = fileInput.files[0];
     if (!file) return;
 
-    // Show Loading Screen
+    // UI Feedback: Inform user AI is working
+    if (loaderText) loaderText.innerText = "Sovereign AI is parsing your CV..."; 
     loader.style.display = 'flex';
 
     const formData = new FormData();
@@ -789,27 +794,32 @@ function triggerUpload() {
       if (!resp.ok) throw new Error("Extraction failed");
 
       const data = await resp.json();
+      
+      // Map sanitized data back to the form
       autoFillForm(data.extracted_data);
       
       const glmBox = document.getElementById('glmBox');
       const glmTags = document.getElementById('glmTags');
-      glmBox.style.display = 'block';
-      glmTags.innerHTML = '<span class="infer-tag" style="background:#1d9e75; border-color:#1D9E75; color:white;">Success: Data Mapped</span>';
+      if (glmBox) glmBox.style.display = 'block';
+      if (glmTags) glmTags.innerHTML = '<span class="infer-tag" style="background:#1d9e75; border-color:#1D9E75; color:white;">Success: AI Analysis Complete</span>';
+      
     } catch (err) {
-      console.error(err);
-      alert("AI extraction failed. You can still fill the form manually.");
+      console.error("DEBUG [UI]:", err);
+      alert("AI extraction timed out or failed. Please fill manually.");
     } finally {
-      // Hide Loading Screen
       loader.style.display = 'none';
+      // Reset text for submission phase
+      if (loaderText) loaderText.innerText = "Submitting Your Application...";
     }
   };
 }
 
 function autoFillForm(data) {
+  // Enhanced Field Map based on the Restored Comprehensive Prompt
   const fieldMap = {
     "full_name": "name",
     "email": "email",
-    "phone_number": "phone",        // ADD THIS LINE
+    "phone_number": "phone",
     "role_title": "role",
     "nationality": "nationality",
     "years_experience": "experience",
@@ -824,17 +834,24 @@ function autoFillForm(data) {
     const el = document.getElementById(fieldMap[apiKey]);
     const val = data[apiKey];
 
-    if (el && val) {
+    if (el && val !== null && val !== undefined) {
       el.value = val;
+      // Visual feedback: Highlight updated fields briefly
       el.style.borderColor = "#4ade80";
-      setTimeout(() => el.style.borderColor = "", 2000);
+      el.style.backgroundColor = "rgba(74, 222, 128, 0.05)";
+      setTimeout(() => {
+          el.style.borderColor = "";
+          el.style.backgroundColor = "";
+      }, 2500);
     }
   });
 
-  if (data.skills) {
+  // Handle the sanitized skills array (No "Being Really Good" here!)
+  if (data.skills && Array.isArray(data.skills)) {
     skills = [...new Set([...skills, ...data.skills])];
     renderSkills();
   }
+  
   updateProgress();
   saveDraft();
 }

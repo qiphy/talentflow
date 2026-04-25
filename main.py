@@ -12,6 +12,9 @@ from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
 from openai import OpenAI
 from fastapi.responses import JSONResponse
+import re
+import pytesseract
+from PIL import Image
 
 load_dotenv()
 
@@ -98,54 +101,53 @@ def get_profile(user_id: str):
     except Exception as e:
         print(f"Database lookup failed for UUID {user_id}: {e}")
         return None
-
+    
 @app.post("/extract-cv")
 async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_current_user)):
     user_id = str(getattr(current_user, "id", None) or current_user.get("id"))
     
     try:
-        # 1. Extract Text from PDF with better structural awareness
+        # 1. Extract Text Locally [cite: 358]
+        print(f"DEBUG [CV]: Starting extraction for {file.filename}")
         file_content = await file.read()
         pdf_stream = io.BytesIO(file_content)
-        doc = fitz.open(stream=pdf_stream, filetype="pdf")
         
-        # Use blocks to preserve logical grouping of text
-        text_parts = []
-        for page in doc:
-            blocks = page.get_text("blocks")
-            for b in blocks:
-                text_parts.append(b[4])
-        
-        raw_text = "\n".join(text_parts)
-        # Normalize whitespace to fix potential PDF encoding artifacts
-        raw_text = " ".join(raw_text.split()) 
-        
+        try:
+            doc = fitz.open(stream=pdf_stream, filetype="pdf")
+            text_parts = [b[4] for page in doc for b in page.get_text("blocks")]
+            raw_text = " ".join("\n".join(text_parts).split())
+        except Exception as pdf_err:
+            print(f"ERROR [PDF]: Failed to read PDF structure: {pdf_err}") 
+            raise HTTPException(status_code=400, detail="Invalid PDF file format.")
+
         is_scanned = False
         messages = []
         
-        # 2. Enhanced AI Parsing Prompt
-        # Added explicit instructions for Nationality, Role, and Experience calculation
+        # RESTORED: Comprehensive System Instruction [cite: 367, 396]
         system_instruction = (
             "CONTEXT: Current date is April 2026. You are a deterministic HR Data Parser.\n"
             "TASK: Convert CV text/image into a VALID JSON object.\n"
             "\nSTRICT FIELD RULES:\n"
             "1. full_name: Most prominent name at the top.\n"
-            "2. phone_number: Extract digits/symbols (e.g., +6012-345-6789). Look near the email.\n"
-            "3. nationality: Infer from address if not explicit (e.g., 'United States' address -> 'American'). Default to 'Malaysian' if address is in Malaysia.\n"
-            "4. role_title: Use the current professional title. Match one of these if possible: [Software Engineer, Data Analyst, Product Manager, UI/UX Designer, HR Executive, Marketing Specialist, Operations Manager, Sales Executive].\n"
-            "5. years_experience: CALCULATE sum of work history. If '2021-Present', 'Present' = 2026. Return an integer.\n"
-            "6. preferred_location: Extract the City/State from the contact header.\n"
-            "7. employment_type: MUST BE one of [Full-time, Part-time, Contract, Internship, Freelance].\n"
-            "8. location_type: MUST BE one of [Remote, Hybrid, On-site].\n"
-            "9. highest_qualification: Extract highest degree (e.g., 'Bachelor of Computer Science').\n"
+            "2. phone_number: Extract digits/symbols (e.g., +6012-345-6789).\n"
+            "3. nationality: Infer from address. Default to 'Malaysian' if address is in Malaysia.\n"
+            "4. role_title: Use professional title. Match: [Software Engineer, Data Analyst, Product Manager, UI/UX Designer, HR Executive, Marketing Specialist, Operations Manager, Sales Executive].\n"
+            "5. years_experience: CALCULATE sum of work history. If 'Present', use 2026. Return integer.\n"
+            "6. preferred_location: Extract City/State.\n"
+            "7. employment_type: MUST BE: [Full-time, Part-time, Contract, Internship, Freelance].\n"
+            "8. location_type: MUST BE: [Remote, Hybrid, On-site].\n"
+            "9. skills: Return an ARRAY of specific technical/professional skills. "
+            "FILTER OUT subjective fluff like 'fast learner', 'hard working', or 'being really good'. "
+            "STANDARDIZE names (e.g., 'ReactJS' -> 'React').\n"
             "\nJSON KEYS:\n"
             "full_name, email, phone_number, role_title, nationality, department, employment_type, "
             "location_type, preferred_location, years_experience, highest_qualification, previous_employer, skills\n"
             "\nReturn ONLY raw JSON. Use null for unknowns."
         )
 
+        # 2. OCR Restoration [cite: 259, 272]
         if not raw_text.strip():
-            print(f"DEBUG [CV]: No text found. Switching to Multimodal OCR for {file.filename}")
+            print("DEBUG [CV]: No text found. Triggering OCR Multimodal logic.") 
             is_scanned = True
             page = doc[0]
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) 
@@ -160,7 +162,7 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
                 ]}
             ]
         else:
-            # Increased limit to 8000 to ensure background sections are included
+            print(f"DEBUG [CV]: Text extracted ({len(raw_text)} chars). Sending to GLM.") 
             messages = [
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": f"Parse this CV text: {raw_text[:8000]}"}
@@ -168,45 +170,54 @@ async def extract_cv(file: UploadFile = File(...), current_user = Depends(get_cu
 
         doc.close()
 
-        # 3. Call GLM API
-        completion = zai_client.chat.completions.create(
-            model="z-ai/glm-4.5-air:free",
-            messages=messages,
-            response_format={ "type": "json_object" }
-        )
-        
-        # 4. JSON Cleaning & Parsing
-        raw_ai_content = completion.choices[0].message.content
-        if "```json" in raw_ai_content:
-            raw_ai_content = raw_ai_content.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_ai_content:
-            raw_ai_content = raw_ai_content.split("```")[1].split("```")[0].strip()
+        # 3. Call GLM API [cite: 346, 494]
+        try:
+            completion = zai_client.chat.completions.create(
+                model="z-ai/glm-4.5-air:free", # Air model for low-latency response [cite: 494]
+                messages=messages,
+                response_format={ "type": "json_object" }
+            )
+            raw_ai_content = completion.choices[0].message.content
+        except Exception as api_err:
+            print(f"ERROR [API]: GLM API call failed: {api_err}") [cite: 144]
+            raise HTTPException(status_code=503, detail="AI Service temporarily unavailable.")
 
-        extracted_data = json.loads(raw_ai_content)
-        
-        # 5. Log Event
-        log_msg = f"AI parsed CV for {extracted_data.get('full_name', 'Unknown')}"
-        await log_ai_event(
-            user_id, 
-            "cv_extraction", 
-            log_msg,
-            {
-                "filename": file.filename, 
-                "method": "multimodal_ocr" if is_scanned else "text_parsing",
-                "extracted_keys": list(extracted_data.keys())
-            }
-        )
+        # 4. JSON Sanitization [cite: 388, 389]
+        try:
+            extracted_data = json.loads(raw_ai_content)
+        except json.JSONDecodeError as json_err:
+            print(f"ERROR [JSON]: Malformed content: {raw_ai_content}") 
+            raise HTTPException(status_code=500, detail="AI response could not be parsed.")
 
-        return {
-            "status": "success", 
-            "extracted_data": extracted_data, 
-            "method": "ocr" if is_scanned else "text"
-        }
+        # 5. Layer 2: Python-level Sanity Check [cite: 217]
+        BANNED_FLUFF = {"being really good", "hardworking", "team player", "quick learner", "fast learner"}
+        if "skills" in extracted_data and isinstance(extracted_data["skills"], list):
+            original_count = len(extracted_data["skills"])
+            extracted_data["skills"] = [
+                s for s in extracted_data["skills"] 
+                if isinstance(s, str) and s.lower().strip() not in BANNED_FLUFF
+            ]
+            print(f"DEBUG [SANITY]: Removed {original_count - len(extracted_data['skills'])} rubbish skills.")
 
+        # 6. Log Event [cite: 41, 131]
+        try:
+            await log_ai_event(
+                user_id, 
+                "cv_extraction", 
+                f"AI parsed CV for {extracted_data.get('full_name', 'Unknown')}",
+                {"filename": file.filename, "method": "ocr" if is_scanned else "text"}
+            )
+        except Exception as log_err:
+            print(f"WARNING [LOG]: Activity log failed: {log_err}") 
+
+        return {"status": "success", "extracted_data": extracted_data}
+
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        print(f"CRITICAL [CV]: Extraction Failure: {e}")
-        raise HTTPException(status_code=500, detail=f"CV Parsing failed: {str(e)}")
-
+        print(f"CRITICAL [SYSTEM]: {e}") 
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+    
 # --- AUTH ENDPOINTS ---
 @app.post("/signup")
 async def signup(payload: SignupRequest):
@@ -416,28 +427,48 @@ async def update_account(
 # --- APPLICATIONS & DASHBOARD ---
 # Assuming your ApplicationData model looks like this now:
 @app.post("/applications")
-async def submit_application(payload: ApplicationData, current_user = Depends(get_current_user)):
+async def submit_application(
+    payload: ApplicationData, 
+    background_tasks: BackgroundTasks, # Add this
+    current_user = Depends(get_current_user)
+):
     user_id = getattr(current_user, "id", None) or current_user.get("id")
     
-    # --- Updated Prompt: AI now determines the Department ---
+    # 1. Save data immediately to Supabase with placeholder values [cite: 568]
+    data = {
+        "candidate_id": user_id,
+        "full_name": payload.full_name,
+        "email": payload.email,
+        "role_title": payload.role_title,
+        "department": "Pending...", # Placeholder [cite: 565]
+        "skills": payload.skills,
+        "form_details": payload.form_details,
+        "recommendation_rate": 0,    # Placeholder
+        "ai_analysis": "AI is currently analyzing your fit..."
+    }
+
+    res = supabase.table("applications").insert(data).execute()
+    app_id = res.data[0]['id']
+
+    # 2. Offload the heavy AI logic to a background task 
+    background_tasks.add_task(analyze_application_background, app_id, user_id, payload)
+    
+    return {"status": "success", "message": "Application received! Our AI is evaluating your profile."}
+
+async def analyze_application_background(app_id: str, user_id: str, payload: ApplicationData):
     prompt = f"""
-    You are a senior technical recruiter. Evaluate the candidate for the '{payload.role_title}' position.
-    Candidate Skills: {payload.skills}
-
-    Based on the role title '{payload.role_title}', categorize this into one of the following departments: 
-    Engineering, Design, Marketing, Sales, HR, Finance, or Operations.
-
-    Return a JSON object with:
+    CONTEXT: April 2026. You are a senior technical recruiter[cite: 44].
+    TASK: Evaluate '{payload.role_title}' based on skills: {payload.skills}.
+    
+    DEPARTMENTS: Engineering, Design, Marketing, Sales, HR, Finance, Operations.
+    
+    RETURN JSON:
     - "department": (string)
     - "score": (int 0-100)
-    - "technical_fit": (int 0-50)
-    - "soft_skills_fit": (int 0-50)
-    - "justification": (short string explaining the score)
-    - "concerns": (list of missing critical skills)
+    - "justification": (short string)
+    - "concerns": (list of missing skills)
     """
 
-    generated_dept = "General" # Default fallback
-    
     try:
         completion = zai_client.chat.completions.create(
             model="z-ai/glm-4.5-air:free",
@@ -447,40 +478,31 @@ async def submit_application(payload: ApplicationData, current_user = Depends(ge
         
         ai_data = json.loads(completion.choices[0].message.content)
         
-        # Capture AI-generated data
-        generated_dept = ai_data.get("department", "General")
-        rec_rate = ai_data.get("score")
-        
+        # Format analysis text for the HR Dashboard [cite: 298]
         analysis_text = (
-            f"Score: {rec_rate}% | "
+            f"Score: {ai_data.get('score')}% | "
             f"Justification: {ai_data.get('justification')} "
             f"Concerns: {', '.join(ai_data.get('concerns', []))}"
         )
 
-    except (json.JSONDecodeError, Exception) as e:
-        print(f"CRITICAL [AI_ANALYSIS]: {str(e)}")
-        rec_rate = 0
-        analysis_text = "AI Analysis failed or timed out."
+        # 3. Update the existing record with real AI insights [cite: 277, 353]
+        supabase.table("applications").update({
+            "department": ai_data.get("department", "General"),
+            "recommendation_rate": ai_data.get("score", 0),
+            "ai_analysis": analysis_text
+        }).eq("id", app_id).execute()
 
-    # Final data object for Supabase
-    data = {
-        "candidate_id": user_id,
-        "full_name": payload.full_name,
-        "email": payload.email,
-        "role_title": payload.role_title,
-        "department": generated_dept, # Use the AI's decision
-        "skills": payload.skills,
-        "form_details": payload.form_details,
-        "recommendation_rate": rec_rate,
-        "ai_analysis": analysis_text
-    }
+        # Log the success for the Monitoring Dashboard [cite: 40, 87]
+        await log_ai_event(user_id, "application_analysis_complete", 
+                           f"Analysis finished for {payload.full_name}", 
+                           {"dept": ai_data.get("department")})
 
-    supabase.table("applications").insert(data).execute()
-    
-    # Updated log event using AI-generated dept
-    await log_ai_event(user_id, "application_submission", f"New application from {payload.full_name}", {"dept": generated_dept})
-    
-    return {"status": "success"}
+    except Exception as e:
+        # Fallback: If AI fails, move to Manual Review [cite: 51, 144]
+        supabase.table("applications").update({
+            "department": "Review Required",
+            "ai_analysis": "AI analysis timed out. Manual HR review recommended."
+        }).eq("id", app_id).execute()
 
 @app.get("/employee/applications")
 async def get_employee_apps(current_user = Depends(get_current_user)):
@@ -646,23 +668,43 @@ async def hr_dashboard(range_type: str = "4w", current_user = Depends(get_curren
 
 # --- LOGGING & MONITORING ---
 async def log_ai_event(user_id: str, event_type: str, raw_description: str, context_data: dict):
+    # Ensure context is JSON serializable [cite: 535, 570]
     clean_context = json.loads(json.dumps(context_data, default=str))
-    system_instruction = "You are a deterministic System Log Analyst. Be concise (max 15 words). No conversational filler."
-    analysis_prompt = f"Event: {raw_description}\nContext: {json.dumps(clean_context)}\nReturn JSON: {{'category': 'info|warning|error', 'ai_insight': 'string'}}"
+    
+    system_instruction = (
+        "You are a deterministic System Log Analyst. "
+        "Categorize events as info, warning, or error. "
+        "Be concise (max 15 words). No conversational filler."
+    )
+    
+    analysis_prompt = (
+        f"Event: {raw_description}\n"
+        f"Context: {json.dumps(clean_context)}\n"
+        f"Return JSON: {{'category': 'info|warning|error', 'ai_insight': 'string'}}"
+    )
     
     try:
         completion = zai_client.chat.completions.create(
             model="z-ai/glm-4.5-air:free",
-            messages=[{"role": "system", "content": system_instruction}, {"role": "user", "content": analysis_prompt}],
+            messages=[
+                {"role": "system", "content": system_instruction}, 
+                {"role": "user", "content": analysis_prompt}
+            ],
             response_format={ "type": "json_object" }
         )
         analysis = json.loads(completion.choices[0].message.content)
-    except:
-        analysis = {"category": "info", "ai_insight": "System event logged."}
+    except Exception:
+        # Graceful fallback logic as documented [cite: 51, 53]
+        analysis = {"category": "info", "ai_insight": "System event logged manually."}
 
+    # Insert into Supabase activity_logs table [cite: 130, 486]
     supabase.table("activity_logs").insert({
-        "user_id": str(user_id), "event_type": event_type, "description": raw_description,
-        "category": analysis.get("category", "info"), "ai_note": analysis.get("ai_insight", ""), "metadata": clean_context 
+        "user_id": str(user_id), 
+        "event_type": event_type, 
+        "description": raw_description,
+        "category": analysis.get("category", "info"), 
+        "ai_note": analysis.get("ai_insight", ""), 
+        "metadata": clean_context 
     }).execute()
 
 @app.get("/monitoring/logs")
