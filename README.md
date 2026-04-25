@@ -20,7 +20,6 @@
 - [API Endpoints](#-api-endpoints)
 - [Future Enhancements](#-future-enhancements)
 - [Team Members](#-team-members)
-- [Acknowledgments](#-acknowledgments)
 ---
  
 ## 🌟 Overview
@@ -300,13 +299,8 @@ Planned improvements for future versions:
  
 ## 👥 Team Members
  
-1. Oh Kuan Qi
-2. Abishek Prakesh
-3. Grace Wong Xin En
-4. Jonathan Lim
- 
----
- 
-## 🙏 Acknowledgments
- 
-> *(Add acknowledgments here)*
+1. Grace Wong Xin En
+2. Lim Jing Jie 
+3. Abhishek Prakash
+4. Oh Kuan Qi
+
