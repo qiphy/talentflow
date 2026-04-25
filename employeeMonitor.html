@@ -260,19 +260,23 @@
             <div class="card-title">Monitor Applications</div>
           </div>
 
-            <div class="monitor-controls">
-            <input class="search-input" placeholder="Search your submissions...">
+          <div class="monitor-controls">
+              <select id="applicationIdFilter" class="filter-select">
+                  <option value="all">All Applications</option>
+              </select>
 
-            <select class="filter-select">
-                <option value="all status">All Status</option>
-                <option value="submitted">Submitted</option>
-                <option value="under review">Under Review</option>
-                <option value="accepted">Accepted</option>
-                <option value="onboarding">Onboarding</option> 
-                <option value="rejected">Rejected</option>
-                <option value="offer">Offer</option>
-            </select>
-            </div>
+              <input class="search-input" id="searchBar" placeholder="Search your submissions...">
+
+              <select class="filter-select" id="statusFilter">
+                  <option value="all status">All Status</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="under review">Under Review</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="onboarding">Onboarding</option> 
+                  <option value="rejected">Rejected</option>
+                  <option value="offer">Offer</option>
+              </select>
+          </div>
 
             <div class="applications-table">
               <div class="table-header">
@@ -319,7 +323,7 @@
 <script>
 const API_BASE_URL = "http://127.0.0.1:8000";
 const IS_PREVIEW_MODE = false; // Set to false to use real data
-
+let allApplications = [];
 /**
  * Validates session and sets the greeting
  */
@@ -369,15 +373,26 @@ async function loadApplications() {
     
     if (!resp.ok) throw new Error("Failed to fetch applications");
     allApplications = await resp.json();
+
+    // Populate the Application ID Filter
+    const idFilter = document.getElementById('applicationIdFilter');
+    idFilter.innerHTML = '<option value="all">All Applications</option>';
+    
+    // Extract unique IDs
+    const uniqueIds = [...new Set(allApplications.map(app => app.id))];
+    uniqueIds.forEach(id => {
+        const app = allApplications.find(a => a.id === id);
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `${app.role_title} (ID: ${String(id).slice(-6)})`;
+        idFilter.appendChild(opt);
+    });
     
     renderTable(allApplications);
   } catch (err) {
     console.error("Load Error:", err);
-    const tableContainer = document.querySelector('.applications-table');
-    tableContainer.innerHTML = `<div class="card-placeholder" style="color: var(--color-status-error);">Error loading applications.</div>`;
   }
 }
-
 /**
  * Renders the table based on provided data
  */
@@ -434,21 +449,20 @@ function renderTable(data) {
  * Filters the current applications list based on search and dropdown
  */
 function handleFilters() {
-    const searchTerm = document.querySelector('.search-input').value.toLowerCase();
-    const filterStatus = document.querySelector('.filter-select').value.toLowerCase();
+    const selectedId = document.getElementById('applicationIdFilter').value;
+    const searchTerm = document.getElementById('searchBar').value.toLowerCase();
+    const filterStatus = document.getElementById('statusFilter').value.toLowerCase();
 
     const filtered = allApplications.filter(app => {
         const statusData = Array.isArray(app.application_status) ? app.application_status[0] : app.application_status;
-        let status = (statusData?.status || "submitted").toLowerCase();
+        const status = (statusData?.status || "submitted").toLowerCase();
+        const company = (statusData?.profiles?.company || "").toLowerCase();
         
-        // Map "onboarding" to "accepted" if you want them grouped, 
-        // or ensure the filter dropdown has an "Onboarding" option.
-        const matchesSearch = app.role_title.toLowerCase().includes(searchTerm) || 
-                              (statusData?.profiles?.company || "").toLowerCase().includes(searchTerm);
-                              
-        const matchesFilter = filterStatus === "all status" || status === filterStatus;
+        const matchesId = selectedId === "all" || String(app.id) === selectedId;
+        const matchesSearch = app.role_title.toLowerCase().includes(searchTerm) || company.includes(searchTerm);
+        const matchesStatus = filterStatus === "all status" || status === filterStatus;
 
-        return matchesSearch && matchesFilter;
+        return matchesId && matchesSearch && matchesStatus;
     });
 
     renderTable(filtered);
@@ -501,14 +515,14 @@ async function logout() {
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
   document.body.style.opacity = "0";
-  
   const isAuth = await checkAuth();
   if (isAuth) {
     await loadApplications();
 
-    // Attach listeners for dynamic filtering
-    document.querySelector('.search-input').addEventListener('input', handleFilters);
-    document.querySelector('.filter-select').addEventListener('change', handleFilters);
+    // Re-bind listeners to the correct IDs
+    document.getElementById('applicationIdFilter').addEventListener('change', handleFilters);
+    document.getElementById('searchBar').addEventListener('input', handleFilters);
+    document.getElementById('statusFilter').addEventListener('change', handleFilters);
   }
 });
 </script>
