@@ -7,6 +7,10 @@
 ![Database](https://img.shields.io/badge/Database-Supabase-3FCF8E?logo=supabase&logoColor=white)
  
 ---
+## Pitch Deck Video
+
+Watch the TalentFlow pitch:
+https://drive.google.com/file/d/1mfj-6BnDn207HPGwTecjGpS3OhOwKRPV/view?usp=drivesdk
  
 ## Table of Contents
 - [Overview](#-overview)
