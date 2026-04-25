@@ -92,7 +92,7 @@ Role-switcher login page supporting both employer and employee sign-in
 | Frontend | HTML5, CSS3, JavaScript (Vanilla) |
 | Backend | Python, FastAPI, Uvicorn |
 | Database & Auth | Supabase (PostgreSQL + Supabase Auth) |
-| AI Analysis | OpenAI-compatible API (GLM-4.5-air/GLM-5.1 model via zai-sdk / OpenAI-compatible) |
+| AI Analysis | OpenRouter API (GLM-4.5-air model via zai-sdk / OpenAI-compatible) |
 | CV Parsing | PyMuPDF (text extraction from uploaded PDF CVs) |
 | File Uploads | python-multipart |
 | Environment Config | python-dotenv |
@@ -119,7 +119,7 @@ TalentFlow follows a clear separation between frontend, backend, and external se
     └── Monitoring routes (/monitoring/logs)
          │                        │
          ▼                        ▼
-[ Supabase ]              [ OpenAI-compatible API — GLM-5.1 ]
+[ Supabase ]              [ OpenRouter API — GLM-4.5-air ]
   - Auth users              - Candidate scoring & analysis
   - profiles table          - CV data extraction from PDF
   - applications table      - Activity log summarisation
@@ -186,7 +186,7 @@ cp .env.example .env
 ```env
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_anon_or_service_key
-Z_AI_API_KEY=your_ilmuapi_api_key
+Z_AI_API_KEY=your_openrouter_api_key
 SERVICE_ROLE=your_supabase_service_role_jwt
 ```
  
@@ -245,7 +245,7 @@ SERVICE_ROLE=your_supabase_service_role_jwt
 ### Prerequisites
 - Python 3.10+
 - A [Supabase](https://supabase.com) project
-- An [OpenAI-compatible] API key (For testing, OpenRouter and ILMU API were used)
+- An [OpenRouter] API key (Model: GLM-4.5-air)
 - VS Code with Live Server extension (or any static file server on port 5500)
 ---
  
